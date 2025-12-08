@@ -6,8 +6,6 @@
 [![GitHub release](https://img.shields.io/github/release/y-miyazaki/arc.svg)](https://github.com/y-miyazaki/arc/releases/latest)
 [![cd-release-go](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml/badge.svg?branch=main)](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml)
 
-**Work in Progress**
-
 ARC is a command-line tool for collecting AWS resource information across multiple services and regions, generating organized CSV files and an interactive HTML viewer for easy browsing.
 
 ## Features
