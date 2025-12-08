@@ -210,7 +210,9 @@ func StringValue(v any, defaultValues ...string) string {
 		}
 		// avoid mutating the caller's slice: make a copy before sorting
 		tmp := slices.Clone(val)
-		slices.Sort(tmp)
+		slices.SortFunc(tmp, func(a, b string) int {
+			return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+		})
 		return strings.Join(tmp, "\n")
 	case []*string:
 		if len(val) == 0 {
@@ -225,7 +227,9 @@ func StringValue(v any, defaultValues ...string) string {
 		if len(strs) == 0 {
 			return defaultValue
 		}
-		slices.Sort(strs)
+		slices.SortFunc(strs, func(a, b string) int {
+			return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+		})
 		return strings.Join(strs, "\n")
 	default:
 		return fmt.Sprintf("%v", val)
