@@ -7,6 +7,34 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
+// MockIAMPolicyCollector is a testable version of IAMPolicyCollector that uses mock data
+type MockIAMPolicyCollector struct{}
+
+func NewMockIAMPolicyCollector() *MockIAMPolicyCollector {
+	return &MockIAMPolicyCollector{}
+}
+
+func (m *MockIAMPolicyCollector) Name() string {
+	return "iam_policy"
+}
+
+func (m *MockIAMPolicyCollector) ShouldSort() bool {
+	return true
+}
+
+func (m *MockIAMPolicyCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
+		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
+	}
+}
+
 func TestIAMPolicyCollector_Basic(t *testing.T) {
 	collector := NewMockIAMPolicyCollector()
 	assert.Equal(t, "iam_policy", collector.Name())
@@ -48,33 +76,5 @@ func TestIAMPolicyCollector_GetColumns(t *testing.T) {
 
 	for i, column := range columns {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, expectedHeaders[i])
-	}
-}
-
-// MockIAMPolicyCollector is a testable version of IAMPolicyCollector that uses mock data
-type MockIAMPolicyCollector struct{}
-
-func NewMockIAMPolicyCollector() *MockIAMPolicyCollector {
-	return &MockIAMPolicyCollector{}
-}
-
-func (m *MockIAMPolicyCollector) Name() string {
-	return "iam_policy"
-}
-
-func (m *MockIAMPolicyCollector) ShouldSort() bool {
-	return true
-}
-
-func (m *MockIAMPolicyCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
 	}
 }

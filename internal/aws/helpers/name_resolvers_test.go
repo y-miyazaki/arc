@@ -350,3 +350,82 @@ func (m *MockEC2Client) DescribeSubnets(ctx context.Context, params *ec2.Describ
 	args := m.Called(ctx, params)
 	return args.Get(0).(*ec2.DescribeSubnetsOutput), args.Error(1)
 }
+
+func TestGetKMSName_AliasAndNil(t *testing.T) {
+	ctx := context.Background()
+
+	// nil identifier -> NotAvailable
+	if got := helpers.GetKMSName(ctx, nil, nil, "us-east-1"); got != helpers.NotAvailable {
+		t.Fatalf("expected %s for nil identifier, got %s", helpers.NotAvailable, got)
+	}
+
+	// empty identifier pointer -> NotAvailable
+	empty := ""
+	if got := helpers.GetKMSName(ctx, nil, &empty, "us-east-1"); got != helpers.NotAvailable {
+		t.Fatalf("expected %s for empty identifier, got %s", helpers.NotAvailable, got)
+	}
+
+	// alias ARN -> should return alias part
+	aliasARN := "arn:aws:kms:us-east-1:123456789012:alias/my-alias"
+	got := helpers.GetKMSName(ctx, nil, &aliasARN, "us-east-1")
+	// GetKMSName returns the last part of the ARN (it keeps the "alias/" prefix)
+	if got != "alias/my-alias" {
+		t.Fatalf("expected alias 'alias/my-alias', got %s", got)
+	}
+}
+
+func TestGetKMSName_AliasString(t *testing.T) {
+	ctx := context.Background()
+
+	alias := "alias/my-alias"
+	got := helpers.GetKMSName(ctx, nil, &alias, "us-east-1")
+	if got != "alias/my-alias" {
+		t.Fatalf("expected %s for alias string, got %s", "alias/my-alias", got)
+	}
+}
+
+func TestNameResolvers_ReturnsInputForNonPrefixedIDs(t *testing.T) {
+	ctx := context.Background()
+
+	// Security group: non-sg prefix returns input
+	sg := aws.String("not-sg-123")
+	if got := helpers.GetSecurityGroupName(ctx, nil, sg, "us-east-1"); got != "not-sg-123" {
+		t.Fatalf("expected %s, got %s", "not-sg-123", got)
+	}
+
+	// Subnet: non-subnet prefix returns input
+	subnet := aws.String("something")
+	if got := helpers.GetSubnetName(ctx, nil, subnet, "us-east-1"); got != "something" {
+		t.Fatalf("expected %s, got %s", "something", got)
+	}
+
+	// VPC: non-vpc prefixed
+	vpc := aws.String("id-1")
+	if got := helpers.GetVPCName(ctx, nil, vpc, "us-east-1"); got != "id-1" {
+		t.Fatalf("expected %s, got %s", "id-1", got)
+	}
+
+	// Image: non-ami prefixed
+	image := aws.String("img-1")
+	if got := helpers.GetImageName(ctx, nil, image, "us-east-1"); got != "img-1" {
+		t.Fatalf("expected %s, got %s", "img-1", got)
+	}
+
+	// Snapshot: non-snap prefixed
+	snap := aws.String("snapthing")
+	if got := helpers.GetSnapshotName(ctx, nil, snap, "us-east-1"); got != "snapthing" {
+		t.Fatalf("expected %s, got %s", "snapthing", got)
+	}
+
+	// Volume: non-vol prefixed
+	vol := aws.String("volthing")
+	if got := helpers.GetVolumeName(ctx, nil, vol, "us-east-1"); got != "volthing" {
+		t.Fatalf("expected %s, got %s", "volthing", got)
+	}
+
+	// Network Interface: non-eni
+	eni := aws.String("eniX")
+	if got := helpers.GetNetworkInterfaceName(ctx, nil, eni, "us-east-1"); got != "eniX" {
+		t.Fatalf("expected %s, got %s", "eniX", got)
+	}
+}

@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// ARNPartsCount represents the expected number of parts in an ARN
-	ARNPartsCount = 5
+	// ARNPartsCount represents the expected number of parts in an ARN (arn:partition:service:region:account:resource)
+	ARNPartsCount = 6
 	// ARNPartsAccountIndex represents the index of account ID in ARN parts
 	ARNPartsAccountIndex = 4
 	// DecimalBase is the base for decimal number formatting
@@ -23,6 +23,11 @@ const (
 	Float32Bits = 32
 	// Float64Bits is the bit size for float64 formatting
 	Float64Bits = 64
+	// Int64Bits is the bit size for int64 parsing
+	Int64Bits = 64
+	// MillisThreshold is the minimum integer value that indicates a millisecond epoch.
+	// Values >= MillisThreshold are treated as milliseconds since epoch rather than seconds.
+	MillisThreshold = 1000000000000 // 1_000_000_000_000
 )
 
 var (
@@ -112,8 +117,10 @@ func StringValue(v any, defaultValues ...string) string {
 		if len(val) == 0 {
 			return defaultValue
 		}
-		slices.Sort(val)
-		return strings.Join(val, "\n")
+		// avoid mutating the caller's slice: make a copy before sorting
+		tmp := slices.Clone(val)
+		slices.Sort(tmp)
+		return strings.Join(tmp, "\n")
 	case []*string:
 		if len(val) == 0 {
 			return defaultValue
@@ -198,4 +205,37 @@ func FormatJSONIndent(val any) (string, error) {
 		return "", fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	return string(jsonBytes), nil
+}
+
+// ParseTimestamp tries to convert a timestamp string into either *time.Time or the original string.
+// Supported inputs:
+// - epoch seconds (e.g. "1695601655")
+// - epoch milliseconds (e.g. "1695601655000")
+// - RFC3339 strings (e.g. "2023-08-10T09:00:00Z")
+// Returns a *time.Time when parsing succeeds, otherwise returns the original string.
+func ParseTimestamp(val string) any {
+	if val == "" {
+		return val
+	}
+
+	// Try epoch numeric parse
+	if n, err := strconv.ParseInt(val, DecimalBase, Int64Bits); err == nil {
+		// Decide whether value is seconds or milliseconds by threshold
+		// Any value >= MillisThreshold we treat as milliseconds
+		if n >= MillisThreshold {
+			t := time.Unix(0, n*int64(time.Millisecond)).UTC()
+			return &t
+		}
+		t := time.Unix(n, 0).UTC()
+		return &t
+	}
+
+	// Try RFC3339
+	if t, err := time.Parse(time.RFC3339, val); err == nil {
+		t = t.UTC()
+		return &t
+	}
+
+	// fallback to original string
+	return val
 }

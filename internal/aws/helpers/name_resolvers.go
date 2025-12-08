@@ -3,6 +3,7 @@ package helpers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -55,44 +56,82 @@ func GetAllKMSKeys(ctx context.Context, cfg *aws.Config, region string) (map[str
 		o.Region = region
 	})
 
-	// Get all KMS keys to build ARNs
-	keysResult, err := svc.ListKeys(ctx, &kms.ListKeysInput{})
+	keyMap, err := getAllKMSKeysWithClient(ctx, svc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+		return nil, fmt.Errorf("getAllKMSKeysWithClient: %w", err)
 	}
 
-	// Get all aliases
-	aliases, err := svc.ListAliases(ctx, &kms.ListAliasesInput{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list KMS aliases: %w", err)
+	return keyMap, nil
+}
+
+// Package-level errors for client-type mismatches in test helpers.
+var (
+	ErrClientNotListKeys     = errors.New("client does not implement ListKeysAPIClient")
+	ErrClientNotListAliases  = errors.New("client does not implement ListAliasesAPIClient")
+	ErrClientNotDescribeVPCs = errors.New("client does not implement DescribeVpcsAPIClient")
+)
+
+// getAllKMSKeysWithClient collects KMS keys and aliases using the provided client.
+// This helper exists so unit tests can inject a mock client that implements the
+// KMS list APIs.
+func getAllKMSKeysWithClient(ctx context.Context, client any) (map[string]string, error) {
+	// We expect the client to implement both ListKeys and ListAliases APIs.
+	// Use type assertion to pass the concrete client to the AWS paginator constructors.
+	keysClient, ok := client.(kms.ListKeysAPIClient)
+	if !ok {
+		return nil, ErrClientNotListKeys
+	}
+	aliasesClient, ok := client.(kms.ListAliasesAPIClient)
+	if !ok {
+		return nil, ErrClientNotListAliases
 	}
 
+	// Collect all KMS keys to build ARNs
+	keyARNs := make(map[string]string)
+	keysPaginator := kms.NewListKeysPaginator(keysClient, &kms.ListKeysInput{})
+	for keysPaginator.HasMorePages() {
+		page, err := keysPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+		}
+		for i := range page.Keys {
+			k := &page.Keys[i]
+			keyARNs[aws.ToString(k.KeyId)] = aws.ToString(k.KeyArn)
+		}
+	}
+
+	// Collect aliases and build final mapping. We will keep alias names with the
+	// "alias/" prefix for canonicalization and add mappings for keyID and keyARN.
 	keyMap := make(map[string]string)
-
-	// Create a map with both key ID and ARN as keys
-	for i := range aliases.Aliases {
-		alias := &aliases.Aliases[i]
-		if alias.TargetKeyId == nil || alias.AliasName == nil {
-			continue
-		}
-		keyID := aws.ToString(alias.TargetKeyId)
-		aliasName := aws.ToString(alias.AliasName)
-		// Remove "alias/" prefix from alias name
-		if after, ok := strings.CutPrefix(aliasName, "alias/"); ok {
-			aliasName = after
+	aliasesPaginator := kms.NewListAliasesPaginator(aliasesClient, &kms.ListAliasesInput{})
+	for aliasesPaginator.HasMorePages() {
+		page, err := aliasesPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list KMS aliases: %w", err)
 		}
 
-		// Add mapping for key ID
-		keyMap[keyID] = aliasName
-
-		// Find matching key ARN from ListKeys result
-		for j := range keysResult.Keys {
-			key := &keysResult.Keys[j]
-			if key.KeyArn != nil && aws.ToString(key.KeyId) == keyID {
-				keyARN := aws.ToString(key.KeyArn)
-				keyMap[keyARN] = aliasName
-				break
+		for j := range page.Aliases {
+			alias := &page.Aliases[j]
+			if alias.TargetKeyId == nil || alias.AliasName == nil {
+				continue
 			}
+			keyID := aws.ToString(alias.TargetKeyId)
+			aliasName := aws.ToString(alias.AliasName)
+
+			// Ensure alias name includes the alias/ prefix (canonical form)
+			if !strings.HasPrefix(aliasName, "alias/") {
+				aliasName = "alias/" + aliasName
+			}
+
+			// Map key ID -> alias
+			keyMap[keyID] = aliasName
+			// Also map key ARN -> alias when available
+			if arn, found := keyARNs[keyID]; found && arn != "" {
+				keyMap[arn] = aliasName
+			}
+
+			// Make alias name resolvable directly to itself
+			keyMap[aliasName] = aliasName
 		}
 	}
 
@@ -106,20 +145,37 @@ func GetAllVPCs(ctx context.Context, cfg *aws.Config, region string) (map[string
 		o.Region = region
 	})
 
-	result, err := svc.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
+	vpcMap, err := getAllVPCsWithClient(ctx, svc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe VPCs: %w", err)
+		return nil, fmt.Errorf("getAllVPCsWithClient: %w", err)
 	}
 
+	return vpcMap, nil
+}
+
+// getAllVPCsWithClient collects VPCs using a provided EC2 client (testable helper).
+func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeVpcsAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeVPCs
+	}
+
+	paginator := ec2.NewDescribeVpcsPaginator(cli, &ec2.DescribeVpcsInput{})
 	vpcMap := make(map[string]string)
-	for i := range result.Vpcs {
-		vpc := &result.Vpcs[i]
-		vpcID := aws.ToString(vpc.VpcId)
-		name := GetTagValue(vpc.Tags, TagNameKey)
-		if name == "" {
-			name = vpcID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe VPCs: %w", err)
 		}
-		vpcMap[vpcID] = name
+		for i := range page.Vpcs {
+			vpc := &page.Vpcs[i]
+			vpcID := aws.ToString(vpc.VpcId)
+			name := GetTagValue(vpc.Tags, TagNameKey)
+			if name == "" {
+				name = vpcID
+			}
+			vpcMap[vpcID] = name
+		}
 	}
 
 	return vpcMap, nil
@@ -132,20 +188,22 @@ func GetAllSecurityGroups(ctx context.Context, cfg *aws.Config, region string) (
 		o.Region = region
 	})
 
-	result, err := svc.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe security groups: %w", err)
-	}
-
+	paginator := ec2.NewDescribeSecurityGroupsPaginator(svc, &ec2.DescribeSecurityGroupsInput{})
 	sgMap := make(map[string]string)
-	for i := range result.SecurityGroups {
-		sg := &result.SecurityGroups[i]
-		sgID := aws.ToString(sg.GroupId)
-		name := aws.ToString(sg.GroupName)
-		if name == "" {
-			name = sgID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe security groups: %w", err)
 		}
-		sgMap[sgID] = name
+		for i := range page.SecurityGroups {
+			sg := &page.SecurityGroups[i]
+			sgID := aws.ToString(sg.GroupId)
+			name := aws.ToString(sg.GroupName)
+			if name == "" {
+				name = sgID
+			}
+			sgMap[sgID] = name
+		}
 	}
 
 	return sgMap, nil
@@ -158,20 +216,22 @@ func GetAllSubnets(ctx context.Context, cfg *aws.Config, region string) (map[str
 		o.Region = region
 	})
 
-	result, err := svc.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe subnets: %w", err)
-	}
-
+	paginator := ec2.NewDescribeSubnetsPaginator(svc, &ec2.DescribeSubnetsInput{})
 	subnetMap := make(map[string]string)
-	for i := range result.Subnets {
-		subnet := &result.Subnets[i]
-		subnetID := aws.ToString(subnet.SubnetId)
-		name := GetTagValue(subnet.Tags, TagNameKey)
-		if name == "" {
-			name = subnetID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe subnets: %w", err)
 		}
-		subnetMap[subnetID] = name
+		for i := range page.Subnets {
+			subnet := &page.Subnets[i]
+			subnetID := aws.ToString(subnet.SubnetId)
+			name := GetTagValue(subnet.Tags, TagNameKey)
+			if name == "" {
+				name = subnetID
+			}
+			subnetMap[subnetID] = name
+		}
 	}
 
 	return subnetMap, nil
@@ -184,25 +244,25 @@ func GetAllImages(ctx context.Context, cfg *aws.Config, region string) (map[stri
 		o.Region = region
 	})
 
-	result, err := svc.DescribeImages(ctx, &ec2.DescribeImagesInput{
-		Owners: []string{"self"}, // Only images owned by the account
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe images: %w", err)
-	}
-
+	paginator := ec2.NewDescribeImagesPaginator(svc, &ec2.DescribeImagesInput{Owners: []string{"self"}})
 	imageMap := make(map[string]string)
-	for i := range result.Images {
-		image := &result.Images[i]
-		imageID := aws.ToString(image.ImageId)
-		name := aws.ToString(image.Name)
-		if name == "" {
-			name = GetTagValue(image.Tags, TagNameKey)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe images: %w", err)
 		}
-		if name == "" {
-			name = imageID
+		for i := range page.Images {
+			image := &page.Images[i]
+			imageID := aws.ToString(image.ImageId)
+			name := aws.ToString(image.Name)
+			if name == "" {
+				name = GetTagValue(image.Tags, TagNameKey)
+			}
+			if name == "" {
+				name = imageID
+			}
+			imageMap[imageID] = name
 		}
-		imageMap[imageID] = name
 	}
 
 	return imageMap, nil
@@ -215,22 +275,22 @@ func GetAllSnapshots(ctx context.Context, cfg *aws.Config, region string) (map[s
 		o.Region = region
 	})
 
-	result, err := svc.DescribeSnapshots(ctx, &ec2.DescribeSnapshotsInput{
-		OwnerIds: []string{"self"}, // Only snapshots owned by the account
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe snapshots: %w", err)
-	}
-
+	paginator := ec2.NewDescribeSnapshotsPaginator(svc, &ec2.DescribeSnapshotsInput{OwnerIds: []string{"self"}})
 	snapshotMap := make(map[string]string)
-	for i := range result.Snapshots {
-		snapshot := &result.Snapshots[i]
-		snapshotID := aws.ToString(snapshot.SnapshotId)
-		name := GetTagValue(snapshot.Tags, TagNameKey)
-		if name == "" {
-			name = snapshotID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe snapshots: %w", err)
 		}
-		snapshotMap[snapshotID] = name
+		for i := range page.Snapshots {
+			snapshot := &page.Snapshots[i]
+			snapshotID := aws.ToString(snapshot.SnapshotId)
+			name := GetTagValue(snapshot.Tags, TagNameKey)
+			if name == "" {
+				name = snapshotID
+			}
+			snapshotMap[snapshotID] = name
+		}
 	}
 
 	return snapshotMap, nil
@@ -243,20 +303,22 @@ func GetAllVolumes(ctx context.Context, cfg *aws.Config, region string) (map[str
 		o.Region = region
 	})
 
-	result, err := svc.DescribeVolumes(ctx, &ec2.DescribeVolumesInput{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe volumes: %w", err)
-	}
-
+	paginator := ec2.NewDescribeVolumesPaginator(svc, &ec2.DescribeVolumesInput{})
 	volumeMap := make(map[string]string)
-	for i := range result.Volumes {
-		volume := &result.Volumes[i]
-		volumeID := aws.ToString(volume.VolumeId)
-		name := GetTagValue(volume.Tags, TagNameKey)
-		if name == "" {
-			name = volumeID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe volumes: %w", err)
 		}
-		volumeMap[volumeID] = name
+		for i := range page.Volumes {
+			volume := &page.Volumes[i]
+			volumeID := aws.ToString(volume.VolumeId)
+			name := GetTagValue(volume.Tags, TagNameKey)
+			if name == "" {
+				name = volumeID
+			}
+			volumeMap[volumeID] = name
+		}
 	}
 
 	return volumeMap, nil
@@ -269,20 +331,22 @@ func GetAllNetworkInterfaces(ctx context.Context, cfg *aws.Config, region string
 		o.Region = region
 	})
 
-	result, err := svc.DescribeNetworkInterfaces(ctx, &ec2.DescribeNetworkInterfacesInput{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe network interfaces: %w", err)
-	}
-
+	paginator := ec2.NewDescribeNetworkInterfacesPaginator(svc, &ec2.DescribeNetworkInterfacesInput{})
 	eniMap := make(map[string]string)
-	for i := range result.NetworkInterfaces {
-		eni := &result.NetworkInterfaces[i]
-		eniID := aws.ToString(eni.NetworkInterfaceId)
-		name := GetTagValue(eni.TagSet, TagNameKey)
-		if name == "" {
-			name = eniID
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe network interfaces: %w", err)
 		}
-		eniMap[eniID] = name
+		for i := range page.NetworkInterfaces {
+			eni := &page.NetworkInterfaces[i]
+			eniID := aws.ToString(eni.NetworkInterfaceId)
+			name := GetTagValue(eni.TagSet, TagNameKey)
+			if name == "" {
+				name = eniID
+			}
+			eniMap[eniID] = name
+		}
 	}
 
 	return eniMap, nil
@@ -298,10 +362,16 @@ func GetKMSName(ctx context.Context, cfg *aws.Config, kmsIdentifier *string, reg
 
 	identifier := aws.ToString(kmsIdentifier)
 
-	// If this is an alias ARN, return the alias part
+	// If this is an alias ARN, return the alias part (keeps "alias/" prefix)
 	if strings.Contains(identifier, ":alias/") {
 		parts := strings.Split(identifier, ":")
 		return parts[len(parts)-1]
+	}
+
+	// If the identifier is already an alias name (canonical form starting with "alias/"),
+	// return it as-is to avoid making an AWS call.
+	if strings.HasPrefix(identifier, "alias/") {
+		return identifier
 	}
 
 	// Extract key ID from ARN if needed

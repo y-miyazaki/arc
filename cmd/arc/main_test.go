@@ -1,7 +1,14 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"testing"
+
+	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/y-miyazaki/arc/internal/aws/resources"
+	"github.com/y-miyazaki/arc/internal/logger"
 )
 
 func TestCollectionOptions(t *testing.T) {
@@ -32,6 +39,46 @@ func TestCollectionOptions(t *testing.T) {
 	}
 	if opts.HTML != true {
 		t.Errorf("Expected HTML to be true, got %t", opts.HTML)
+	}
+}
+
+// fakeCollector is a small test helper implementing Collector
+type fakeCollector struct {
+	name        string
+	shouldError bool
+}
+
+func (f *fakeCollector) Name() string { return f.name }
+func (f *fakeCollector) GetColumns() []resources.Column {
+	return []resources.Column{{Header: "h", Value: func(r resources.Resource) string { return r.Name }}}
+}
+func (f *fakeCollector) ShouldSort() bool { return false }
+func (f *fakeCollector) Collect(ctx context.Context, cfg *awsSDK.Config, region string) ([]resources.Resource, error) {
+	if f.shouldError {
+		return nil, fmt.Errorf("collector %s failed", f.name)
+	}
+	return []resources.Resource{{Category: f.name, Name: f.name + "-r", Region: region}}, nil
+}
+
+func TestCollectResources_AggregatesErrors(t *testing.T) {
+	// Create two collectors: one succeeds, one fails
+	collectors := map[string]resources.Collector{
+		"ok":  &fakeCollector{name: "ok", shouldError: false},
+		"bad": &fakeCollector{name: "bad", shouldError: true},
+	}
+
+	// Logger with discarded output
+	l := logger.NewDefault()
+	l.SetOutput(io.Discard)
+
+	ctx := context.Background()
+	results, failed := collectResources(ctx, l, collectors, []string{"r1"}, &awsSDK.Config{}, &CollectionOptions{MaxConcurrency: 2})
+
+	if _, ok := results["ok"]; !ok {
+		t.Fatalf("expected ok results, got %v", results)
+	}
+	if _, ok := failed["bad"]; !ok {
+		t.Fatalf("expected bad in failed map, got %v", failed)
 	}
 }
 

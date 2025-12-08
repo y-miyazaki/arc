@@ -9,61 +9,6 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-func TestECRCollector_Basic(t *testing.T) {
-	collector := &ECRCollector{}
-	assert.Equal(t, "ecr", collector.Name())
-	assert.True(t, collector.ShouldSort())
-}
-
-func TestECRCollector_GetColumns(t *testing.T) {
-	collector := &ECRCollector{}
-	columns := collector.GetColumns()
-
-	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
-		"URI", "Mutability", "Encryption", "KMSKey", "ScanOnPush", "LifecyclePolicy", "ImageCount", "CreatedAt",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:       "ecr",
-		SubCategory:    "Repository",
-		SubSubCategory: "",
-		Name:           "my-app",
-		Region:         "us-east-1",
-		RawData: map[string]any{
-			"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app",
-			"Mutability":      "MUTABLE",
-			"Encryption":      "AES256",
-			"KMSKey":          "alias/my-key",
-			"ScanOnPush":      "true",
-			"LifecyclePolicy": `[{"rulePriority":1,"description":"Expire old images","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":30},"action":{"type":"expire"}}]`,
-			"ImageCount":      "5",
-			"CreatedAt":       "2023-01-15T10:30:00Z",
-		},
-	}
-
-	// Test each Value function
-	assert.Equal(t, "ecr", columns[0].Value(sampleResource))
-	assert.Equal(t, "Repository", columns[1].Value(sampleResource))
-	assert.Equal(t, "", columns[2].Value(sampleResource))
-	assert.Equal(t, "my-app", columns[3].Value(sampleResource))
-	assert.Equal(t, "us-east-1", columns[4].Value(sampleResource))
-	assert.Equal(t, "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app", columns[5].Value(sampleResource))
-	assert.Equal(t, "MUTABLE", columns[6].Value(sampleResource))
-	assert.Equal(t, "AES256", columns[7].Value(sampleResource))
-	assert.Equal(t, "alias/my-key", columns[8].Value(sampleResource))
-	assert.Equal(t, "true", columns[9].Value(sampleResource))
-	assert.Equal(t, `[{"rulePriority":1,"description":"Expire old images","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":30},"action":{"type":"expire"}}]`, columns[10].Value(sampleResource))
-	assert.Equal(t, "5", columns[11].Value(sampleResource))
-	assert.Equal(t, "2023-01-15T10:30:00Z", columns[12].Value(sampleResource))
-}
-
 // MockECRCollector is a testable version of ECRCollector that uses mock data
 type MockECRCollector struct{}
 
@@ -142,6 +87,61 @@ func (c *MockECRCollector) Collect(ctx context.Context, cfg *aws.Config, region 
 	resources = append(resources, r2)
 
 	return resources, nil
+}
+
+func TestECRCollector_Basic(t *testing.T) {
+	collector := &ECRCollector{}
+	assert.Equal(t, "ecr", collector.Name())
+	assert.True(t, collector.ShouldSort())
+}
+
+func TestECRCollector_GetColumns(t *testing.T) {
+	collector := &ECRCollector{}
+	columns := collector.GetColumns()
+
+	expectedHeaders := []string{
+		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"URI", "Mutability", "Encryption", "KMSKey", "ScanOnPush", "LifecyclePolicy", "ImageCount", "CreatedAt",
+	}
+
+	assert.Len(t, columns, len(expectedHeaders))
+	for i, column := range columns {
+		assert.Equal(t, expectedHeaders[i], column.Header)
+	}
+
+	// Test Value functions with sample resource
+	sampleResource := Resource{
+		Category:       "ecr",
+		SubCategory:    "Repository",
+		SubSubCategory: "",
+		Name:           "my-app",
+		Region:         "us-east-1",
+		RawData: map[string]any{
+			"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app",
+			"Mutability":      "MUTABLE",
+			"Encryption":      "AES256",
+			"KMSKey":          "alias/my-key",
+			"ScanOnPush":      "true",
+			"LifecyclePolicy": `[{"rulePriority":1,"description":"Expire old images","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":30},"action":{"type":"expire"}}]`,
+			"ImageCount":      "5",
+			"CreatedAt":       "2023-01-15T10:30:00Z",
+		},
+	}
+
+	// Test each Value function
+	assert.Equal(t, "ecr", columns[0].Value(sampleResource))
+	assert.Equal(t, "Repository", columns[1].Value(sampleResource))
+	assert.Equal(t, "", columns[2].Value(sampleResource))
+	assert.Equal(t, "my-app", columns[3].Value(sampleResource))
+	assert.Equal(t, "us-east-1", columns[4].Value(sampleResource))
+	assert.Equal(t, "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app", columns[5].Value(sampleResource))
+	assert.Equal(t, "MUTABLE", columns[6].Value(sampleResource))
+	assert.Equal(t, "AES256", columns[7].Value(sampleResource))
+	assert.Equal(t, "alias/my-key", columns[8].Value(sampleResource))
+	assert.Equal(t, "true", columns[9].Value(sampleResource))
+	assert.Equal(t, `[{"rulePriority":1,"description":"Expire old images","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":30},"action":{"type":"expire"}}]`, columns[10].Value(sampleResource))
+	assert.Equal(t, "5", columns[11].Value(sampleResource))
+	assert.Equal(t, "2023-01-15T10:30:00Z", columns[12].Value(sampleResource))
 }
 
 func TestMockECRCollector_Collect(t *testing.T) {

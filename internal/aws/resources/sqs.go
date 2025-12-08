@@ -100,8 +100,10 @@ func (*SQSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 					"ReceiveMessageWaitTimeSeconds": attrs["ReceiveMessageWaitTimeSeconds"],
 					"VisibilityTimeout":             attrs["VisibilityTimeout"],
 					"RedrivePolicy":                 redrivePolicy,
-					"CreatedTimestamp":              attrs["CreatedTimestamp"],
-					"LastModifiedTimestamp":         attrs["LastModifiedTimestamp"],
+					// Convert timestamps (usually epoch seconds) into *time.Time for readability.
+					// If parsing fails (non-numeric), attempt RFC3339 parse. If both fail, keep raw string.
+					"CreatedTimestamp":      helpers.ParseTimestamp(attrs["CreatedTimestamp"]),
+					"LastModifiedTimestamp": helpers.ParseTimestamp(attrs["LastModifiedTimestamp"]),
 				},
 			}))
 		}

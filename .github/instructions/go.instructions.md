@@ -52,25 +52,6 @@ Go 共通ライブラリとサンプルアプリケーションを含むプロ�
 - 依存関係確認: `mcp_serena_find_referencing_symbols`
 - テスト整合性: relative_path 指定で検索
 
-### Project Structure (go-common)
-
-#### Repository Layout
-
-go-common 構造: .github(workflows/instructions), pkg(infrastructure/repository/service/handler/utils), example(gin/mysql/postgres/s3), scripts(go/terraform/lib), coverage
-
-#### Editing Guidelines
-
-- **pkg/**: 品質・テスト重視
-- **example/**: 理解しやすさ重視
-- **scripts/**: 安全性・エラーハンドリング重視
-- **.github/**: 一貫性・メンテナンス性重視
-
-#### Initial Onboarding
-
-1. serena: `activate_project` → `onboarding`
-2. 構造把握: `list_dir` recursive=true
-3. 主要ファイル: go.mod, Makefile, README.md, .github/workflows/
-
 ### Coding Standards
 
 #### Code Simplicity
@@ -100,7 +81,14 @@ go-common 構造: .github(workflows/instructions), pkg(infrastructure/repository
 
 ### Go Standards
 
-- ファイル宣言順序: const → var → type (interface → struct) → func
+- ファイルレベルの宣言順序（厳守）: const → var → type（interface → struct）→ func（constructor → methods → helpers） — ファイル全体での順序維持・可読性向上
+- セクション内の宣言順（推奨）: 各セクション（const/var/type/func）内は原則 A→Z のアルファベット順。ただし、論理的関連のある宣言群はグループ化を許容、最終的な整備は linter/formatter に準拠
+
+例:
+
+- const: アルファベット順（関連グループは一括）
+- type: interfaces 先出し（アルファベット順）、次に structs（アルファベット順）
+- func: constructors（NewXxx）先出し → methods（アルファベット順） → helper/free functions（アルファベット順）
 
 ### Lambda Function
 

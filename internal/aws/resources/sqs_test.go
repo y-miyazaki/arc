@@ -189,3 +189,5 @@ func TestMockSQSCollector_Collect(t *testing.T) {
 	assert.Equal(t, "2023-07-15T14:30:00Z", helpers.GetMapValue(r2.RawData, "CreatedTimestamp"))
 	assert.Equal(t, "2023-09-01T11:15:00Z", helpers.GetMapValue(r2.RawData, "LastModifiedTimestamp"))
 }
+
+// ParseTimestamp tests moved to helpers package (helpers_test.go).

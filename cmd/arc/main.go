@@ -25,12 +25,6 @@ import (
 )
 
 // Version information (set by GoReleaser during build)
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
 const (
 	// LogKeyCategory is the log key for category
 	LogKeyCategory = "category"
@@ -38,19 +32,21 @@ const (
 	LogKeyError = "error"
 	// LogKeyFile is the log key for file
 	LogKeyFile = "file"
-)
 
-var (
-	ErrInvalidOutputPath = errors.New("invalid output file path")
-)
-
-const (
 	// DefaultDirPerm is the default directory permission
 	DefaultDirPerm = 0750
 	// GlobalServiceRegion is the region used for global services (IAM, S3, CloudFront, etc.)
 	GlobalServiceRegion = "us-east-1"
 	// DefaultMaxConcurrency is the default maximum number of concurrent AWS API requests
 	DefaultMaxConcurrency = 5
+)
+
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+
+	ErrInvalidOutputPath = errors.New("invalid output file path")
 )
 
 // CollectionOptions holds the configuration for resource collection
@@ -71,8 +67,24 @@ type collectionResult struct {
 	resources []resources.Resource
 }
 
+// CollectionError wraps per-category errors so callers can inspect details while
+// keeping the top-level error message relatively static for better error handling.
+type CollectionError struct {
+	Details map[string]error
+}
+
+func (ce CollectionError) Error() string {
+	_ = len(ce.Details)
+	return "failed to collect one or more categories"
+}
+
 // collectResources collects resources from all specified collectors and regions
-func collectResources(ctx context.Context, l *logger.Logger, collectors map[string]resources.Collector, regionsToCheck []string, cfg *awsSDK.Config, opts *CollectionOptions) map[string]collectionResult {
+// collectResources runs collectors across regions and returns a map of successful
+// results per category and a map of per-category errors for collectors that failed.
+// The caller can decide how to handle partial failures; this function will not
+// stop on first error in order to try to gather as many successful results as
+// possible.
+func collectResources(ctx context.Context, l *logger.Logger, collectors map[string]resources.Collector, regionsToCheck []string, cfg *awsSDK.Config, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
 	// Collect resources in parallel using goroutines
 	// For each region and collector combination
 	var wg sync.WaitGroup
@@ -112,9 +124,12 @@ func collectResources(ctx context.Context, l *logger.Logger, collectors map[stri
 
 	// Collect all results and merge resources from multiple regions
 	categoryResults := make(map[string]collectionResult)
+	failed := make(map[string]error)
 	for result := range resultsChan {
 		if result.err != nil {
+			// track failures per category so caller can act on partial failures
 			l.Error("Error collecting resources", "category", result.category, "error", result.err)
+			failed[result.category] = result.err
 			continue
 		}
 		// Merge resources from multiple regions
@@ -126,7 +141,7 @@ func collectResources(ctx context.Context, l *logger.Logger, collectors map[stri
 		}
 	}
 
-	return categoryResults
+	return categoryResults, failed
 }
 
 // runCollection executes the main resource collection logic
@@ -195,7 +210,7 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	}
 
 	// Collect resources from all collectors and regions
-	categoryResults := collectResources(ctx, l, collectors, regionsToCheck, &cfg, opts)
+	categoryResults, failedCategories := collectResources(ctx, l, collectors, regionsToCheck, &cfg, opts)
 
 	// Sort categories by name for deterministic output
 	var categories []string
@@ -313,6 +328,20 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 		}
 		l.Info("HTML index generated successfully", "indexPath", filepath.Join(outputDir, accountID, "index.html"))
 	}
+	// If there were per-category failures, return an aggregated error so the
+	// caller and CLI can surface partial failure state while outputs may still
+	// contain successful results.
+	if len(failedCategories) > 0 {
+		// Build a deterministic list of failures
+		var keys []string
+		for k := range failedCategories {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		// details are available in the returned error (CollectionError.Details)
+		return fmt.Errorf("failed to collect categories: %w", CollectionError{Details: failedCategories})
+	}
+
 	return nil
 }
 

@@ -18,18 +18,14 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-var (
-	// ErrTaskDefinitionNotFound is returned when a task definition is not found
-	ErrTaskDefinitionNotFound = errors.New("task definition not found")
+const (
 	// MaxServicesPerDescribe is the maximum number of services to describe in a single call
 	MaxServicesPerDescribe = 10
 	// MinARNParts is the minimum number of parts in a task definition ARN
 	MinARNParts = 2
 	// MinNameParts is the minimum number of parts in a task definition name
 	MinNameParts = 2
-)
 
-const (
 	// EstimatedResourcesPerCluster is the estimated number of resources per cluster for capacity pre-allocation
 	EstimatedResourcesPerCluster = 5
 	// EstimatedServicesPerCluster is the estimated number of services per cluster for capacity pre-allocation
@@ -38,6 +34,11 @@ const (
 	EstimatedPortMappingsPerContainer = 2
 	// EstimatedEnvVarsPerContainer is the estimated number of environment variables per container
 	EstimatedEnvVarsPerContainer = 5
+)
+
+var (
+	// ErrTaskDefinitionNotFound is returned when a task definition is not found
+	ErrTaskDefinitionNotFound = errors.New("task definition not found")
 )
 
 // ECSCollector collects ECS resources.

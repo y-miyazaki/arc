@@ -11,16 +11,6 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-func TestCloudWatchLogsCollector_Name(t *testing.T) {
-	collector := &CloudWatchLogsCollector{}
-	assert.Equal(t, "cloudwatch_logs", collector.Name())
-}
-
-func TestCloudWatchLogsCollector_ShouldSort(t *testing.T) {
-	collector := &CloudWatchLogsCollector{}
-	assert.True(t, collector.ShouldSort())
-}
-
 // MockCloudWatchLogsAPI is a mock implementation of CloudWatch Logs API
 type MockCloudWatchLogsAPI struct {
 	mock.Mock
@@ -140,6 +130,16 @@ func (c *MockCloudWatchLogsCollector) Collect(ctx context.Context, cfg *aws.Conf
 	resources = append(resources, r2)
 
 	return resources, nil
+}
+
+func TestCloudWatchLogsCollector_Name(t *testing.T) {
+	collector := &CloudWatchLogsCollector{}
+	assert.Equal(t, "cloudwatch_logs", collector.Name())
+}
+
+func TestCloudWatchLogsCollector_ShouldSort(t *testing.T) {
+	collector := &CloudWatchLogsCollector{}
+	assert.True(t, collector.ShouldSort())
 }
 
 func TestCloudWatchLogsCollector_Basic(t *testing.T) {

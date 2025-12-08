@@ -9,6 +9,20 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
+func (c *MockRDSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
+		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
+	}
+}
+
 func TestRDSCollector_Basic(t *testing.T) {
 	collector := &RDSCollector{}
 	assert.Equal(t, "rds", collector.Name())
@@ -68,20 +82,6 @@ func (c *MockRDSCollector) Name() string {
 
 func (c *MockRDSCollector) ShouldSort() bool {
 	return false
-}
-
-func (c *MockRDSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
-		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
-	}
 }
 
 func (c *MockRDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {

@@ -10,11 +10,11 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// EC2Collector collects EC2 resources including instances, VPCs, and subnets
-type EC2Collector struct{}
-
 // tagNameKey is the standard AWS tag key for resource names
 const tagNameKey = "Name"
+
+// EC2Collector collects EC2 resources including instances, VPCs, and subnets
+type EC2Collector struct{}
 
 // Name returns the resource name of the collector.
 func (*EC2Collector) Name() string {
