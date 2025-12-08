@@ -11,7 +11,39 @@ import (
 )
 
 // ACMCollector collects ACM certificates.
-type ACMCollector struct{}
+// It uses dependency injection to manage ACM clients for multiple regions.
+type ACMCollector struct {
+	clients      map[string]*acm.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewACMCollector creates a new ACM collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create ACM clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *ACMCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewACMCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ACMCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *acm.Client {
+		return acm.NewFromConfig(*c, func(o *acm.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ACM clients: %w", err)
+	}
+
+	return &ACMCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*ACMCollector) Name() string {
@@ -42,11 +74,13 @@ func (*ACMCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects ACM resources.
-func (*ACMCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := acm.NewFromConfig(*cfg, func(o *acm.Options) {
-		o.Region = region
-	})
+// Collect collects ACM resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *ACMCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

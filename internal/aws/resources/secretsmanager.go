@@ -5,26 +5,57 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // SecretsManagerCollector collects Secrets Manager secrets.
-type SecretsManagerCollector struct{}
+// It uses dependency injection to manage Secrets Manager clients for multiple regions.
+type SecretsManagerCollector struct {
+	clients      map[string]*secretsmanager.Client
+	nameResolver *helpers.NameResolver
+}
 
-// Name returns the collector name.
+// NewSecretsManagerCollector creates a new Secrets Manager collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Secrets Manager clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *SecretsManagerCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewSecretsManagerCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*SecretsManagerCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *secretsmanager.Client {
+		return secretsmanager.NewFromConfig(*c, func(o *secretsmanager.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Secrets Manager clients: %w", err)
+	}
+
+	return &SecretsManagerCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*SecretsManagerCollector) Name() string {
 	return "secretsmanager"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*SecretsManagerCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for Secrets Manager secrets.
+// GetColumns returns the CSV columns for the collector.
 func (*SecretsManagerCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -43,16 +74,18 @@ func (*SecretsManagerCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Secrets Manager secrets from the specified region.
-func (*SecretsManagerCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := secretsmanager.NewFromConfig(*cfg, func(o *secretsmanager.Options) {
-		o.Region = region
-	})
+// Collect collects Secrets Manager resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *SecretsManagerCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
 	// Get all KMS keys to resolve names efficiently
-	kmsMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	kmsMap, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}
@@ -66,7 +99,7 @@ func (*SecretsManagerCollector) Collect(ctx context.Context, cfg *aws.Config, re
 
 		for i := range page.SecretList {
 			secret := &page.SecretList[i]
-			resources = append(resources, NewResource(&ResourceInput{
+			r := NewResource(&ResourceInput{
 				Category:    "secretsmanager",
 				SubCategory: "Secret",
 				Name:        secret.Name,
@@ -81,7 +114,8 @@ func (*SecretsManagerCollector) Collect(ctx context.Context, cfg *aws.Config, re
 					"LastRotatedDate":   secret.LastRotatedDate,
 					"LastChangedDate":   secret.LastChangedDate,
 				},
-			}))
+			})
+			resources = append(resources, r)
 		}
 	}
 

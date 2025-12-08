@@ -48,22 +48,147 @@ type Collector interface {
     Name() string
     ShouldSort() bool
     GetColumns() []Column
-    Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error)
+    Collect(ctx context.Context, region string) ([]Resource, error)
 }
 ```
 
 - [ ] `Name()`: コレクター名を返す（カテゴリ名と一致）
 - [ ] `ShouldSort()`: ソートが必要かどうかを返す
 - [ ] `GetColumns()`: CSVカラム定義を返す
-- [ ] `Collect()`: リソースを収集して返す
+- [ ] `Collect()`: リソースを収集して返す（`cfg`パラメータは不要、DI済み）
 
-### init()関数
+### 依存性注入パターン（Dependency Injection Pattern）
 
-`init()`関数で`Register`を呼び出してコレクターを登録すること:
+**重要**: コレクターは`init()`関数による静的登録ではなく、`NewXxxCollector`コンストラクタを使用した明示的な初期化を行います。
+
+#### コンストラクタ命名規則
 
 ```go
-func init() { //nolint:gochecknoinits
-    Register("category_name", &CategoryCollector{})
+// 標準的な命名パターン: New<Service>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ServiceCollector, error)
+func NewACMCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ACMCollector, error) {
+    clients, err := helpers.CreateRegionalClients(cfg, regions,
+        func(cfg *aws.Config, region string) *acm.Client {
+            return acm.NewFromConfig(*cfg, func(o *acm.Options) {
+                o.Region = region
+            })
+        })
+    if err != nil {
+        return nil, fmt.Errorf("failed to create ACM clients: %w", err)
+    }
+    return &ACMCollector{
+        clients:      clients,
+        nameResolver: nameResolver,
+    }, nil
+}
+```
+
+#### コレクター構造体
+
+```go
+// 各リージョン用のAWS SDKクライアントをマップで保持
+// nameResolverは全コレクターで共有されるリソース名解決インスタンス
+type ACMCollector struct {
+    clients      map[string]*acm.Client
+    nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+```
+
+#### Collect実装
+
+```go
+func (c *ACMCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+    // 注入されたクライアントを取得
+    client, ok := c.clients[region]
+    if !ok {
+        return nil, fmt.Errorf("no ACM client found for region: %s", region)
+    }
+    // clientを使用してリソース収集...
+}
+```
+
+#### 初期化フロー
+
+`main.go`で以下の順序で初期化:
+
+```go
+// 1. AWSクライアント設定読み込み
+cfg, err := awsClient.GetAWSConfig(ctx, awsprofile, region)
+
+// 2. リージョンリスト取得
+regionsToCheck := getRegionsToCheck(ctx, cfg, regions)
+
+// 3. 全コレクターを明示的に初期化（リフレクションベース）
+// InitializeCollectorsは内部でNameResolverを作成し、全コレクターに注入します
+if err := resources.InitializeCollectors(&cfg, regionsToCheck); err != nil {
+    return err
+}
+
+// 4. 登録済みコレクターを取得して実行
+collectors := resources.GetCollectors()
+```
+
+**注**: `InitializeCollectors`は以下を自動的に実行します:
+1. 単一の`NameResolver`インスタンスを作成（全リージョンのEC2/KMSクライアント付き）
+2. 全コレクターのコンストラクタを呼び出し（リフレクション）
+3. 各コレクターに`NameResolver`を注入
+4. コレクターをグローバルレジストリに登録
+
+#### コレクターの登録
+
+新しいコレクターを追加する際は、`registry.go`の`InitializeCollectors`内で登録します:
+
+```go
+func InitializeCollectors(cfg *aws.Config, regions []string) error {
+    // NameResolver作成
+    nameResolver, err := helpers.NewNameResolver(cfg, regions)
+    if err != nil {
+        return fmt.Errorf("failed to create NameResolver: %w", err)
+    }
+
+    // コレクターを登録
+    RegisterConstructor("acm", NewACMCollector)
+    RegisterConstructor("apigateway", NewAPIGatewayCollector)  // 新規追加例
+    // ... 他のコレクター
+
+    // 自動初期化
+    for name := range collectorConstructors {
+        collector, collErr := createCollector(name, cfg, regions, nameResolver)
+        if collErr != nil {
+            return fmt.Errorf("failed to initialize %s collector: %w", name, collErr)
+        }
+        Register(name, collector)
+    }
+    return nil
+}
+```
+
+#### グローバルサービスの扱い
+
+- **US East 1専用サービス** (例: IAM, CloudFront, Route53):
+  - `us-east-1`がリージョンリストに含まれない場合、空のクライアントマップを返す
+  - `Collect`で該当リージョンがない場合は空リストを返す（エラーではない）
+
+#### S3の特殊ケース
+
+S3は複数リージョンで存在しますが、クライアントはバケットリージョンに基づいて動的に作成する必要があります。コンストラクタでは基本設定のみ保持:
+
+```go
+type S3Collector struct {
+    cfg *aws.Config  // 基本設定を保持、動的にクライアント作成
+}
+```
+
+#### テスト用インターフェース定義
+
+モックテストを容易にするため、必要に応じてAWS SDKクライアントのインターフェースを定義:
+
+```go
+// テスト用インターフェース（必要なメソッドのみ定義）
+type ACMClient interface {
+    ListCertificates(ctx context.Context, params *acm.ListCertificatesInput,
+        optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
+    DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput,
+        optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
 }
 ```
 
@@ -156,18 +281,6 @@ ARN:  aws.ToString(pool.Id),           // 不要
 - **可読性を損なわない範囲で**、不要な一時変数を削減
 - **匿名関数は使用しない**（可読性が大きく低下するため）
 
-良い削減例:
-
-```go
-// Good: 配列を直接 strings.Join で結合
-"AvailabilityZone": strings.Join(azs, "\n"),
-"SecurityGroup":    strings.Join(sgs, "\n"),
-
-// Bad: 不要な中間変数
-lbAZ := strings.Join(azs, "\n")
-"AvailabilityZone": lbAZ,
-```
-
 避けるべき削減:
 
 ```go
@@ -182,7 +295,7 @@ lbAZ := strings.Join(azs, "\n")
 // Good: 一時変数を使用（可読性を維持）
 var billingMode *string
 if table.BillingModeSummary != nil {
-    billingMode = aws.String(string(table.BillingModeSummary.BillingMode))
+    billingMode = table.BillingModeSummary.BillingMode
 }
 "BillingMode": billingMode,
 ```
@@ -194,11 +307,8 @@ if table.BillingModeSummary != nil {
 - `strings.Join`の代わりに`helpers.StringValue`を使用可能
 
 ```go
-// Good: StringValue が配列を処理
-"AlternateDomain": helpers.StringValue(dist.Aliases.Items),
-
-// Also Good: 明示的な strings.Join
-"AlternateDomain": strings.Join(dist.Aliases.Items, "\n"),
+// NewResourceを使用する場合は、helpers.StringValueが自動で適用されるので、配列をそのまま渡す
+"AlternateDomain": dist.Aliases.Items
 ```
 
 ### RawDataの構築
@@ -322,9 +432,9 @@ func (_c *MyCollector) GetColumns() []Column {
 RawData: map[string]any{
     "Description": stack.Description,  // nil の場合 "N/A"、値がある場合はその値
     "Type":        "Stack",
-    "Outputs":     strings.Join(outputs, "\n"),
-    "Parameters":  strings.Join(params, "\n"),
-    "Resources":   strings.Join(stackResources, "\n"),
+    "Outputs":     outputs,
+    "Parameters":  params,
+    "Resources":   stackResources,
     "CreatedDate": stack.CreationTime,
     "UpdatedDate": stack.LastUpdatedTime,  // Stack には存在
     "DriftStatus": stack.DriftInformation.StackDriftStatus,
@@ -335,7 +445,7 @@ RawData: map[string]any{
 RawData: map[string]any{
     "Description": ss.Description,
     "Type":        "StackSet",
-    "Parameters":  strings.Join(params, "\n"),
+    "Parameters":  params,
     "Status":      ss.Status,
     // "Outputs", "Resources", "CreatedDate", "UpdatedDate", "DriftStatus" は設定しない
 }

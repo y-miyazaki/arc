@@ -42,9 +42,52 @@ var (
 )
 
 // ECSCollector collects ECS resources.
-// This collector is stateless and safe for concurrent use across multiple goroutines.
-// Each Collect() call creates its own clients and cache, ensuring thread safety.
-type ECSCollector struct{}
+// It uses dependency injection to manage ECS clients for multiple regions.
+// This collector is safe for concurrent use across multiple goroutines.
+// Each Collect() call creates its own cache, ensuring thread safety.
+type ECSCollector struct {
+	clients      map[string]*ecs.Client
+	ebClients    map[string]*eventbridge.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewECSCollector creates a new ECS collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create ECS clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *ECSCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewECSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ECSCollector, error) {
+	ecsClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *ecs.Client {
+		return ecs.NewFromConfig(*c, func(o *ecs.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ECS clients: %w", err)
+	}
+
+	ebClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *eventbridge.Client {
+		return eventbridge.NewFromConfig(*c, func(o *eventbridge.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EventBridge clients: %w", err)
+	}
+
+	return &ECSCollector{
+		clients:      ecsClients,
+		ebClients:    ebClients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*ECSCollector) Name() string {
@@ -77,15 +120,19 @@ func (*ECSCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects ECS resources.
+// Collect collects ECS resources for the specified region.
+// The collector must have been initialized with a client for this region.
 // This method is safe for concurrent execution across multiple goroutines and regions.
-func (c *ECSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	ecsClient := ecs.NewFromConfig(*cfg, func(o *ecs.Options) {
-		o.Region = region
-	})
-	ebClient := eventbridge.NewFromConfig(*cfg, func(o *eventbridge.Options) {
-		o.Region = region
-	})
+func (c *ECSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	ecsClient, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
+
+	ebClient, ok := c.ebClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s (EventBridge)", ErrNoClientForRegion, region)
+	}
 
 	// Create a local cache for this collection run (thread-safe for this goroutine)
 	taskDefCache := make(map[string]*types.TaskDefinition)

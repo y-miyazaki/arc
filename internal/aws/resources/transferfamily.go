@@ -1,32 +1,61 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/transfer"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // TransferFamilyCollector collects Transfer Family servers.
-// It retrieves server details including protocols and state.
-// The collector uses the ListServers API to discover Transfer Family servers in the region.
-// It extracts protocol information and current server state for reporting.
-type TransferFamilyCollector struct{}
+// It uses dependency injection to manage Transfer Family clients for multiple regions.
+type TransferFamilyCollector struct {
+	clients      map[string]*transfer.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
 
-// Name returns the collector name.
+// NewTransferFamilyCollector creates a new Transfer Family collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Transfer Family clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *TransferFamilyCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewTransferFamilyCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*TransferFamilyCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *transfer.Client {
+		return transfer.NewFromConfig(*c, func(o *transfer.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Transfer Family clients: %w", err)
+	}
+
+	return &TransferFamilyCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*TransferFamilyCollector) Name() string {
 	return "transferfamily"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*TransferFamilyCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for Transfer Family.
+// GetColumns returns the CSV columns for the collector.
 func (*TransferFamilyCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -40,11 +69,13 @@ func (*TransferFamilyCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Transfer Family resources from the specified region.
-func (*TransferFamilyCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := transfer.NewFromConfig(*cfg, func(o *transfer.Options) {
-		o.Region = region
-	})
+// Collect collects Transfer Family resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *TransferFamilyCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
@@ -66,7 +97,7 @@ func (*TransferFamilyCollector) Collect(ctx context.Context, cfg *aws.Config, re
 				protocol = string(desc.Server.Protocols[0])
 			}
 
-			resources = append(resources, NewResource(&ResourceInput{
+			r := NewResource(&ResourceInput{
 				Category:    "transferfamily",
 				SubCategory: "Server",
 				Name:        server.ServerId,
@@ -76,7 +107,8 @@ func (*TransferFamilyCollector) Collect(ctx context.Context, cfg *aws.Config, re
 					"Protocol": protocol,
 					"State":    server.State,
 				},
-			}))
+			})
+			resources = append(resources, r)
 		}
 	}
 

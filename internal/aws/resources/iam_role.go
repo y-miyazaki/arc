@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -5,14 +6,40 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // IAMRoleCollector collects IAM Roles.
-type IAMRoleCollector struct{}
+// It uses dependency injection to manage IAM clients.
+type IAMRoleCollector struct {
+	client       *iam.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewIAMRoleCollector creates a new IAM Role collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions (IAM is global, only processes in us-east-1)
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *IAMRoleCollector: Initialized collector with IAM client and name resolver
+//   - error: Error if client creation fails
+func NewIAMRoleCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*IAMRoleCollector, error) {
+	// IAM is a global service, create single client
+	_ = regions // unused parameter
+	client := iam.NewFromConfig(*cfg)
+
+	return &IAMRoleCollector{
+		client:       client,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*IAMRoleCollector) Name() string {
@@ -41,19 +68,18 @@ func (*IAMRoleCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects IAM Roles from AWS
-// IAM is a global service, so this only runs in us-east-1 region
-func (*IAMRoleCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects IAM Roles for the specified region.
+// IAM is a global service, so this only runs in us-east-1 region.
+func (c *IAMRoleCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// IAM is a global service, only process from us-east-1
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	svc := iam.NewFromConfig(*cfg)
 	var resources []Resource
 
 	// List Roles - collect all IAM roles
-	rolePaginator := iam.NewListRolesPaginator(svc, &iam.ListRolesInput{})
+	rolePaginator := iam.NewListRolesPaginator(c.client, &iam.ListRolesInput{})
 	for rolePaginator.HasMorePages() {
 		page, err := rolePaginator.NextPage(ctx)
 		if err != nil {
@@ -64,7 +90,7 @@ func (*IAMRoleCollector) Collect(ctx context.Context, cfg *aws.Config, region st
 
 			// Get attached policies for the role
 			var attachedPolicies []string
-			policyPaginator := iam.NewListAttachedRolePoliciesPaginator(svc, &iam.ListAttachedRolePoliciesInput{
+			policyPaginator := iam.NewListAttachedRolePoliciesPaginator(c.client, &iam.ListAttachedRolePoliciesInput{
 				RoleName: role.RoleName,
 			})
 			for policyPaginator.HasMorePages() {

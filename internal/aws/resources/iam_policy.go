@@ -1,18 +1,45 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // IAMPolicyCollector collects IAM Policies.
-type IAMPolicyCollector struct{}
+// It uses dependency injection to manage IAM clients.
+type IAMPolicyCollector struct {
+	client       *iam.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewIAMPolicyCollector creates a new IAM Policy collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions (IAM is global, only processes in us-east-1)
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *IAMPolicyCollector: Initialized collector with IAM client and name resolver
+//   - error: Error if client creation fails
+func NewIAMPolicyCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*IAMPolicyCollector, error) {
+	// IAM is a global service, create single client
+	_ = regions // unused parameter
+	client := iam.NewFromConfig(*cfg)
+
+	return &IAMPolicyCollector{
+		client:       client,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*IAMPolicyCollector) Name() string {
@@ -40,19 +67,18 @@ func (*IAMPolicyCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects IAM Policies from AWS
-// IAM is a global service, so this only runs in us-east-1 region
-func (*IAMPolicyCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects IAM Policies for the specified region.
+// IAM is a global service, so this only runs in us-east-1 region.
+func (c *IAMPolicyCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// IAM is a global service, only process from us-east-1
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	svc := iam.NewFromConfig(*cfg)
 	var resources []Resource
 
 	// List Policies (Local scope only) - collect customer-managed policies
-	policyPaginator := iam.NewListPoliciesPaginator(svc, &iam.ListPoliciesInput{
+	policyPaginator := iam.NewListPoliciesPaginator(c.client, &iam.ListPoliciesInput{
 		Scope: types.PolicyScopeTypeLocal,
 	})
 	for policyPaginator.HasMorePages() {
@@ -69,7 +95,7 @@ func (*IAMPolicyCollector) Collect(ctx context.Context, cfg *aws.Config, region 
 				getPolicyInput := &iam.GetPolicyInput{
 					PolicyArn: policy.Arn,
 				}
-				getPolicyOutput, getErr := svc.GetPolicy(ctx, getPolicyInput)
+				getPolicyOutput, getErr := c.client.GetPolicy(ctx, getPolicyInput)
 				if getErr == nil && getPolicyOutput.Policy != nil && getPolicyOutput.Policy.Description != nil {
 					description = *getPolicyOutput.Policy.Description
 				}

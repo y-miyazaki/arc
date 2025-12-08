@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
@@ -14,7 +13,7 @@ type MockCollector struct {
 	name        string
 	shouldSort  bool
 	columns     []Column
-	collectFunc func(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error)
+	collectFunc func(ctx context.Context, region string) ([]Resource, error)
 }
 
 func NewMockCollector(name string, shouldSort bool) *MockCollector {
@@ -26,7 +25,7 @@ func NewMockCollector(name string, shouldSort bool) *MockCollector {
 			{Header: "Name", Value: func(r Resource) string { return r.Name }},
 			{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		},
-		collectFunc: func(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+		collectFunc: func(ctx context.Context, region string) ([]Resource, error) {
 			return []Resource{
 				{
 					Category: "test",
@@ -53,8 +52,8 @@ func (m *MockCollector) GetColumns() []Column {
 	return m.columns
 }
 
-func (m *MockCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	return m.collectFunc(ctx, cfg, region)
+func (m *MockCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	return m.collectFunc(ctx, region)
 }
 
 func TestNewResource(t *testing.T) {
@@ -182,10 +181,9 @@ func TestMockCollector_Collect(t *testing.T) {
 	collector := NewMockCollector("test", true)
 
 	ctx := context.Background()
-	cfg := &aws.Config{}
 	region := "us-west-2"
 
-	resources, err := collector.Collect(ctx, cfg, region)
+	resources, err := collector.Collect(ctx, region)
 
 	assert.NoError(t, err)
 	assert.Len(t, resources, 1)

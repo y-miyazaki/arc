@@ -3,19 +3,45 @@ package resources
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
-
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/batch"
 	"github.com/aws/aws-sdk-go-v2/service/batch/types"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// BatchCollector collects AWS Batch resources.
-// It collects Job Queues, Compute Environments, and Job Definitions.
-type BatchCollector struct{}
+// Sentinel errors for Batch operations.
+var (
+	ErrNoBatchClient = errors.New("no Batch client found for region")
+)
+
+// BatchCollector collects AWS Batch resources (Job Queues, Compute Environments, Job Definitions).
+type BatchCollector struct {
+	clients      map[string]*batch.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewBatchCollector creates a new Batch collector with regional clients.
+func NewBatchCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*BatchCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions,
+		func(cfg *aws.Config, region string) *batch.Client {
+			return batch.NewFromConfig(*cfg, func(o *batch.Options) {
+				o.Region = region
+			})
+		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Batch clients: %w", err)
+	}
+
+	return &BatchCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*BatchCollector) Name() string {
@@ -52,10 +78,11 @@ func (*BatchCollector) GetColumns() []Column {
 }
 
 // Collect collects Batch resources from the specified region.
-func (*BatchCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := batch.NewFromConfig(*cfg, func(o *batch.Options) {
-		o.Region = region
-	})
+func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoBatchClient, region)
+	}
 
 	var resources []Resource
 
@@ -140,7 +167,7 @@ func (*BatchCollector) Collect(ctx context.Context, cfg *aws.Config, region stri
 		for i := range page.JobDefinitions {
 			jd := &page.JobDefinitions[i]
 			name := aws.ToString(jd.JobDefinitionName)
-			if existing, ok := latestRevisions[name]; ok {
+			if existing, ok2 := latestRevisions[name]; ok2 {
 				if aws.ToInt32(jd.Revision) > aws.ToInt32(existing.Revision) {
 					latestRevisions[name] = jd
 				}

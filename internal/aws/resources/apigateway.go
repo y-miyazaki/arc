@@ -1,28 +1,70 @@
 // Package resources contains AWS resource collectors including API Gateway.
-// APIGatewayCollector collects REST and HTTP API Gateway APIs and their authorizers.
+// This package provides collectors for various AWS services, each implementing
+// the Collector interface with dependency injection for regional clients.
+// API Gateway collector specifically handles REST APIs (v1) and HTTP APIs (v2).
 package resources
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// APIGatewayCollector collects API Gateway resources (REST and HTTP).
-type APIGatewayCollector struct{}
+// Sentinel errors for API Gateway operations.
+var (
+	ErrNoAPIGatewayV1Client = errors.New("no API Gateway v1 client found for region")
+	ErrNoAPIGatewayV2Client = errors.New("no API Gateway v2 client found for region")
+)
+
+// APIGatewayCollector collects API Gateway resources (REST and HTTP APIs).
+type APIGatewayCollector struct {
+	clientsV1    map[string]*apigateway.Client
+	clientsV2    map[string]*apigatewayv2.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewAPIGatewayCollector creates a new API Gateway collector with regional clients.
+func NewAPIGatewayCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*APIGatewayCollector, error) {
+	clientsV1, err := helpers.CreateRegionalClients(cfg, regions,
+		func(cfg *aws.Config, region string) *apigateway.Client {
+			return apigateway.NewFromConfig(*cfg, func(o *apigateway.Options) {
+				o.Region = region
+			})
+		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API Gateway v1 clients: %w", err)
+	}
+
+	clientsV2, err := helpers.CreateRegionalClients(cfg, regions,
+		func(cfg *aws.Config, region string) *apigatewayv2.Client {
+			return apigatewayv2.NewFromConfig(*cfg, func(o *apigatewayv2.Options) {
+				o.Region = region
+			})
+		})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API Gateway v2 clients: %w", err)
+	}
+
+	return &APIGatewayCollector{
+		clientsV1:    clientsV1,
+		clientsV2:    clientsV2,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*APIGatewayCollector) Name() string {
 	return "apigateway"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns false to maintain API and authorizer grouping.
 func (*APIGatewayCollector) ShouldSort() bool {
 	return false
 }
@@ -46,20 +88,20 @@ func (*APIGatewayCollector) GetColumns() []Column {
 }
 
 // Collect collects API Gateway resources from the specified region.
-func (*APIGatewayCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// REST APIs (v1)
-	svcV1 := apigateway.NewFromConfig(*cfg, func(o *apigateway.Options) {
-		o.Region = region
-	})
+func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svcV1, okV1 := c.clientsV1[region]
+	if !okV1 {
+		return nil, fmt.Errorf("%w: %s", ErrNoAPIGatewayV1Client, region)
+	}
 
-	// HTTP APIs (v2)
-	svcV2 := apigatewayv2.NewFromConfig(*cfg, func(o *apigatewayv2.Options) {
-		o.Region = region
-	})
+	svcV2, okV2 := c.clientsV2[region]
+	if !okV2 {
+		return nil, fmt.Errorf("%w: %s", ErrNoAPIGatewayV2Client, region)
+	}
 
 	var resources []Resource
 
-	// 1. REST APIs
+	// 1. REST APIs (v1)
 	paginatorV1 := apigateway.NewGetRestApisPaginator(svcV1, &apigateway.GetRestApisInput{})
 	for paginatorV1.HasMorePages() {
 		page, err := paginatorV1.NextPage(ctx)
@@ -98,6 +140,7 @@ func (*APIGatewayCollector) Collect(ctx context.Context, cfg *aws.Config, region
 					}
 				}
 			}
+
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:    "apigateway",
 				SubCategory: "RestAPI",
@@ -143,7 +186,7 @@ func (*APIGatewayCollector) Collect(ctx context.Context, cfg *aws.Config, region
 		}
 	}
 
-	// 2. HTTP APIs
+	// 2. HTTP APIs (v2)
 	var nextToken *string
 	for {
 		apisV2, err := svcV2.GetApis(ctx, &apigatewayv2.GetApisInput{

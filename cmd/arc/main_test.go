@@ -6,7 +6,6 @@ import (
 	"io"
 	"testing"
 
-	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/y-miyazaki/arc/internal/aws/resources"
 	"github.com/y-miyazaki/arc/internal/logger"
 )
@@ -53,7 +52,7 @@ func (f *fakeCollector) GetColumns() []resources.Column {
 	return []resources.Column{{Header: "h", Value: func(r resources.Resource) string { return r.Name }}}
 }
 func (f *fakeCollector) ShouldSort() bool { return false }
-func (f *fakeCollector) Collect(ctx context.Context, cfg *awsSDK.Config, region string) ([]resources.Resource, error) {
+func (f *fakeCollector) Collect(ctx context.Context, region string) ([]resources.Resource, error) {
 	if f.shouldError {
 		return nil, fmt.Errorf("collector %s failed", f.name)
 	}
@@ -72,7 +71,7 @@ func TestCollectResources_AggregatesErrors(t *testing.T) {
 	l.SetOutput(io.Discard)
 
 	ctx := context.Background()
-	results, failed := collectResources(ctx, l, collectors, []string{"r1"}, &awsSDK.Config{}, &CollectionOptions{MaxConcurrency: 2})
+	results, failed := collectResources(ctx, l, collectors, []string{"r1"}, &CollectionOptions{MaxConcurrency: 2})
 
 	if _, ok := results["ok"]; !ok {
 		t.Fatalf("expected ok results, got %v", results)

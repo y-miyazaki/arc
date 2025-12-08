@@ -1,4 +1,4 @@
-// Package resources provides AWS resource collectors for different services.
+// Package resources provides AWS resource collectors.
 //
 //nolint:revive // comments-density: VPC collector has many API calls, additional comments would be redundant
 package resources
@@ -11,12 +11,43 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // VPCCollector collects VPC resources.
-type VPCCollector struct{}
+// It uses dependency injection to manage EC2 clients for multiple regions.
+type VPCCollector struct {
+	clients      map[string]*ec2.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewVPCCollector creates a new VPC collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create EC2 clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *VPCCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewVPCCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*VPCCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *ec2.Client {
+		return ec2.NewFromConfig(*c, func(o *ec2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EC2 clients: %w", err)
+	}
+
+	return &VPCCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*VPCCollector) Name() string {
@@ -46,18 +77,27 @@ func (*VPCCollector) GetColumns() []Column {
 		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
 		{Header: "CIDR", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CIDR") }},
 		{Header: "PublicIP", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PublicIP") }},
+		{Header: "Inbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Inbound") }},
+		{Header: "Outbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Outbound") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Service", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Service") }},
+		{Header: "Subnets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnets") }},
+		{Header: "RouteTables", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RouteTables") }},
+		{Header: "SecurityGroups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroups") }},
 		{Header: "Settings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Settings") }},
 		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
 	}
 }
 
-// Collect collects VPC resources.
+// Collect collects VPC resources for the specified region.
+// The collector must have been initialized with a client for this region.
 //
 //nolint:revive // cognitive-complexity: VPC collector inherently complex due to many subresources
-func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
+func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
@@ -201,16 +241,14 @@ func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 
 		for j := range igwOut.InternetGateways {
 			igw := &igwOut.InternetGateways[j]
-			igwID := helpers.StringValue(igw.InternetGatewayId)
-			igwName := helpers.GetTagValue(igw.Tags, "Name")
 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "InternetGateway",
-				Name:           igwName,
+				Name:           helpers.GetTagValue(igw.Tags, "Name"),
 				Region:         region,
 				RawData: map[string]any{
-					"ID":    igwID,
+					"ID":    igw.InternetGatewayId,
 					"State": "attached",
 				},
 			}))
@@ -340,8 +378,6 @@ func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				}
 			}
 
-			settings := fmt.Sprintf("Inbound:"+"\n"+"%s"+"\n"+"Outbound:"+"\n"+"%s", strings.Join(inbound, "\n"), strings.Join(outbound, "\n"))
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "SecurityGroup",
@@ -350,7 +386,8 @@ func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				RawData: map[string]any{
 					"ID":          sgID,
 					"Description": sgDesc,
-					"Settings":    settings,
+					"Inbound":     inbound,
+					"Outbound":    outbound,
 				},
 			}))
 		}
@@ -376,22 +413,19 @@ func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				sgIDs = append(sgIDs, helpers.StringValue(g.GroupId))
 			}
 
-			desc := fmt.Sprintf("Type: %s"+"\n"+"Service: %s"+"\n"+"Subnet: %s"+"\n"+"RouteTable: %s"+"\n"+"SecurityGroup: %s",
-				epType,
-				epService,
-				strings.Join(ep.SubnetIds, "\n"),
-				strings.Join(ep.RouteTableIds, "\n"),
-				strings.Join(sgIDs, "\n"))
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "Endpoint",
 				Name:           epName,
 				Region:         region,
 				RawData: map[string]any{
-					"ID":       epID,
-					"Settings": desc,
-					"State":    epState,
+					"ID":             epID,
+					"Type":           epType,
+					"Service":        epService,
+					"Subnets":        ep.SubnetIds,
+					"RouteTables":    ep.RouteTableIds,
+					"SecurityGroups": sgIDs,
+					"State":          epState,
 				},
 			}))
 		}

@@ -1,35 +1,61 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // RedshiftCollector collects Redshift clusters.
-// It retrieves cluster details, node types, and security groups.
-// It also collects information about database names and endpoints.
-// The collector uses the Redshift DescribeClusters API to list all clusters
-// in the specified region.
-// It implements the Collector interface.
-type RedshiftCollector struct{}
+// It uses dependency injection to manage Redshift clients for multiple regions.
+type RedshiftCollector struct {
+	clients      map[string]*redshift.Client
+	nameResolver *helpers.NameResolver
+}
 
-// Name returns the collector name.
+// NewRedshiftCollector creates a new Redshift collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Redshift clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *RedshiftCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewRedshiftCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*RedshiftCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *redshift.Client {
+		return redshift.NewFromConfig(*c, func(o *redshift.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Redshift clients: %w", err)
+	}
+
+	return &RedshiftCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*RedshiftCollector) Name() string {
 	return "redshift"
 }
 
-// ShouldSort returns true to enable sorting of results.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*RedshiftCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for Redshift.
-// It defines headers and value extractors for cluster properties.
+// GetColumns returns the CSV columns for the collector.
 func (*RedshiftCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -54,26 +80,26 @@ func (*RedshiftCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Redshift clusters from the specified region.
-// It retrieves cluster details including node types, VPCs, security groups, and KMS keys.
-// Uses batch API calls to resolve names efficiently.
-func (*RedshiftCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := redshift.NewFromConfig(*cfg, func(o *redshift.Options) {
-		o.Region = region
-	})
+// Collect collects Redshift resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *RedshiftCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
-	// Get all VPCs and KMS keys to resolve names efficiently
-	vpcMap, err := helpers.GetAllVPCs(ctx, cfg, region)
+	// Get resources for name resolution
+	vpcs, err := c.nameResolver.GetAllVPCs(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get VPCs: %w", err)
 	}
-	kmsMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	kmsKeys, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}
-	sgMap, err := helpers.GetAllSecurityGroups(ctx, cfg, region)
+	securityGroups, err := c.nameResolver.GetAllSecurityGroups(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get security groups: %w", err)
 	}
@@ -104,7 +130,7 @@ func (*RedshiftCollector) Collect(ctx context.Context, cfg *aws.Config, region s
 				sgIDs = append(sgIDs, sg.VpcSecurityGroupId)
 			}
 
-			resources = append(resources, NewResource(&ResourceInput{
+			r := NewResource(&ResourceInput{
 				Category:    "redshift",
 				SubCategory: "Cluster",
 				Name:        cluster.ClusterIdentifier,
@@ -117,15 +143,16 @@ func (*RedshiftCollector) Collect(ctx context.Context, cfg *aws.Config, region s
 					"Endpoint":               endpoint,
 					"Port":                   port,
 					"MasterUsername":         cluster.MasterUsername,
-					"VPCName":                helpers.ResolveNameFromMap(cluster.VpcId, vpcMap),
+					"VPCName":                helpers.ResolveNameFromMap(cluster.VpcId, vpcs),
 					"ClusterSubnetGroupName": cluster.ClusterSubnetGroupName,
-					"SecurityGroup":          helpers.ResolveNamesFromMap(sgIDs, sgMap),
+					"SecurityGroup":          helpers.ResolveNamesFromMap(sgIDs, securityGroups),
 					"Encrypted":              cluster.Encrypted,
-					"KmsKey":                 helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsMap),
+					"KmsKey":                 helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsKeys),
 					"PubliclyAccessible":     cluster.PubliclyAccessible,
 					"ClusterStatus":          cluster.ClusterStatus,
 				},
-			}))
+			})
+			resources = append(resources, r)
 		}
 	}
 

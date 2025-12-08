@@ -1,4 +1,4 @@
-// Package resources provides AWS resource collectors for different services.
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -18,7 +18,39 @@ const (
 )
 
 // RDSCollector collects RDS resources.
-type RDSCollector struct{}
+// It uses dependency injection to manage RDS clients for multiple regions.
+type RDSCollector struct {
+	clients      map[string]*rds.Client
+	nameResolver *helpers.NameResolver
+}
+
+// NewRDSCollector creates a new RDS collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create RDS clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *RDSCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewRDSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*RDSCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *rds.Client {
+		return rds.NewFromConfig(*c, func(o *rds.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RDS clients: %w", err)
+	}
+
+	return &RDSCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*RDSCollector) Name() string {
@@ -56,16 +88,18 @@ func (*RDSCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects RDS resources.
-func (*RDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := rds.NewFromConfig(*cfg, func(o *rds.Options) {
-		o.Region = region
-	})
+// Collect collects RDS resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
-	// Get all KMS keys to resolve names efficiently
-	kmsMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	// Get KMS keys for name resolution
+	kmsKeys, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}
@@ -124,7 +158,7 @@ func (*RDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				"EngineLifecycleSupport":           cluster.EngineLifecycleSupport,
 				"IAMDatabaseAuthenticationEnabled": cluster.IAMDatabaseAuthenticationEnabled,
 				"KerberosAuth":                     kerberosAuth,
-				"KmsKey":                           helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsMap),
+				"KmsKey":                           helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsKeys),
 				"AvailabilityZone":                 cluster.AvailabilityZones,
 				"BackupRetentionPeriod":            cluster.BackupRetentionPeriod,
 			},
@@ -151,7 +185,7 @@ func (*RDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 			}
 
 			// Look up instance details
-			if inst, ok := instanceMap[memberID]; ok {
+			if inst, ok2 := instanceMap[memberID]; ok2 {
 				instLifecycleSupport := helpers.StringValue(inst.EngineLifecycleSupport)
 				if instLifecycleSupport == "" {
 					instLifecycleSupport = lifecycleSupport
@@ -174,7 +208,7 @@ func (*RDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 						"EngineLifecycleSupport":           instLifecycleSupport,
 						"IAMDatabaseAuthenticationEnabled": cluster.IAMDatabaseAuthenticationEnabled,
 						"KerberosAuth":                     kerberosAuth,
-						"KmsKey":                           helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsMap),
+						"KmsKey":                           helpers.ResolveNameFromMap(cluster.KmsKeyId, kmsKeys),
 						"AvailabilityZone":                 inst.AvailabilityZone,
 						"BackupRetentionPeriod":            cluster.BackupRetentionPeriod,
 					},
@@ -219,7 +253,7 @@ func (*RDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				"EngineLifecycleSupport":           inst.EngineLifecycleSupport,
 				"IAMDatabaseAuthenticationEnabled": inst.IAMDatabaseAuthenticationEnabled,
 				"KerberosAuth":                     kerberosAuth,
-				"KmsKey":                           helpers.ResolveNameFromMap(inst.KmsKeyId, kmsMap),
+				"KmsKey":                           helpers.ResolveNameFromMap(inst.KmsKeyId, kmsKeys),
 				"AvailabilityZone":                 inst.AvailabilityZone,
 				"BackupRetentionPeriod":            inst.BackupRetentionPeriod,
 			},

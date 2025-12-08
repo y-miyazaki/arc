@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -11,8 +12,62 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// ELBCollector collects ELB resources including load balancers, target groups, and listeners
-type ELBCollector struct{}
+// ELBCollector collects ELB resources including load balancers, target groups, and listeners.
+// It uses dependency injection to manage ELB, WAF, and EC2 clients for multiple regions.
+type ELBCollector struct {
+	elbClients   map[string]*elasticloadbalancingv2.Client
+	wafClients   map[string]*wafv2.Client
+	ec2Clients   map[string]*ec2.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewELBCollector creates a new ELB collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create ELB clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *ELBCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewELBCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ELBCollector, error) {
+	elbClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *elasticloadbalancingv2.Client {
+		return elasticloadbalancingv2.NewFromConfig(*c, func(o *elasticloadbalancingv2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ELB clients: %w", err)
+	}
+
+	wafClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *wafv2.Client {
+		return wafv2.NewFromConfig(*c, func(o *wafv2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create WAF clients: %w", err)
+	}
+
+	ec2Clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *ec2.Client {
+		return ec2.NewFromConfig(*c, func(o *ec2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EC2 clients: %w", err)
+	}
+
+	return &ELBCollector{
+		elbClients:   elbClients,
+		wafClients:   wafClients,
+		ec2Clients:   ec2Clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*ELBCollector) Name() string {
@@ -50,24 +105,29 @@ func (*ELBCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects ELB resources.
-func (*ELBCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// Initialize AWS service clients for ELB, WAF, and EC2
-	svc := elasticloadbalancingv2.NewFromConfig(*cfg, func(o *elasticloadbalancingv2.Options) {
-		o.Region = region
-	})
-	wafSvc := wafv2.NewFromConfig(*cfg, func(o *wafv2.Options) {
-		o.Region = region
-	})
-	ec2Svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
+// Collect collects ELB resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *ELBCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.elbClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
+
+	wafSvc, ok := c.wafClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s (WAF)", ErrNoClientForRegion, region)
+	}
+
+	ec2Svc, ok := c.ec2Clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s (EC2)", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 	var loadBalancers []elasticloadbalancingv2.DescribeLoadBalancersOutput
 
 	// Get all security groups to resolve names efficiently
-	sgNames, err := helpers.GetAllSecurityGroups(ctx, cfg, region)
+	sgNames, err := c.nameResolver.GetAllSecurityGroups(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get security groups: %w", err)
 	}
@@ -121,9 +181,6 @@ func (*ELBCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 		for j := range page.LoadBalancers {
 			lb := &page.LoadBalancers[j]
 
-			// Resolve VPC name from ID
-			vpcName := helpers.ResolveNameFromMap(lb.VpcId, vpcNames)
-
 			// Collect AZs and SGs
 			var azs []string
 			for k := range lb.AvailabilityZones {
@@ -161,7 +218,7 @@ func (*ELBCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				RawData: map[string]any{
 					"DNSName":          lb.DNSName,
 					"Type":             lb.Type,
-					"VPC":              vpcName,
+					"VPC":              helpers.ResolveNameFromMap(lb.VpcId, vpcNames),
 					"AvailabilityZone": azs,
 					"SecurityGroup":    helpers.ResolveNamesFromMap(sgIDs, sgNames),
 					"WAF":              lbWAF,

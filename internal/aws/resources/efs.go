@@ -5,15 +5,46 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // EFSCollector collects EFS resources.
+// It uses dependency injection to manage EFS clients for multiple regions.
 // It collects File Systems, Mount Targets, and Access Points.
-type EFSCollector struct{}
+type EFSCollector struct {
+	clients      map[string]*efs.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewEFSCollector creates a new EFS collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create EFS clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *EFSCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewEFSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*EFSCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *efs.Client {
+		return efs.NewFromConfig(*c, func(o *efs.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EFS clients: %w", err)
+	}
+
+	return &EFSCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*EFSCollector) Name() string {
@@ -51,27 +82,29 @@ func (*EFSCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects EFS resources from the specified region.
-func (*EFSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := efs.NewFromConfig(*cfg, func(o *efs.Options) {
-		o.Region = region
-	})
+// Collect collects EFS resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
 	// Get all security groups to resolve names efficiently
-	sgMap, err := helpers.GetAllSecurityGroups(ctx, cfg, region)
+	sgMap, err := c.nameResolver.GetAllSecurityGroups(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get security groups: %w", err)
 	}
 	// Get all KMS keys to resolve names efficiently
-	kmsKeyMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	kmsKeyMap, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}
 
 	// Get all subnets to resolve names efficiently
-	subnetMap, err := helpers.GetAllSubnets(ctx, cfg, region)
+	subnetMap, err := c.nameResolver.GetAllSubnets(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subnets: %w", err)
 	}

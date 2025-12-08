@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -11,19 +12,51 @@ import (
 )
 
 // SNSCollector collects SNS topics.
-type SNSCollector struct{}
+// It uses dependency injection to manage SNS clients for multiple regions.
+type SNSCollector struct {
+	clients      map[string]*sns.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
 
-// Name returns the collector name.
+// NewSNSCollector creates a new SNS collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create SNS clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *SNSCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewSNSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*SNSCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *sns.Client {
+		return sns.NewFromConfig(*c, func(o *sns.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SNS clients: %w", err)
+	}
+
+	return &SNSCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*SNSCollector) Name() string {
 	return "sns"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*SNSCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for SNS topics.
+// GetColumns returns the CSV columns for the collector.
 func (*SNSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -38,11 +71,13 @@ func (*SNSCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects SNS topics from the specified region.
-func (*SNSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := sns.NewFromConfig(*cfg, func(o *sns.Options) {
-		o.Region = region
-	})
+// Collect collects SNS resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *SNSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
@@ -84,7 +119,7 @@ func (*SNSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 				}
 			}
 
-			resources = append(resources, NewResource(&ResourceInput{
+			r := NewResource(&ResourceInput{
 				Category:    "sns",
 				SubCategory: "Topic",
 				Name:        name,
@@ -95,7 +130,8 @@ func (*SNSCollector) Collect(ctx context.Context, cfg *aws.Config, region string
 					"Owner":       attrs["Owner"],
 					"Policy":      policy,
 				},
-			}))
+			})
+			resources = append(resources, r)
 		}
 	}
 

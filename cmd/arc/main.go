@@ -15,7 +15,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/y-miyazaki/arc/internal/aws"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 	"github.com/y-miyazaki/arc/internal/aws/resources"
@@ -84,7 +83,9 @@ func (ce CollectionError) Error() string {
 // The caller can decide how to handle partial failures; this function will not
 // stop on first error in order to try to gather as many successful results as
 // possible.
-func collectResources(ctx context.Context, l *logger.Logger, collectors map[string]resources.Collector, regionsToCheck []string, cfg *awsSDK.Config, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
+//
+// Note: Collectors must be initialized with AWS clients before calling this function.
+func collectResources(ctx context.Context, l *logger.Logger, collectors map[string]resources.Collector, regionsToCheck []string, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
 	// Collect resources in parallel using goroutines
 	// For each region and collector combination
 	var wg sync.WaitGroup
@@ -106,7 +107,7 @@ func collectResources(ctx context.Context, l *logger.Logger, collectors map[stri
 				defer func() { <-semaphore }() // Release semaphore
 
 				l.Info("Collecting resources", LogKeyCategory, name, "region", reg)
-				res, collectErr := collector.Collect(ctx, cfg, reg)
+				res, collectErr := collector.Collect(ctx, reg)
 				resultsChan <- collectionResult{
 					category:  name,
 					resources: res,
@@ -192,6 +193,11 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	regionsToCheck := initializeRegions(userRegions)
 	l.Info("Regions to check", "regions", regionsToCheck)
 
+	// Initialize collectors with AWS clients for all regions
+	if initErr := resources.InitializeCollectors(&cfg, regionsToCheck); initErr != nil {
+		return fmt.Errorf("failed to initialize collectors: %w", initErr)
+	}
+
 	// Iterate over registered collectors
 	// Filter by categories if specified
 	collectors := resources.GetCollectors()
@@ -210,7 +216,7 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	}
 
 	// Collect resources from all collectors and regions
-	categoryResults, failedCategories := collectResources(ctx, l, collectors, regionsToCheck, &cfg, opts)
+	categoryResults, failedCategories := collectResources(ctx, l, collectors, regionsToCheck, opts)
 
 	// Sort categories by name for deterministic output
 	var categories []string

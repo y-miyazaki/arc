@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -13,8 +14,40 @@ import (
 // tagNameKey is the standard AWS tag key for resource names
 const tagNameKey = "Name"
 
-// EC2Collector collects EC2 resources including instances, VPCs, and subnets
-type EC2Collector struct{}
+// EC2Collector collects EC2 resources including instances, VPCs, and subnets.
+// It uses dependency injection to manage EC2 clients for multiple regions.
+type EC2Collector struct {
+	clients      map[string]*ec2.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewEC2Collector creates a new EC2 collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create EC2 clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *EC2Collector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewEC2Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*EC2Collector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *ec2.Client {
+		return ec2.NewFromConfig(*c, func(o *ec2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EC2 clients: %w", err)
+	}
+
+	return &EC2Collector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*EC2Collector) Name() string {
@@ -27,7 +60,6 @@ func (*EC2Collector) ShouldSort() bool {
 }
 
 // GetColumns returns the CSV columns for the collector.
-// This defines the output format for EC2 instance data
 func (*EC2Collector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -50,18 +82,13 @@ func (*EC2Collector) GetColumns() []Column {
 	}
 }
 
-// Collect collects EC2 resources from AWS
-// This includes EC2 instances with their associated VPC, subnet, and security group information
-// The method performs the following steps:
-// 1. Describe all EC2 instances in the region
-// 2. Collect VPC and subnet IDs for name resolution
-// 3. Resolve VPC and subnet names from tags
-// 4. Process each instance and create resource entries
-func (*EC2Collector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// Create EC2 service client for the specified region
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
+// Collect collects EC2 resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *EC2Collector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	// Initialize data structures for collecting resources
 	var resources []Resource
@@ -144,13 +171,6 @@ func (*EC2Collector) Collect(ctx context.Context, cfg *aws.Config, region string
 	for i := range instances {
 		instance := &instances[i]
 
-		// Extract instance information
-		name := helpers.GetTagValue(instance.Tags, tagNameKey)
-
-		// Resolve VPC and Subnet names
-		vpcName := helpers.ResolveNameFromMap(instance.VpcId, vpcNames)
-		subnetName := helpers.ResolveNameFromMap(instance.SubnetId, subnetNames)
-
 		// Security Groups - collect security group names
 		var sgNames []string
 		for _, sg := range instance.SecurityGroups {
@@ -160,14 +180,14 @@ func (*EC2Collector) Collect(ctx context.Context, cfg *aws.Config, region string
 		resources = append(resources, NewResource(&ResourceInput{
 			Category:    "ec2",
 			SubCategory: "Instance",
-			Name:        name,
+			Name:        helpers.GetTagValue(instance.Tags, tagNameKey),
 			Region:      region,
 			RawData: map[string]any{
 				"InstanceID":    instance.InstanceId,
 				"InstanceType":  instance.InstanceType,
 				"ImageID":       instance.ImageId,
-				"VPC":           vpcName,
-				"Subnet":        subnetName,
+				"VPC":           helpers.ResolveNameFromMap(instance.VpcId, vpcNames),
+				"Subnet":        helpers.ResolveNameFromMap(instance.SubnetId, subnetNames),
 				"SecurityGroup": sgNames,
 				"State":         instance.State.Name,
 			},

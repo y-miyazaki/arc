@@ -1,19 +1,47 @@
-// Package resources provides AWS resource collectors for different services.
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // S3Collector collects S3 buckets.
-type S3Collector struct{}
+// It uses dependency injection to manage S3 clients.
+// S3 is a global service - only processes from us-east-1 to avoid duplicates.
+type S3Collector struct {
+	client       *s3.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewS3Collector creates a new S3 collector with a global client.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions (only us-east-1 will be used for global service)
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *S3Collector: Initialized collector with global client and name resolver
+//   - error: Error if client creation fails
+func NewS3Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*S3Collector, error) {
+	// S3 is a global service, create a single client for us-east-1
+	_ = regions // unused parameter
+	client := s3.NewFromConfig(*cfg, func(o *s3.Options) {
+		o.Region = "us-east-1"
+	})
+
+	return &S3Collector{
+		client:       client,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*S3Collector) Name() string {
@@ -46,39 +74,33 @@ func (*S3Collector) GetColumns() []Column {
 	}
 }
 
-// Collect collects S3 resources.
-// S3 is a global service - buckets exist in all regions but API calls must be made to us-east-1.
-// Return empty if called with a different region to avoid duplicates.
-func (*S3Collector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects S3 resources for the specified region.
+// S3 is a global service - only processes from us-east-1 to avoid duplicates.
+func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// S3 bucket listing only works from us-east-1 (global service).
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	// Client for listing buckets (us-east-1).
-	globalSvc := s3.NewFromConfig(*cfg, func(o *s3.Options) {
-		o.Region = "us-east-1"
-	})
-
 	var resources []Resource
 
 	// List all buckets.
-	listBucketsOut, err := globalSvc.ListBuckets(ctx, &s3.ListBucketsInput{})
+	listBucketsOut, err := c.client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list buckets: %w", err)
 	}
 
 	// Cache for region-specific clients.
 	regionClients := make(map[string]*s3.Client)
-	regionClients["us-east-1"] = globalSvc
+	regionClients["us-east-1"] = c.client
 
 	// Helper to get or create client for a region.
 	getClient := func(r string) *s3.Client {
 		if client, ok := regionClients[r]; ok {
 			return client
 		}
-		client := s3.NewFromConfig(*cfg, func(o *s3.Options) {
-			o.Region = r
+		client := s3.NewFromConfig(aws.Config{
+			Region: r,
 		})
 		regionClients[r] = client
 		return client
@@ -89,7 +111,7 @@ func (*S3Collector) Collect(ctx context.Context, cfg *aws.Config, region string)
 
 		// Get bucket location using global client.
 		bucketRegion := "us-east-1" // default
-		locationOut, locErr := globalSvc.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+		locationOut, locErr := c.client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 			Bucket: bucket.Name,
 		})
 		if locErr == nil && locationOut.LocationConstraint != "" {
@@ -154,26 +176,22 @@ func (*S3Collector) Collect(ctx context.Context, cfg *aws.Config, region string)
 		}
 
 		// Get lifecycle configuration.
-		lifecycleRules := ""
+		var ruleStrings []string
 		lifecycleOut, lifecycleErr := svc.GetBucketLifecycleConfiguration(ctx, &s3.GetBucketLifecycleConfigurationInput{
 			Bucket: bucket.Name,
 		})
 		if lifecycleErr == nil && lifecycleOut.Rules != nil && len(lifecycleOut.Rules) > 0 {
 			// Convert each rule to formatted JSON string to match shell script behavior.
 			// Shell script uses jq '.[]' which outputs each rule as separate JSON object.
-			var ruleStrings []string
 			for i := range lifecycleOut.Rules {
 				ruleJSON, jsonErr := helpers.FormatJSONIndent(lifecycleOut.Rules[i])
 				if jsonErr == nil {
 					ruleStrings = append(ruleStrings, ruleJSON)
 				}
 			}
-			if len(ruleStrings) > 0 {
-				lifecycleRules = strings.Join(ruleStrings, "\n")
-			}
 		}
 
-		resources = append(resources, NewResource(&ResourceInput{
+		r := NewResource(&ResourceInput{
 			Category:    "s3",
 			SubCategory: "Bucket",
 			Name:        bucket.Name,
@@ -187,10 +205,11 @@ func (*S3Collector) Collect(ctx context.Context, cfg *aws.Config, region string)
 				"PABBlockPublicPolicy":     pabBlockPublicPolicy,
 				"PABRestrictPublicBuckets": pabRestrictPublicBuckets,
 				"AccessLogARN":             accessLogARN,
-				"LifecycleRules":           lifecycleRules,
+				"LifecycleRules":           ruleStrings,
 				"CreationDate":             bucket.CreationDate,
 			},
-		}))
+		})
+		resources = append(resources, r)
 	}
 
 	return resources, nil
