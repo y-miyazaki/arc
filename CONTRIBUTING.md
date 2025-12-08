@@ -158,23 +158,15 @@ golangci-lint run --enable-only=errcheck,staticcheck
 Example:
 
 ```go
-// Package ec2 provides collectors for AWS EC2 resources.
-package ec2
+// Package resources provides collectors for AWS resources.
+package resources
 
-// Collector collects EC2 resources across specified regions.
-// It supports collecting instances, security groups, and other EC2-related resources.
-type Collector struct {
-    client *ec2.Client
-    region string
-}
+// EC2Collector collects EC2 resources including instances, VPCs, and subnets
+type EC2Collector struct{}
 
-// NewCollector creates a new EC2 resource collector.
-// It initializes an EC2 client for the specified region.
-func NewCollector(cfg aws.Config, region string) *Collector {
-    return &Collector{
-        client: ec2.NewFromConfig(cfg),
-        region: region,
-    }
+// Name returns the resource name of the collector.
+func (*EC2Collector) Name() string {
+    return "ec2"
 }
 ```
 
@@ -230,28 +222,35 @@ Example structure:
 ```go
 package resources
 
-import (
-    "context"
-    "github.com/aws/aws-sdk-go-v2/service/servicename"
-)
-
 // ServiceNameCollector collects resources from AWS ServiceName.
-type ServiceNameCollector struct {
-    client *servicename.Client
-    region string
+type ServiceNameCollector struct{}
+
+// Name returns the resource name of the collector.
+func (*ServiceNameCollector) Name() string {
+    return "servicename"
 }
 
-// NewServiceNameCollector creates a new ServiceName collector.
-func NewServiceNameCollector(cfg aws.Config, region string) *ServiceNameCollector {
-    return &ServiceNameCollector{
-        client: servicename.NewFromConfig(cfg),
-        region: region,
+// ShouldSort returns whether the collected resources should be sorted.
+func (*ServiceNameCollector) ShouldSort() bool {
+    return true
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*ServiceNameCollector) GetColumns() []Column {
+    return []Column{
+        {Name: "Category", Sort: false},
+        {Name: "SubCategory", Sort: false},
+        {Name: "SubSubCategory", Sort: false},
+        {Name: "Name", Sort: true},
+        {Name: "Region", Sort: false},
+        // Add service-specific columns here
     }
 }
 
 // Collect retrieves all ServiceName resources.
-func (c *ServiceNameCollector) Collect(ctx context.Context) ([]Resource, error) {
+func (c *ServiceNameCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
     // Implementation
+    return []Resource{}, nil
 }
 ```
 
@@ -316,7 +315,7 @@ If you prefer manual releases:
 
 ```bash
 # Install aqua tools (including goreleaser)
-aqua install
+aqua i -l
 
 # Test release locally (creates snapshot)
 goreleaser release --snapshot --clean
