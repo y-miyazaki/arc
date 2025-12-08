@@ -2,7 +2,6 @@
 
 ![Go](https://custom-icon-badges.herokuapp.com/badge/Go-00ADD8.svg?logo=Go&logoColor=white)
 ![Apache-2.0](https://custom-icon-badges.herokuapp.com/badge/license-Apache%202.0-8BB80A.svg?logo=law&logoColor=white)
-[![Go Report Card](https://goreportcard.com/badge/github.com/y-miyazaki/arc)](https://goreportcard.com/report/github.com/y-miyazaki/arc)
 [![GitHub release](https://img.shields.io/github/release/y-miyazaki/arc.svg)](https://github.com/y-miyazaki/arc/releases/latest)
 [![cd-release-go](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml/badge.svg?branch=main)](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml)
 
@@ -12,7 +11,7 @@ ARC is a command-line tool for collecting AWS resource information across multip
 
 - 🚀 **Fast & Concurrent** - Parallel collection of resources with configurable concurrency
 - 📊 **Multiple Output Formats** - CSV files and interactive HTML viewer
-- 🔍 **Comprehensive Coverage** - Support for 20+ AWS services: ACM (Certificate Manager), API Gateway (REST and HTTP APIs), Batch (Batch computing), CloudFormation (Infrastructure as Code stacks), CloudFront (Content Delivery Network), CloudWatch Alarms (Monitoring alarms), CloudWatch Logs (Log groups and streams), Cognito (User pools and identity pools), DynamoDB (NoSQL database tables), EC2 (Virtual machines and related resources), ECR (Container registry), ECS (Container orchestration), EFS (Elastic File System), ElastiCache (In-memory cache), ELB (Load balancers), EventBridge (Event buses and rules), IAM Policy (Customer-managed IAM Policies), IAM Role (IAM Roles with attached policies and last used info), IAM User/Group (IAM Users and Groups), KMS (Key Management Service), Lambda (Serverless functions), RDS (Relational databases), Redshift (Data warehouse), S3 (Object storage), Secrets Manager (Secrets storage), SNS (Simple Notification Service), SQS (Simple Queue Service), VPC (Virtual Private Cloud and networking), WAF (Web Application Firewall).
+- 🔍 **Comprehensive Coverage** - Support for 20+ AWS services: ACM, API Gateway, Batch, CloudFormation, CloudFront, CloudWatch Alarms, CloudWatch Logs, Cognito, DynamoDB, EC2, ECR, ECS, EFS, ElastiCache, ELB, EventBridge, IAM Policy, IAM Role, IAM User/Group, KMS, Lambda, RDS, Redshift, S3, Secrets Manager, SNS, SQS, VPC, WAF.
 - 🌏 **Multi-Region Support** - Collect resources from multiple AWS regions
 - 🎯 **Selective Collection** - Choose specific resource categories to collect
 - 📁 **Organized Output** - Automatically organized by AWS account ID and resource type

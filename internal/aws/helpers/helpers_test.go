@@ -119,6 +119,22 @@ func TestStringValue_DoesNotMutateInputSlice(t *testing.T) {
 	assert.Equal(t, original, src)
 }
 
+func TestStringValue_SortsCaseInsensitively(t *testing.T) {
+	// test case-insensitive sorting for []string
+	src := []string{"Banana", "apple", "Cherry"}
+	out := StringValue(src)
+	// should be sorted case-insensitively: apple, Banana, Cherry
+	assert.Equal(t, "apple\nBanana\nCherry", out)
+
+	// test case-insensitive sorting for []*string
+	s1 := "Banana"
+	s2 := "apple"
+	s3 := "Cherry"
+	srcPtr := []*string{&s1, &s2, &s3}
+	outPtr := StringValue(srcPtr)
+	assert.Equal(t, "apple\nBanana\nCherry", outPtr)
+}
+
 func TestStringValue_DefaultOverride(t *testing.T) {
 	assert.Equal(t, "default", StringValue(nil, "default"))
 }
