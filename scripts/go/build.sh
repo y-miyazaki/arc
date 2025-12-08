@@ -36,7 +36,7 @@ BINDIR=""
 ARCH="arm64" # Default to arm64
 PARALLEL="false"
 VERBOSE="false"
-MIN_VERSION="1.21"
+MIN_VERSION="1.25"
 
 #######################################
 # show_usage: Display script usage information
