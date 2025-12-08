@@ -2,7 +2,18 @@
 
 ## Objective
 
-`.github/prompts/review-*.prompt.md`ファイルの実用性・統一性・詳細度確保。
+`.github/prompts/review-*.prompt.md` のレビュー基準と自動検証ルールの整備。
+
+## Must-follow rules (必須ルール)
+
+以下はすべての `review-*.prompt.md` が満たすべき最小ルール（簡潔な要約）:
+
+- ID 形式: CAT-NN（大文字、カテゴリ+2 桁）
+- 各項目に Problem / Impact / Recommendation を 1 つずつ記載（短い名詞句、体言止め）
+- カテゴリ順序: Core canonical order を保持（言語固有カテゴリは相対順を厳守）
+- カテゴリ内項目: 主要カテゴリは最低 3 項目を目安
+- 重複禁止: 同一 ID の重複禁止
+- バランス: 1 ファイルあたり 150–200 行を目安（言語により調整可）
 
 ## Review Checklist
 
@@ -15,11 +26,11 @@
 - G-02: Purpose
   - Problem: 目的・スコープ未記載
   - Impact: レビュー基準不一致
-  - Recommendation: 目的とスコープを明記
+  - Recommendation: 目的とスコープの明記
 - G-03: ID-Based Format
   - Problem: ID 付与欠如
   - Impact: 管理・検索困難
-  - Recommendation: CAT-NN 形式で ID を付与
+  - Recommendation: CAT-NN 形式で ID の付与
 
 ### 2. Category Structure (CAT: Category)
 
@@ -121,7 +132,7 @@
 - ITEM-02: Problem/Impact/Recommendation 3 要素記載
   - Problem: P/I/R 欠如
   - Impact: 対応不明瞭
-  - Recommendation: 各項目に P/I/R を短い名詞句で記載
+  - Recommendation: 各項目に P/I/R の短い名詞句で記載
 - ITEM-03: 具体的・実用的な推奨事項
   - Problem: 抽象的指摘
   - Impact: 実行困難
@@ -129,7 +140,7 @@
 - ITEM-04: コード例記載（該当する場合）
   - Problem: 例示不足
   - Impact: 理解低下
-  - Recommendation: 該当時に短いコード例を追加
+  - Recommendation: 該当時に短いコード例の追加
 
 ### 5. Content Quality (QUAL: Quality)
 
@@ -152,7 +163,7 @@
 - QUAL-05: Token efficiency
   - Problem: 長文化
   - Impact: トークン浪費
-  - Recommendation: 各 P/I/R を短い名詞句へ
+  - Recommendation: 各 P/I/R の短い名詞句へ
 
 ### 6. Balance (BAL: Balance)
 
@@ -161,7 +172,7 @@
 - BAL-01: Not Too Short
   - Problem: 過度圧縮
   - Impact: レビュー不可能
-  - Recommendation: 最低限の詳細を保持
+  - Recommendation: 最低限の詳細の保持
 - BAL-02: Not Too Long
   - Problem: 冗長化
   - Impact: メンテ負担増
@@ -171,27 +182,46 @@
   - Impact: 情報欠落
   - Recommendation: 主要カテゴリは詳細保持
 - BAL-04: Optimal Range
+
   - Problem: 長さ偏差
   - Impact: 読み手負荷
-  - Recommendation: 150-200 行を目安
-
-現在の行数:
+  - Recommendation: 150-200 行の目安
+    現在の行数:
 
 - review-terraform.prompt.md: 162 行 ✅
 - review-script.prompt.md: 150 行 ✅
 - review-go.prompt.md: 164 行 ✅
 - review-github-actions-workflow.prompt.md: 88 行 ✅（カテゴリ少ないため適切）
 
-### 7. Consistency Across Files (CONS: Consistency)
+### 7. Automation Awareness (AUTO: Automation)
+
+- AUTO-01: Lint-detectable Items Exclusion
+  - Problem: Lint/自動チェック可能項目がレビューに含まれる
+  - Impact: レビュー工数重複・誤検出・非効率
+  - Recommendation: 自動検出可能項目は pre-commit/CI/CD で検出するため、`review-*.prompt.md`では除外。各ファイル冒頭に除外 Note の記載を必須とする
+- AUTO-02: Exclusion Note Presence
+  - Problem: 除外ポリシー未記載
+  - Impact: レビュー範囲混乱・判断ぶれ
+  - Recommendation: 各`review-*.prompt.md`冒頭に除外 Note を追加（例: "Note: Lint/自動検出可能項目は pre-commit/CI/CD で検出するため除外"）
+- AUTO-03: Tool-Specific Exclusions
+  - Problem: 言語別の自動検出ツールが未明記
+  - Impact: 除外基準不明瞭・運用差異
+  - Recommendation: 言語/ドメイン別のツール一覧を明記し除外対象を定義（例: Go: golangci-lint/go vet/goimports/errcheck/govulncheck、Script: shellcheck、Terraform: terraform fmt/validate/tflint/trivy、GitHub Actions: actionlint/yamllint）
+- AUTO-04: Human-Judgment Focus
+  - Problem: 自動検出項目と人間判断項目の混在
+  - Impact: レビュー焦点散漫・人手の浪費
+  - Recommendation: 人間レビューはアーキテクチャ、セキュリティ設計、コスト最適化、複雑な設計判断に焦点を当てる
+
+### 8. Consistency Across Files (CONS: Consistency)
 
 - CONS-01: ID Format
   - Problem: ID 形式不統一
   - Impact: 自動解析困難
   - Recommendation: CAT-NN 形式へ統一
- - CONS-02: Category Order
-  - Problem: カテゴリ順序の曖昧さ
-  - Impact: 自動検証ブレ・レビュー者混乱
-  - Recommendation: Core canonical order に従い順序を固定。言語固有カテゴリは Core の相対順序を崩さない範囲で挿入可。例外はファイル先頭で明示すること
+- CONS-02: Category Order
+- Problem: カテゴリ順序の曖昧さ
+- Impact: 自動検証ブレ・レビュー者混乱
+- Recommendation: Core canonical order に従い順序の固定。言語固有カテゴリは Core の相対順序の崩さない範囲で挿入可。例外はファイル先頭で明示すること
 - CONS-03: Structure
   - Problem: P/I/R 構造不統一
   - Impact: 可読性低下
@@ -201,7 +231,7 @@
   - Impact: 混乱
   - Recommendation: カテゴリ名統一
 
-### 8. Usability (USE: Usability)
+### 9. Usability (USE: Usability)
 
 - USE-01: Reviewable
   - Problem: 実践不能な記載
@@ -220,12 +250,12 @@
   - Impact: 実行困難
   - Recommendation: 使用ツール・コマンドの明記
 
-### 9. Completeness (COMP: Completeness)
+### 10. Completeness (COMP: Completeness)
 
 - COMP-01: All Categories
   - Problem: カテゴリの未網羅
   - Impact: 覆い漏れ
-  - Recommendation: 全カテゴリをカバー
+  - Recommendation: 全カテゴリのカバー
 - COMP-02: No Missing Items
   - Problem: 重要項目欠落
   - Impact: 品質低下
@@ -247,7 +277,9 @@
 # 全promptファイルのカテゴリ抽出
 for f in /workspace/.github/prompts/review-*.prompt.md; do
   echo "=== $(basename $f) ==="
-  # Accepts either bold header (**G-01:) or list-style (- G-01:) formats
+  # Accepts either bold header (**G-01) or list-style (
+  # Accepts either bold header (**G-01) or list-style (
+  - G-01 formats
   grep -E '^\s*-?\s*\*{0,2}[A-Z]+-[0-9]+:' "$f" | sed 's/:.*$//' | cut -d'-' -f1 | sort -u
   echo
 done
@@ -255,33 +287,33 @@ done
 
 期待結果: 各ファイルで定義されたカテゴリセット表示
 
-  ### 1.b Core canonical order check
+### 1.b Core canonical order check
 
-  期待: 各ファイルで Core canonical order に沿って Core カテゴリ（G,CODE,FUNC,ERR,SEC,PERF,TEST,DOC,DEP）が出現する。
+期待: 各ファイルで Core canonical order に沿って Core カテゴリ（G,CODE,FUNC,ERR,SEC,PERF,TEST,DOC,DEP）が出現する。
 
-  ```bash
-  # Fail if a file's core categories appear out-of-order relative to the canonical order
-  CANONICAL=(G CODE FUNC ERR SEC PERF TEST DOC DEP)
-  for f in /workspace/.github/prompts/review-*.prompt.md; do
-    # extract category tokens in file order
-    seq=$(grep -E '^\s*-?\s*[A-Z]+-[0-9]+:' "$f" | sed -E 's/^\s*-?\s*([A-Z]+)-[0-9]+:.*/\1/' | tr '\n' ' ')
-    # filter only canonical categories
-    filtered=$(echo "$seq" | tr ' ' '\n' | grep -E '^(G|CODE|FUNC|ERR|SEC|PERF|TEST|DOC|DEP)$' | tr '\n' ' ')
-    if [ -z "$filtered" ]; then
-      continue
-    fi
-    # verify order using python quick-check
-    python3 - <<PY - "$filtered" || true
-  import sys
-  canonical = ['G','CODE','FUNC','ERR','SEC','PERF','TEST','DOC','DEP']
-  seq = sys.argv[1].strip().split()
-  idxs = [canonical.index(c) for c in seq if c in canonical]
-  if idxs != sorted(idxs):
-      print(f"ORDER MISMATCH in {sys.argv[1]} -> seq={' '.join(seq)}")
-      sys.exit(1)
-  PY
-  done
-  ```
+```bash
+# Fail if a file's core categories appear out-of-order relative to the canonical order
+CANONICAL=(G CODE FUNC ERR SEC PERF TEST DOC DEP)
+for f in /workspace/.github/prompts/review-*.prompt.md; do
+  # extract category tokens in file order
+  seq=$(grep -E '^\s*-?\s*[A-Z]+-[0-9]+:' "$f" | sed -E 's/^\s*-?\s*([A-Z]+)-[0-9]+:.*/\1/' | tr '\n' ' ')
+  # filter only canonical categories
+  filtered=$(echo "$seq" | tr ' ' '\n' | grep -E '^(G|CODE|FUNC|ERR|SEC|PERF|TEST|DOC|DEP)$' | tr '\n' ' ')
+  if [ -z "$filtered" ]; then
+    continue
+  fi
+  # verify order using python quick-check
+  python3 - <<PY - "$filtered" || true
+import sys
+canonical = ['G','CODE','FUNC','ERR','SEC','PERF','TEST','DOC','DEP']
+seq = sys.argv[1].strip().split()
+idxs = [canonical.index(c) for c in seq if c in canonical]
+if idxs != sorted(idxs):
+    print(f"ORDER MISMATCH in {sys.argv[1]} -> seq={' '.join(seq)}")
+    sys.exit(1)
+PY
+done
+```
 
 ### 2. ID 重複確認
 
@@ -310,11 +342,12 @@ wc -l /workspace/.github/prompts/review-*.prompt.md
 
 ### 4. 構造統一確認
 
-各 ID に対して Problem/Impact/Recommendation が各 1 つずつ存在するかを検証する。検証は次のルールを適用：
+各 ID に対して Problem/Impact/Recommendation が各 1 つずつ存在するかの検証する。検証は次のルールを適用：
+
 - 各 ID のブロックは次の ID、またはトップレベル章見出し (## )、もしくはファイル末尾までとする
 - ブロック内で Problem/Impact/Recommendation の数が 1,1,1 でない場合は失敗とする
 
-```bash
+````bash
 # Per-file P/I/R presence check
 python3 - <<'PY'
 import re,sys
@@ -325,7 +358,17 @@ for p in files:
   s=p.read_text()
   lines=s.splitlines()
   # locate all ID headers and top-level headers
-  id_positions = [(i,m.group(1)) for i,l in enumerate(lines) for m in [re.match(r'^\s*-\s+([A-Z]+-[0-9]+):', l)] if m]
+  id_positions = []
+  in_code = False
+  for i,l in enumerate(lines):
+    if l.strip().startswith('```'):
+      in_code = not in_code
+      continue
+    if in_code:
+      continue
+    m = re.match(r'^\s*-\s+([A-Z]+-[0-9]+):', l)
+    if m:
+      id_positions.append((i, m.group(1)))
   # stop at **any** markdown header (H1/H2/H3...), not only H2
   top_positions = [i for i,l in enumerate(lines) if re.match(r"^#+\s+", l)]
   for idx,(i,name) in enumerate(id_positions):
@@ -333,16 +376,30 @@ for p in files:
     candidates = [pos for pos,_ in id_positions[idx+1:]] + top_positions + [len(lines)]
     end = min([c for c in candidates if c>i])
     block='\n'.join(lines[i+1:end])
-    pc=len(re.findall(r'^[ \t]*-?[ \t]*Problem:', block, flags=re.M))
-    ic=len(re.findall(r'^[ \t]*-?[ \t]*Impact:', block, flags=re.M))
-    rc=len(re.findall(r'^[ \t]*-?[ \t]*Recommendation:', block, flags=re.M))
+    # Count Problem/Impact/Recommendation occurrences, ignoring code fences
+    def count_non_code(pattern, text):
+      in_code = False
+      cnt = 0
+      for l in text.splitlines():
+        if l.strip().startswith('```'):
+          in_code = not in_code
+          continue
+        if in_code:
+          continue
+        if re.match(pattern, l):
+          cnt += 1
+      return cnt
+
+    pc = count_non_code(r'^[ \t]*-?[ \t]*Problem:', block)
+    ic = count_non_code(r'^[ \t]*-?[ \t]*Impact:', block)
+    rc = count_non_code(r'^[ \t]*-?[ \t]*Recommendation:', block)
     if (pc,ic,rc)!=(1,1,1):
       print(f"{p.name}: {name} -> Problem={pc},Impact={ic},Recommendation={rc}")
       ok=False
 if not ok:
   sys.exit(1)
 PY
-```
+````
 
 期待結果: 各 ID のブロックで Problem/Impact/Recommendation がそれぞれ 1 つずつ存在すること
 
@@ -367,7 +424,7 @@ PY
 **Example**:
 
 ```markdown
-- G-01: Workflow Syntax
+- EX-01: Workflow Syntax
   - Problem: ...
   - Impact: ...
   - Recommendation: ...

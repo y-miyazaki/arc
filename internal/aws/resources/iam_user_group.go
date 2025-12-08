@@ -1,17 +1,44 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // IAMUserGroupCollector collects IAM Users and Groups.
-type IAMUserGroupCollector struct{}
+// It uses dependency injection to manage IAM clients.
+type IAMUserGroupCollector struct {
+	client       *iam.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewIAMUserGroupCollector creates a new IAM User/Group collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions (IAM is global, only processes in us-east-1)
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *IAMUserGroupCollector: Initialized collector with IAM client and name resolver
+//   - error: Error if client creation fails
+func NewIAMUserGroupCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*IAMUserGroupCollector, error) {
+	// IAM is a global service, create single client
+	_ = regions // unused parameter
+	client := iam.NewFromConfig(*cfg)
+
+	return &IAMUserGroupCollector{
+		client:       client,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*IAMUserGroupCollector) Name() string {
@@ -40,19 +67,18 @@ func (*IAMUserGroupCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects IAM Users and Groups from AWS
-// IAM is a global service, so this only runs in us-east-1 region
-func (*IAMUserGroupCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects IAM Users and Groups for the specified region.
+// IAM is a global service, so this only runs in us-east-1 region.
+func (c *IAMUserGroupCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// IAM is a global service, only process from us-east-1
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	svc := iam.NewFromConfig(*cfg)
 	var resources []Resource
 
 	// List Users - collect all IAM users
-	userPaginator := iam.NewListUsersPaginator(svc, &iam.ListUsersInput{})
+	userPaginator := iam.NewListUsersPaginator(c.client, &iam.ListUsersInput{})
 	for userPaginator.HasMorePages() {
 		page, err := userPaginator.NextPage(ctx)
 		if err != nil {
@@ -76,7 +102,7 @@ func (*IAMUserGroupCollector) Collect(ctx context.Context, cfg *aws.Config, regi
 	}
 
 	// List Groups - collect all IAM groups
-	groupPaginator := iam.NewListGroupsPaginator(svc, &iam.ListGroupsInput{})
+	groupPaginator := iam.NewListGroupsPaginator(c.client, &iam.ListGroupsInput{})
 	for groupPaginator.HasMorePages() {
 		page, err := groupPaginator.NextPage(ctx)
 		if err != nil {
@@ -86,7 +112,7 @@ func (*IAMUserGroupCollector) Collect(ctx context.Context, cfg *aws.Config, regi
 			group := &page.Groups[i]
 
 			// Get group details including attached users
-			groupDetails, groupErr := svc.GetGroup(ctx, &iam.GetGroupInput{
+			groupDetails, groupErr := c.client.GetGroup(ctx, &iam.GetGroupInput{
 				GroupName: group.GroupName,
 			})
 			if groupErr != nil {
@@ -100,7 +126,7 @@ func (*IAMUserGroupCollector) Collect(ctx context.Context, cfg *aws.Config, regi
 			}
 
 			// Get attached policies for the group
-			policyPaginator := iam.NewListAttachedGroupPoliciesPaginator(svc, &iam.ListAttachedGroupPoliciesInput{
+			policyPaginator := iam.NewListAttachedGroupPoliciesPaginator(c.client, &iam.ListAttachedGroupPoliciesInput{
 				GroupName: group.GroupName,
 			})
 			var attachedPolicies []string

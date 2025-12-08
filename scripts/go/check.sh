@@ -546,6 +546,8 @@ function run_golangci_lint {
         # Count issues
         if [[ -f /tmp/golint_output.txt ]]; then
             LINT_ISSUES_COUNT=$(grep -cE '^\S+\.go:' /tmp/golint_output.txt 2> /dev/null || echo 0)
+            # Normalize to first token (avoid any unexpected whitespace/newlines)
+            LINT_ISSUES_COUNT=$(echo "$LINT_ISSUES_COUNT" | awk '{print $1}')
         else
             LINT_ISSUES_COUNT=0
         fi
@@ -642,7 +644,9 @@ function run_tests {
         EXIT_CODE=1
         TEST_FAILED=1
         # Count failed tests
-        TEST_FAIL_COUNT=$(grep -c '^--- FAIL:' /tmp/gotest_output.txt || echo 0)
+        TEST_FAIL_COUNT=$(grep -c '^--- FAIL:' /tmp/gotest_output.txt 2> /dev/null || echo 0)
+        # Normalize to a single integer token to prevent arithmetic parsing errors
+        TEST_FAIL_COUNT=$(echo "$TEST_FAIL_COUNT" | awk '{print $1}')
     fi
     rm -f /tmp/gotest_output.txt
 }

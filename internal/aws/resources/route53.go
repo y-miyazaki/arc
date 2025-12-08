@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -11,7 +12,35 @@ import (
 )
 
 // Route53Collector collects Route53 resources.
-type Route53Collector struct{}
+// It uses dependency injection to manage Route53 clients.
+// Route53 is a global service - only processes from us-east-1 to avoid duplicates.
+type Route53Collector struct {
+	client       *route53.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewRoute53Collector creates a new Route53 collector with a global client.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions (only us-east-1 will be used for global service)
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *Route53Collector: Initialized collector with global client and name resolver
+//   - error: Error if client creation fails
+func NewRoute53Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*Route53Collector, error) {
+	// Route53 is a global service, create a single client
+	_ = regions // unused parameter
+	client := route53.NewFromConfig(*cfg)
+
+	return &Route53Collector{
+		client:       client,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*Route53Collector) Name() string {
@@ -41,18 +70,18 @@ func (*Route53Collector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Route53 resources.
-func (*Route53Collector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects Route53 resources for the specified region.
+// Route53 is a global service - only processes from us-east-1 to avoid duplicates.
+func (c *Route53Collector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// Route53 is a global service, only process from us-east-1 to avoid duplicates.
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	svc := route53.NewFromConfig(*cfg)
 	var resources []Resource
 
 	// List Hosted Zones
-	paginator := route53.NewListHostedZonesPaginator(svc, &route53.ListHostedZonesInput{})
+	paginator := route53.NewListHostedZonesPaginator(c.client, &route53.ListHostedZonesInput{})
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -88,7 +117,7 @@ func (*Route53Collector) Collect(ctx context.Context, cfg *aws.Config, region st
 			}))
 
 			// List Resource Record Sets for the zone
-			recordPaginator := route53.NewListResourceRecordSetsPaginator(svc, &route53.ListResourceRecordSetsInput{
+			recordPaginator := route53.NewListResourceRecordSetsPaginator(c.client, &route53.ListResourceRecordSetsInput{
 				HostedZoneId: zone.Id,
 			})
 			var recordPage *route53.ListResourceRecordSetsOutput
@@ -113,7 +142,6 @@ func (*Route53Collector) Collect(ctx context.Context, cfg *aws.Config, region st
 							values = append(values, helpers.StringValue(rr.Value))
 						}
 					}
-					valueStr := strings.Join(values, "\n")
 
 					// Add RecordSet resource
 					resources = append(resources, NewResource(&ResourceInput{
@@ -126,7 +154,7 @@ func (*Route53Collector) Collect(ctx context.Context, cfg *aws.Config, region st
 							"ID":         zoneID, // Use ZoneID for grouping context
 							"TTL":        ttl,
 							"RecordType": record.Type,
-							"Value":      valueStr,
+							"Value":      values,
 						},
 					}))
 				}

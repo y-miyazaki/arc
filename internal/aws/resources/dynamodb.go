@@ -1,9 +1,9 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,7 +12,39 @@ import (
 )
 
 // DynamoDBCollector collects DynamoDB resources.
-type DynamoDBCollector struct{}
+// It uses dependency injection to manage DynamoDB clients for multiple regions.
+type DynamoDBCollector struct {
+	clients      map[string]*dynamodb.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewDynamoDBCollector creates a new DynamoDB collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create DynamoDB clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *DynamoDBCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewDynamoDBCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*DynamoDBCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *dynamodb.Client {
+		return dynamodb.NewFromConfig(*c, func(o *dynamodb.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DynamoDB clients: %w", err)
+	}
+
+	return &DynamoDBCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*DynamoDBCollector) Name() string {
@@ -52,16 +84,18 @@ func (*DynamoDBCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects DynamoDB resources.
-func (*DynamoDBCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := dynamodb.NewFromConfig(*cfg, func(o *dynamodb.Options) {
-		o.Region = region
-	})
+// Collect collects DynamoDB resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *DynamoDBCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
 	// Get all KMS keys to resolve names efficiently
-	kmsMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	kmsMap, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}
@@ -101,7 +135,6 @@ func (*DynamoDBCollector) Collect(ctx context.Context, cfg *aws.Config, region s
 				attr := &table.AttributeDefinitions[i]
 				attrDefs = append(attrDefs, fmt.Sprintf("%s (%s)", helpers.StringValue(attr.AttributeName), attr.AttributeType))
 			}
-			attributeDefinitions := strings.Join(attrDefs, "\n")
 
 			// Billing Mode
 			var billingMode *string
@@ -154,7 +187,7 @@ func (*DynamoDBCollector) Collect(ctx context.Context, cfg *aws.Config, region s
 				Region:      region,
 				ARN:         table.TableArn,
 				RawData: map[string]any{
-					"AttributeDefinitions":       attributeDefinitions,
+					"AttributeDefinitions":       attrDefs,
 					"BillingMode":                billingMode,
 					"StreamEnabled":              streamEnabled,
 					"GlobalTable":                table.GlobalTableVersion,

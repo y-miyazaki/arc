@@ -5,74 +5,68 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// MockCloudFrontCollector is a testable version of CloudFrontCollector that uses mock data
-type MockCloudFrontCollector struct{}
-
-func NewMockCloudFrontCollector() *MockCloudFrontCollector {
-	return &MockCloudFrontCollector{}
-}
-
-func (c *MockCloudFrontCollector) Name() string {
-	return "cloudfront"
-}
-
-func (c *MockCloudFrontCollector) ShouldSort() bool {
-	return true
-}
-
-func (c *MockCloudFrontCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "AlternateDomain", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AlternateDomain") }},
-		{Header: "Origin", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Origin") }},
-		{Header: "PriceClass", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PriceClass") }},
-		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+func TestNewCloudFrontCollector(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
 	}
+	regions := []string{"us-east-1", "eu-west-1"}
+
+	// Create a NameResolver for testing
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	require.NoError(t, err)
+
+	collector, err := NewCloudFrontCollector(cfg, regions, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.Len(t, collector.clients, 2)
+	assert.Contains(t, collector.clients, "us-east-1")
+	assert.Contains(t, collector.clients, "eu-west-1")
+	assert.NotNil(t, collector.nameResolver)
 }
 
-func (c *MockCloudFrontCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// CloudFront is a global service, only process from us-east-1
-	if region != "us-east-1" {
-		return nil, nil
+func TestNewCloudFrontCollector_EmptyRegions(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
 	}
 
-	// Return mock data without using actual AWS API calls
-	var resources []Resource
+	// Create a NameResolver even with empty regions
+	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
+	require.NoError(t, err)
 
-	// Mock Distribution
-	r1 := Resource{
-		Category:    "cloudfront",
-		SubCategory: "Distribution",
-		Name:        "d1234567890abcdef0.cloudfront.net",
-		Region:      "Global",
-		RawData: helpers.NormalizeRawData(map[string]any{
-			"ID":              "E1A2B3C4D5F6G7H8",
-			"AlternateDomain": []string{"example.com", "www.example.com"},
-			"Origin":          "my-bucket.s3.amazonaws.com",
-			"PriceClass":      "PriceClass_100",
-			"WAF":             "MyWebACL",
-			"Status":          "Deployed",
-		}),
-	}
-	resources = append(resources, r1)
+	collector, err := NewCloudFrontCollector(cfg, []string{}, nameResolver)
 
-	return resources, nil
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.Empty(t, collector.clients)
+	assert.NotNil(t, collector.nameResolver)
 }
 
 func TestCloudFrontCollector_Basic(t *testing.T) {
-	collector := &CloudFrontCollector{}
+	collector := &CloudFrontCollector{
+		clients: make(map[string]*cloudfront.Client),
+	}
 	assert.Equal(t, "cloudfront", collector.Name())
 	assert.True(t, collector.ShouldSort())
+}
+
+func TestCloudFrontCollector_Collect_NoClient(t *testing.T) {
+	collector := &CloudFrontCollector{
+		clients: make(map[string]*cloudfront.Client),
+	}
+
+	ctx := context.Background()
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no client found for region")
 }
 
 func TestCloudFrontCollector_GetColumns(t *testing.T) {
@@ -80,77 +74,39 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
-		"ID", "AlternateDomain", "Origin", "PriceClass", "WAF", "Status",
+		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ID",
+		"AlternateDomain", "Origin", "PriceClass", "WAF", "Status",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
-	for i := range expectedHeaders {
-		assert.Equal(t, expectedHeaders[i], columns[i].Header)
+	for i, column := range columns {
+		assert.Equal(t, expectedHeaders[i], column.Header)
 	}
 
-	// Test Value functions with a sample resource
+	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Content Delivery",
-		SubCategory:    "CloudFront",
-		SubSubCategory: "Distribution",
-		Name:           "d1234567890abcdef0.cloudfront.net",
-		Region:         "Global",
-		RawData: map[string]any{
-			"ID":              "E1A2B3C4D5F6G7H8",
-			"AlternateDomain": "example.com, www.example.com",
-			"Origin":          "my-bucket.s3.amazonaws.com",
+		Category:       "CloudFront",
+		SubCategory:    "Distribution",
+		SubSubCategory: "",
+		Name:           "test-distribution",
+		Region:         "us-east-1",
+		ARN:            "",
+		RawData: map[string]interface{}{
+			"ID":              "E1A2B3C4D5F6G",
+			"AlternateDomain": "cdn.example.com",
+			"Origin":          "example.s3.amazonaws.com",
 			"PriceClass":      "PriceClass_100",
-			"WAF":             "MyWebACL",
+			"WAF":             "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-waf/12345678-1234-1234-1234-123456789012",
 			"Status":          "Deployed",
 		},
 	}
 
 	expectedValues := []string{
-		"Content Delivery", "CloudFront", "Distribution", "d1234567890abcdef0.cloudfront.net", "Global",
-		"E1A2B3C4D5F6G7H8", "example.com, www.example.com", "my-bucket.s3.amazonaws.com", "PriceClass_100", "MyWebACL", "Deployed",
+		"CloudFront", "Distribution", "", "test-distribution", "us-east-1", "E1A2B3C4D5F6G",
+		"cdn.example.com", "example.s3.amazonaws.com", "PriceClass_100", "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-waf/12345678-1234-1234-1234-123456789012", "Deployed",
 	}
 
 	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, expectedHeaders[i])
+		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
-}
-
-func TestMockCloudFrontCollector_Collect(t *testing.T) {
-	ctx := context.Background()
-	cfg := &aws.Config{}
-	region := "us-east-1"
-
-	collector := NewMockCloudFrontCollector()
-
-	resources, err := collector.Collect(ctx, cfg, region)
-
-	assert.NoError(t, err)
-	assert.Len(t, resources, 1)
-
-	// Check resource (Distribution)
-	r1 := resources[0]
-	assert.Equal(t, "cloudfront", r1.Category)
-	assert.Equal(t, "Distribution", r1.SubCategory)
-	assert.Equal(t, "d1234567890abcdef0.cloudfront.net", r1.Name)
-	assert.Equal(t, "Global", r1.Region)
-	assert.Equal(t, "E1A2B3C4D5F6G7H8", helpers.GetMapValue(r1.RawData, "ID"))
-	assert.Equal(t, "example.com\nwww.example.com", helpers.GetMapValue(r1.RawData, "AlternateDomain"))
-	assert.Equal(t, "my-bucket.s3.amazonaws.com", helpers.GetMapValue(r1.RawData, "Origin"))
-	assert.Equal(t, "PriceClass_100", helpers.GetMapValue(r1.RawData, "PriceClass"))
-	assert.Equal(t, "MyWebACL", helpers.GetMapValue(r1.RawData, "WAF"))
-	assert.Equal(t, "Deployed", helpers.GetMapValue(r1.RawData, "Status"))
-}
-
-func TestMockCloudFrontCollector_Collect_NonUSEast1(t *testing.T) {
-	ctx := context.Background()
-	cfg := &aws.Config{}
-	region := "eu-west-1"
-
-	collector := NewMockCloudFrontCollector()
-
-	resources, err := collector.Collect(ctx, cfg, region)
-
-	assert.NoError(t, err)
-	assert.Len(t, resources, 0)
 }

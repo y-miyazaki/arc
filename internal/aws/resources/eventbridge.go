@@ -1,24 +1,67 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/scheduler"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 const formatInt = "%d"
 
 // EventBridgeCollector collects EventBridge Rules and Schedules.
+// It uses dependency injection to manage EventBridge and Scheduler clients for multiple regions.
 // It retrieves details such as schedule expressions, targets, and retry policies.
 // It supports both standard EventBridge Rules and the newer EventBridge Scheduler.
 // The collector gathers target information including Role ARNs and retry configurations.
 // The collector handles pagination manually for ListRules where paginators are not available.
-type EventBridgeCollector struct{}
+type EventBridgeCollector struct {
+	ebClients    map[string]*eventbridge.Client
+	schClients   map[string]*scheduler.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewEventBridgeCollector creates a new EventBridge collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create EventBridge clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *EventBridgeCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewEventBridgeCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*EventBridgeCollector, error) {
+	ebClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *eventbridge.Client {
+		return eventbridge.NewFromConfig(*c, func(o *eventbridge.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EventBridge clients: %w", err)
+	}
+
+	schClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *scheduler.Client {
+		return scheduler.NewFromConfig(*c, func(o *scheduler.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Scheduler clients: %w", err)
+	}
+
+	return &EventBridgeCollector{
+		ebClients:    ebClients,
+		schClients:   schClients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*EventBridgeCollector) Name() string {
@@ -51,14 +94,18 @@ func (*EventBridgeCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects EventBridge resources from the specified region.
-func (*EventBridgeCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	ebSvc := eventbridge.NewFromConfig(*cfg, func(o *eventbridge.Options) {
-		o.Region = region
-	})
-	schSvc := scheduler.NewFromConfig(*cfg, func(o *scheduler.Options) {
-		o.Region = region
-	})
+// Collect collects EventBridge resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	ebSvc, ok := c.ebClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
+
+	schSvc, ok := c.schClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s (Scheduler)", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

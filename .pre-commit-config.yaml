@@ -60,3 +60,12 @@ repos:
         language: golang
         pass_filenames: false
         types: [go]
+  - repo: local
+    hooks:
+      - id: actionlint
+        name: actionlint
+        description: GitHub Actions workflow linter.
+        language: unsupported
+        entry: actionlint -color=false
+        types: [yaml]
+        files: ^\.github/workflows/.*\.(ya?ml)$

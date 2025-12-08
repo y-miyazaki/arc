@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+//go:embed html_template.html
+var htmlTemplate string
+
 // HTMLTemplateData represents the data structure for HTML template substitution
 type HTMLTemplateData struct {
 	Title       string
@@ -22,9 +25,6 @@ type FileManifestEntry struct {
 	Path        string `json:"path"`
 	DisplayName string `json:"display_name"` //nolint:tagliatelle // matches JavaScript naming convention
 }
-
-//go:embed html_template.html
-var htmlTemplate string
 
 // GenerateHTML generates HTML index and manifest files for CSV outputs
 func GenerateHTML(outputDir, accountID, outputFile string, categories []string) error {

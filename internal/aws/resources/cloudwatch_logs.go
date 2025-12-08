@@ -6,26 +6,57 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // CloudWatchLogsCollector collects CloudWatch Logs resources.
-type CloudWatchLogsCollector struct{}
+// It uses dependency injection to manage CloudWatch Logs clients for multiple regions.
+type CloudWatchLogsCollector struct {
+	clients      map[string]*cloudwatchlogs.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
 
-// Name returns the collector name.
+// NewCloudWatchLogsCollector creates a new CloudWatch Logs collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create CloudWatch Logs clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *CloudWatchLogsCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewCloudWatchLogsCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*CloudWatchLogsCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *cloudwatchlogs.Client {
+		return cloudwatchlogs.NewFromConfig(*c, func(o *cloudwatchlogs.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CloudWatch Logs clients: %w", err)
+	}
+
+	return &CloudWatchLogsCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*CloudWatchLogsCollector) Name() string {
 	return "cloudwatch_logs"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*CloudWatchLogsCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for CloudWatch Logs.
+// GetColumns returns the CSV columns for the collector.
 func (*CloudWatchLogsCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -43,16 +74,18 @@ func (*CloudWatchLogsCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects CloudWatch Logs resources from the specified region.
-func (*CloudWatchLogsCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := cloudwatchlogs.NewFromConfig(*cfg, func(o *cloudwatchlogs.Options) {
-		o.Region = region
-	})
+// Collect collects CloudWatch Logs resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *CloudWatchLogsCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
 	// Get all KMS keys to resolve names efficiently
-	kmsMap, err := helpers.GetAllKMSKeys(ctx, cfg, region)
+	kmsMap, err := c.nameResolver.GetAllKMSKeys(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS keys: %w", err)
 	}

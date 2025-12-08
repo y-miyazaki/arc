@@ -1,20 +1,50 @@
-// Package resources provides AWS resource collectors for different services.
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
-
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// LambdaCollector collects Lambda functions
-type LambdaCollector struct{}
+// LambdaCollector collects Lambda functions.
+// It uses dependency injection to manage Lambda clients for multiple regions.
+type LambdaCollector struct {
+	clients      map[string]*lambda.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewLambdaCollector creates a new Lambda collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Lambda clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *LambdaCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewLambdaCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*LambdaCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *lambda.Client {
+		return lambda.NewFromConfig(*c, func(o *lambda.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Lambda clients: %w", err)
+	}
+
+	return &LambdaCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*LambdaCollector) Name() string {
@@ -46,11 +76,13 @@ func (*LambdaCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Lambda resources.
-func (*LambdaCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := lambda.NewFromConfig(*cfg, func(o *lambda.Options) {
-		o.Region = region
-	})
+// Collect collects Lambda resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *LambdaCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
@@ -71,9 +103,8 @@ func (*LambdaCollector) Collect(ctx context.Context, cfg *aws.Config, region str
 			}
 
 			// Process environment variables
-			var envVarsStr string
+			var envEntries []string
 			if function.Environment != nil && function.Environment.Variables != nil {
-				var envEntries []string
 				for k, v := range function.Environment.Variables {
 					// Mask private keys
 					if strings.Contains(k, "PRIVATE_KEY") {
@@ -81,12 +112,9 @@ func (*LambdaCollector) Collect(ctx context.Context, cfg *aws.Config, region str
 					}
 					envEntries = append(envEntries, fmt.Sprintf("%s=%s", k, v))
 				}
-				// Sort for deterministic output
-				sort.Strings(envEntries)
-				envVarsStr = strings.Join(envEntries, "\n")
 			}
 
-			resources = append(resources, NewResource(&ResourceInput{
+			r := NewResource(&ResourceInput{
 				Category:    "lambda",
 				SubCategory: "Function",
 				Name:        function.FunctionName,
@@ -99,10 +127,11 @@ func (*LambdaCollector) Collect(ctx context.Context, cfg *aws.Config, region str
 					"Architecture": architecture,
 					"MemorySize":   function.MemorySize,
 					"Timeout":      function.Timeout,
-					"EnvVars":      envVarsStr,
+					"EnvVars":      envEntries,
 					"LastModified": function.LastModified,
 				},
-			}))
+			})
+			resources = append(resources, r)
 		}
 	}
 

@@ -1,20 +1,64 @@
 package resources
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-func TestECSCollector_Name(t *testing.T) {
-	collector := &ECSCollector{}
-	assert.Equal(t, "ecs", collector.Name())
+func TestNewECSCollector(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1", "eu-west-1"}
+
+	// Create a NameResolver for testing
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	require.NoError(t, err)
+
+	collector, err := NewECSCollector(cfg, regions, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.NotNil(t, collector.clients)
+	assert.Len(t, collector.clients, len(regions))
+	assert.NotNil(t, collector.ebClients)
+	assert.Len(t, collector.ebClients, len(regions))
+	assert.NotNil(t, collector.nameResolver)
 }
 
-func TestECSCollector_ShouldSort(t *testing.T) {
-	collector := &ECSCollector{}
+func TestNewECSCollector_EmptyRegions(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+
+	// Create a NameResolver even with empty regions
+	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
+	require.NoError(t, err)
+
+	collector, err := NewECSCollector(cfg, []string{}, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.NotNil(t, collector.clients)
+	assert.Len(t, collector.clients, 0)
+	assert.NotNil(t, collector.ebClients)
+	assert.Len(t, collector.ebClients, 0)
+	assert.NotNil(t, collector.nameResolver)
+}
+
+func TestECSCollector_Basic(t *testing.T) {
+	collector := &ECSCollector{
+		clients:   map[string]*ecs.Client{},
+		ebClients: map[string]*eventbridge.Client{},
+	}
+	assert.Equal(t, "ecs", collector.Name())
 	assert.False(t, collector.ShouldSort())
 }
 
@@ -22,127 +66,45 @@ func TestECSCollector_GetColumns(t *testing.T) {
 	collector := &ECSCollector{}
 	columns := collector.GetColumns()
 
-	assert.NotEmpty(t, columns)
-	assert.Contains(t, columns[0].Header, "Category")
-	assert.Contains(t, columns[1].Header, "SubCategory")
-	assert.Contains(t, columns[2].Header, "SubSubCategory")
-	assert.Contains(t, columns[3].Header, "Name")
-	assert.Contains(t, columns[4].Header, "Region")
+	expectedHeaders := []string{
+		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"RoleARN", "TaskDefinition", "LaunchType", "Status", "CronSchedule",
+		"Spec", "RuntimePlatform", "PortMappings", "Environment",
+	}
+
+	assert.Len(t, columns, len(expectedHeaders))
+	for i, column := range columns {
+		assert.Equal(t, expectedHeaders[i], column.Header)
+	}
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "ecs",
+		Category:       "ECS",
 		SubCategory:    "Service",
-		SubSubCategory: "Fargate",
-		Name:           "my-service",
+		SubSubCategory: "",
+		Name:           "test-service",
 		Region:         "us-east-1",
-		ARN:            "arn:aws:ecs:us-east-1:123456789012:service/my-cluster/my-service",
-		RawData: map[string]any{
-			"RoleARN":         "arn:aws:iam::123456789012:role/ecs-service-role",
-			"TaskDefinition":  "arn:aws:ecs:us-east-1:123456789012:task-definition/my-task:1",
+		ARN:            "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
+		RawData: map[string]interface{}{
+			"RoleARN":         "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
+			"TaskDefinition":  "test-task-definition:1",
 			"LaunchType":      "FARGATE",
 			"Status":          "ACTIVE",
-			"CronSchedule":    "cron(0 2 * * ? *)",
-			"Spec":            "FARGATE",
-			"RuntimePlatform": "LINUX",
-			"PortMappings":    "80:80,443:443",
-			"Environment":     "ENV=prod,DEBUG=false",
+			"CronSchedule":    "cron(0 12 * * ? *)",
+			"Spec":            "CPU: 256, Memory: 512",
+			"RuntimePlatform": "LINUX/X86_64",
+			"PortMappings":    "80/tcp",
+			"Environment":     "KEY1=value1\nKEY2=value2",
 		},
 	}
 
-	// Test each Value function
-	assert.Equal(t, "ecs", columns[0].Value(sampleResource))
-	assert.Equal(t, "Service", columns[1].Value(sampleResource))
-	assert.Equal(t, "Fargate", columns[2].Value(sampleResource))
-	assert.Equal(t, "my-service", columns[3].Value(sampleResource))
-	assert.Equal(t, "us-east-1", columns[4].Value(sampleResource))
-	assert.Equal(t, "arn:aws:ecs:us-east-1:123456789012:service/my-cluster/my-service", columns[5].Value(sampleResource))
-	assert.Equal(t, "arn:aws:iam::123456789012:role/ecs-service-role", columns[6].Value(sampleResource))
-	assert.Equal(t, "arn:aws:ecs:us-east-1:123456789012:task-definition/my-task:1", columns[7].Value(sampleResource))
-	assert.Equal(t, "FARGATE", columns[8].Value(sampleResource))
-	assert.Equal(t, "ACTIVE", columns[9].Value(sampleResource))
-	assert.Equal(t, "cron(0 2 * * ? *)", columns[10].Value(sampleResource))
-	assert.Equal(t, "FARGATE", columns[11].Value(sampleResource))
-	assert.Equal(t, "LINUX", columns[12].Value(sampleResource))
-	assert.Equal(t, "80:80,443:443", columns[13].Value(sampleResource))
-	assert.Equal(t, "ENV=prod,DEBUG=false", columns[14].Value(sampleResource))
-}
-
-// MockECSCollector is a mock implementation of ECSCollector for testing
-type MockECSCollector struct{}
-
-func (m *MockECSCollector) Name() string {
-	return "ecs"
-}
-
-func (m *MockECSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	return []Resource{
-		{
-			Category:    "ecs",
-			SubCategory: "Cluster",
-			Name:        "test-cluster",
-			Region:      region,
-			RawData: map[string]any{
-				"ClusterName":                       "test-cluster",
-				"Status":                            "ACTIVE",
-				"RegisteredContainerInstancesCount": 2,
-				"RunningTasksCount":                 5,
-				"PendingTasksCount":                 0,
-			},
-		},
-		{
-			Category:    "ecs",
-			SubCategory: "Service",
-			Name:        "test-service",
-			Region:      region,
-			RawData: map[string]any{
-				"ServiceName":    "test-service",
-				"ClusterName":    "test-cluster",
-				"Status":         "ACTIVE",
-				"DesiredCount":   3,
-				"RunningCount":   3,
-				"TaskDefinition": "arn:aws:ecs:us-east-1:123456789012:task-definition/test-task:1",
-			},
-		},
-	}, nil
-}
-
-func (m *MockECSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+	expectedValues := []string{
+		"ECS", "Service", "", "test-service", "us-east-1", "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
+		"arn:aws:iam::123456789012:role/ecsTaskExecutionRole", "test-task-definition:1", "FARGATE", "ACTIVE", "cron(0 12 * * ? *)",
+		"CPU: 256, Memory: 512", "LINUX/X86_64", "80/tcp", "KEY1=value1\nKEY2=value2",
 	}
-}
 
-func (m *MockECSCollector) ShouldSort() bool {
-	return false
-}
-
-func TestMockECSCollector_Collect(t *testing.T) {
-	collector := &MockECSCollector{}
-	cfg := &aws.Config{}
-	region := "us-east-1"
-
-	resources, err := collector.Collect(context.Background(), cfg, region)
-
-	assert.NoError(t, err)
-	assert.NotEmpty(t, resources)
-	assert.Equal(t, 2, len(resources))
-
-	// Check cluster resource
-	clusterResource := resources[0]
-	assert.Equal(t, "ecs", clusterResource.Category)
-	assert.Equal(t, "Cluster", clusterResource.SubCategory)
-	assert.Equal(t, "test-cluster", clusterResource.Name)
-	assert.Equal(t, region, clusterResource.Region)
-
-	// Check service resource
-	serviceResource := resources[1]
-	assert.Equal(t, "ecs", serviceResource.Category)
-	assert.Equal(t, "Service", serviceResource.SubCategory)
-	assert.Equal(t, "test-service", serviceResource.Name)
-	assert.Equal(t, region, serviceResource.Region)
+	for i, column := range columns {
+		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	}
 }

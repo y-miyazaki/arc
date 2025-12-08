@@ -5,15 +5,46 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // CloudWatchAlarmsCollector collects CloudWatch alarms.
 // It collects both Metric Alarms and Composite Alarms.
-type CloudWatchAlarmsCollector struct{}
+// It uses dependency injection to manage CloudWatch clients for multiple regions.
+type CloudWatchAlarmsCollector struct {
+	clients      map[string]*cloudwatch.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewCloudWatchAlarmsCollector creates a new CloudWatch Alarms collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create CloudWatch clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *CloudWatchAlarmsCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewCloudWatchAlarmsCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*CloudWatchAlarmsCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *cloudwatch.Client {
+		return cloudwatch.NewFromConfig(*c, func(o *cloudwatch.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CloudWatch clients: %w", err)
+	}
+
+	return &CloudWatchAlarmsCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*CloudWatchAlarmsCollector) Name() string {
@@ -29,7 +60,7 @@ func (*CloudWatchAlarmsCollector) ShouldSort() bool {
 func (*CloudWatchAlarmsCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
 		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
@@ -45,11 +76,13 @@ func (*CloudWatchAlarmsCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects CloudWatch alarms from the specified region.
-func (*CloudWatchAlarmsCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := cloudwatch.NewFromConfig(*cfg, func(o *cloudwatch.Options) {
-		o.Region = region
-	})
+// Collect collects CloudWatch alarms for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *CloudWatchAlarmsCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

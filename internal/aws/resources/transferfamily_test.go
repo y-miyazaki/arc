@@ -1,65 +1,57 @@
 package resources
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/transfer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-// MockTransferFamilyCollector is a testable version of TransferFamilyCollector that uses mock data
-type MockTransferFamilyCollector struct{}
-
-func NewMockTransferFamilyCollector() *MockTransferFamilyCollector {
-	return &MockTransferFamilyCollector{}
-}
-
-func (c *MockTransferFamilyCollector) Name() string {
-	return "transferfamily"
-}
-
-func (c *MockTransferFamilyCollector) ShouldSort() bool {
-	return true
-}
-
-func (c *MockTransferFamilyCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ServerID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ServerID
-		{Header: "Protocol", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Protocol") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+func TestNewTransferFamilyCollector(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
 	}
+	regions := []string{"us-east-1", "eu-west-1"}
+
+	// Create a NameResolver for testing
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	require.NoError(t, err)
+
+	collector, err := NewTransferFamilyCollector(cfg, regions, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.Len(t, collector.clients, 2)
+	assert.Contains(t, collector.clients, "us-east-1")
+	assert.Contains(t, collector.clients, "eu-west-1")
+	assert.NotNil(t, collector.nameResolver)
 }
 
-func (c *MockTransferFamilyCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// Return mock data without using actual AWS API calls
-	var resources []Resource
-
-	// Mock Transfer Server
-	r1 := Resource{
-		Category:    "transferfamily",
-		SubCategory: "Server",
-		Name:        "s-1234567890abcdef0",
-		Region:      region,
-		ARN:         "s-1234567890abcdef0",
-		RawData: helpers.NormalizeRawData(map[string]any{
-			"Protocol": "SFTP",
-			"State":    "ONLINE",
-		}),
+func TestNewTransferFamilyCollector_EmptyRegions(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
 	}
-	resources = append(resources, r1)
 
-	return resources, nil
+	// Create a NameResolver even with empty regions
+	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
+	require.NoError(t, err)
+
+	collector, err := NewTransferFamilyCollector(cfg, []string{}, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.Empty(t, collector.clients)
+	assert.NotNil(t, collector.nameResolver)
 }
 
 func TestTransferFamilyCollector_Basic(t *testing.T) {
-	collector := &TransferFamilyCollector{}
+	collector := &TransferFamilyCollector{
+		clients: make(map[string]*transfer.Client),
+	}
 	assert.Equal(t, "transferfamily", collector.Name())
 	assert.True(t, collector.ShouldSort())
 }
@@ -69,58 +61,35 @@ func TestTransferFamilyCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
-		"ServerID", "Protocol", "State",
+		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ServerID",
+		"Protocol", "State",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
-	for i := range expectedHeaders {
-		assert.Equal(t, expectedHeaders[i], columns[i].Header)
+	for i, column := range columns {
+		assert.Equal(t, expectedHeaders[i], column.Header)
 	}
 
-	// Test Value functions with a sample resource
+	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Storage",
-		SubCategory:    "Transfer Family",
-		SubSubCategory: "Server",
+		Category:       "transferfamily",
+		SubCategory:    "Server",
+		SubSubCategory: "",
 		Name:           "s-1234567890abcdef0",
 		Region:         "us-east-1",
 		ARN:            "s-1234567890abcdef0",
-		RawData: map[string]any{
+		RawData: map[string]interface{}{
 			"Protocol": "SFTP",
 			"State":    "ONLINE",
 		},
 	}
 
 	expectedValues := []string{
-		"Storage", "Transfer Family", "Server", "s-1234567890abcdef0", "us-east-1",
-		"s-1234567890abcdef0", "SFTP", "ONLINE",
+		"transferfamily", "Server", "", "s-1234567890abcdef0", "us-east-1", "s-1234567890abcdef0",
+		"SFTP", "ONLINE",
 	}
 
 	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, expectedHeaders[i])
+		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
-}
-
-func TestMockTransferFamilyCollector_Collect(t *testing.T) {
-	ctx := context.Background()
-	cfg := &aws.Config{}
-	region := "us-east-1"
-
-	collector := NewMockTransferFamilyCollector()
-
-	resources, err := collector.Collect(ctx, cfg, region)
-
-	assert.NoError(t, err)
-	assert.Len(t, resources, 1)
-
-	// Check resource (Server)
-	r1 := resources[0]
-	assert.Equal(t, "transferfamily", r1.Category)
-	assert.Equal(t, "Server", r1.SubCategory)
-	assert.Equal(t, "s-1234567890abcdef0", r1.Name)
-	assert.Equal(t, region, r1.Region)
-	assert.Equal(t, "s-1234567890abcdef0", r1.ARN)
-	assert.Equal(t, "SFTP", helpers.GetMapValue(r1.RawData, "Protocol"))
-	assert.Equal(t, "ONLINE", helpers.GetMapValue(r1.RawData, "State"))
 }

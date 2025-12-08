@@ -1,20 +1,52 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/glue"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // GlueCollector collects Glue Databases and Jobs.
+// It uses dependency injection to manage Glue clients for multiple regions.
 // It retrieves configuration details such as worker types and script locations.
 // It also handles different job types including Python shell and Glue ETL.
 // The collector paginates through databases and jobs to ensure all resources are captured.
-type GlueCollector struct{}
+type GlueCollector struct {
+	clients      map[string]*glue.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewGlueCollector creates a new Glue collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Glue clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *GlueCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewGlueCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*GlueCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *glue.Client {
+		return glue.NewFromConfig(*c, func(o *glue.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Glue clients: %w", err)
+	}
+
+	return &GlueCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*GlueCollector) Name() string {
@@ -47,11 +79,13 @@ func (*GlueCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Glue resources from the specified region.
-func (*GlueCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := glue.NewFromConfig(*cfg, func(o *glue.Options) {
-		o.Region = region
-	})
+// Collect collects Glue resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *GlueCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

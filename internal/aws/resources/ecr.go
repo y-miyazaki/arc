@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -5,14 +6,45 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // ECRCollector collects ECR resources.
-type ECRCollector struct{}
+// It uses dependency injection to manage ECR clients for multiple regions.
+type ECRCollector struct {
+	clients      map[string]*ecr.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewECRCollector creates a new ECR collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create ECR clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *ECRCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewECRCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ECRCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *ecr.Client {
+		return ecr.NewFromConfig(*c, func(o *ecr.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ECR clients: %w", err)
+	}
+
+	return &ECRCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*ECRCollector) Name() string {
@@ -43,11 +75,13 @@ func (*ECRCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects ECR resources.
-func (*ECRCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := ecr.NewFromConfig(*cfg, func(o *ecr.Options) {
-		o.Region = region
-	})
+// Collect collects ECR resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *ECRCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

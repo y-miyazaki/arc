@@ -1,35 +1,69 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2/types"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // WAFCollector collects WAFv2 WebACLs.
-// It collects both Regional and CloudFront (Global) WebACLs.
-// It retrieves details such as rules, associated resources, and logging configurations.
-// The collector handles both regional and global scopes, using appropriate APIs for each.
-// It also lists CloudFront distributions associated with global WebACLs.
-type WAFCollector struct{}
+// It uses dependency injection to manage WAFv2 and CloudFront clients.
+// WAF is a global service for CloudFront - only processes from us-east-1 to avoid duplicates.
+type WAFCollector struct {
+	wafClient    map[string]*wafv2.Client
+	cfClient     *cloudfront.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
 
-// Name returns the collector name.
+// NewWAFCollector creates a new WAF collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create WAF clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *WAFCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewWAFCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*WAFCollector, error) {
+	wafClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *wafv2.Client {
+		return wafv2.NewFromConfig(*c, func(o *wafv2.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create WAFv2 clients: %w", err)
+	}
+
+	// CloudFront client for Global WAF associations
+	cfClient := cloudfront.NewFromConfig(*cfg)
+
+	return &WAFCollector{
+		wafClient:    wafClients,
+		cfClient:     cfClient,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*WAFCollector) Name() string {
 	return "waf"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*WAFCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for WAF.
+// GetColumns returns the CSV columns for the collector.
 func (*WAFCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -46,28 +80,24 @@ func (*WAFCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects WAF resources from the specified region.
-func (c *WAFCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	wafSvc := wafv2.NewFromConfig(*cfg, func(o *wafv2.Options) {
-		o.Region = region
-	})
-
-	// CloudFront client for Global WAF associations (only needed if region is us-east-1)
-	var cfSvc *cloudfront.Client
-	if region == "us-east-1" {
-		cfSvc = cloudfront.NewFromConfig(*cfg)
+// Collect collects WAF resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *WAFCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.wafClient[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
 	}
 
 	var resources []Resource
 
 	// 1. Regional WAFs
-	if err := c.collectScope(ctx, wafSvc, nil, region, types.ScopeRegional, &resources); err != nil {
+	if err := c.collectScope(ctx, svc, nil, region, types.ScopeRegional, &resources); err != nil {
 		return nil, fmt.Errorf("failed to collect regional WAFs: %w", err)
 	}
 
 	// 2. CloudFront WAFs (Global) - only collect in us-east-1
 	if region == "us-east-1" {
-		if err := c.collectScope(ctx, wafSvc, cfSvc, "Global", types.ScopeCloudfront, &resources); err != nil {
+		if err := c.collectScope(ctx, svc, c.cfClient, "Global", types.ScopeCloudfront, &resources); err != nil {
 			return nil, fmt.Errorf("failed to collect global WAFs: %w", err)
 		}
 	}

@@ -1,3 +1,4 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -5,14 +6,45 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // CloudFrontCollector collects CloudFront resources.
-type CloudFrontCollector struct{}
+// It uses dependency injection to manage CloudFront clients for multiple regions.
+type CloudFrontCollector struct {
+	clients      map[string]*cloudfront.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewCloudFrontCollector creates a new CloudFront collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create CloudFront clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *CloudFrontCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewCloudFrontCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*CloudFrontCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *cloudfront.Client {
+		return cloudfront.NewFromConfig(*c, func(o *cloudfront.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CloudFront clients: %w", err)
+	}
+
+	return &CloudFrontCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*CloudFrontCollector) Name() string {
@@ -41,14 +73,20 @@ func (*CloudFrontCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects CloudFront resources.
-func (*CloudFrontCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+// Collect collects CloudFront resources for the specified region.
+// CloudFront is a global service, only process from us-east-1.
+// The collector must have been initialized with a client for this region.
+func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// CloudFront is a global service, only process from us-east-1
 	if region != "us-east-1" {
 		return nil, nil
 	}
 
-	svc := cloudfront.NewFromConfig(*cfg)
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
+
 	var resources []Resource
 
 	paginator := cloudfront.NewListDistributionsPaginator(svc, &cloudfront.ListDistributionsInput{})

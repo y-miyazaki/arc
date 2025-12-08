@@ -1,17 +1,49 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // KMSCollector collects KMS keys.
-type KMSCollector struct{}
+// It uses dependency injection to manage KMS clients for multiple regions.
+type KMSCollector struct {
+	clients      map[string]*kms.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewKMSCollector creates a new KMS collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create KMS clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *KMSCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewKMSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*KMSCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *kms.Client {
+		return kms.NewFromConfig(*c, func(o *kms.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create KMS clients: %w", err)
+	}
+
+	return &KMSCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*KMSCollector) Name() string {
@@ -39,11 +71,13 @@ func (*KMSCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects KMS keys from the specified region.
-func (*KMSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := kms.NewFromConfig(*cfg, func(o *kms.Options) {
-		o.Region = region
-	})
+// Collect collects KMS keys for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *KMSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

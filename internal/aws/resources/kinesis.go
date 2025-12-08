@@ -1,22 +1,65 @@
+// Package resources provides AWS resource collectors.
 package resources
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/firehose"
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // KinesisCollector collects Kinesis Streams and Firehose Delivery Streams.
+// It uses dependency injection to manage Kinesis and Firehose clients for multiple regions.
 // It gathers detailed information about streams including shards and retention.
 // It also collects Firehose Delivery Streams and their destinations.
 // The collector uses the Kinesis ListStreams and Firehose ListDeliveryStreams APIs
 // to discover resources.
-type KinesisCollector struct{}
+type KinesisCollector struct {
+	kinesisClients  map[string]*kinesis.Client
+	firehoseClients map[string]*firehose.Client
+	nameResolver    *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewKinesisCollector creates a new Kinesis collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create Kinesis clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *KinesisCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewKinesisCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*KinesisCollector, error) {
+	kinesisClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *kinesis.Client {
+		return kinesis.NewFromConfig(*c, func(o *kinesis.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kinesis clients: %w", err)
+	}
+
+	firehoseClients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *firehose.Client {
+		return firehose.NewFromConfig(*c, func(o *firehose.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Firehose clients: %w", err)
+	}
+
+	return &KinesisCollector{
+		kinesisClients:  kinesisClients,
+		firehoseClients: firehoseClients,
+		nameResolver:    nameResolver,
+	}, nil
+}
 
 // Name returns the collector name.
 func (*KinesisCollector) Name() string {
@@ -47,14 +90,18 @@ func (*KinesisCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Kinesis resources from the specified region.
-func (*KinesisCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	kinesisSvc := kinesis.NewFromConfig(*cfg, func(o *kinesis.Options) {
-		o.Region = region
-	})
-	firehoseSvc := firehose.NewFromConfig(*cfg, func(o *firehose.Options) {
-		o.Region = region
-	})
+// Collect collects Kinesis resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *KinesisCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	kinesisSvc, ok := c.kinesisClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
+
+	firehoseSvc, ok := c.firehoseClients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s (Firehose)", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

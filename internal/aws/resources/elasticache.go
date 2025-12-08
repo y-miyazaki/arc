@@ -11,7 +11,39 @@ import (
 )
 
 // ElastiCacheCollector collects ElastiCache resources.
-type ElastiCacheCollector struct{}
+// It uses dependency injection to manage ElastiCache clients for multiple regions.
+type ElastiCacheCollector struct {
+	clients      map[string]*elasticache.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
+
+// NewElastiCacheCollector creates a new ElastiCache collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create ElastiCache clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *ElastiCacheCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewElastiCacheCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*ElastiCacheCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *elasticache.Client {
+		return elasticache.NewFromConfig(*c, func(o *elasticache.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ElastiCache clients: %w", err)
+	}
+
+	return &ElastiCacheCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
 
 // Name returns the resource name of the collector.
 func (*ElastiCacheCollector) Name() string {
@@ -56,16 +88,18 @@ func (*ElastiCacheCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects ElastiCache resources.
-func (*ElastiCacheCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := elasticache.NewFromConfig(*cfg, func(o *elasticache.Options) {
-		o.Region = region
-	})
+// Collect collects ElastiCache resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 
 	// Get all security groups to resolve names efficiently
-	sgMap, err := helpers.GetAllSecurityGroups(ctx, cfg, region)
+	sgMap, err := c.nameResolver.GetAllSecurityGroups(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get security groups: %w", err)
 	}

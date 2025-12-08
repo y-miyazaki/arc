@@ -5,28 +5,58 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/y-miyazaki/arc/internal/aws/helpers"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
 // CloudFormationCollector collects CloudFormation stacks and stack sets.
-// It retrieves details such as outputs, parameters, and drift status.
-type CloudFormationCollector struct{}
+// It uses dependency injection to manage CloudFormation clients for multiple regions.
+type CloudFormationCollector struct {
+	clients      map[string]*cloudformation.Client
+	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
+}
 
-// Name returns the collector name.
+// NewCloudFormationCollector creates a new CloudFormation collector with clients for the specified regions.
+// This constructor follows the standard naming convention for dependency injection:
+// New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
+//
+// Parameters:
+//   - cfg: AWS configuration with credentials
+//   - regions: List of AWS regions to create CloudFormation clients for
+//   - nameResolver: Shared NameResolver instance for resource name resolution
+//
+// Returns:
+//   - *CloudFormationCollector: Initialized collector with regional clients and name resolver
+//   - error: Error if client creation fails
+func NewCloudFormationCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*CloudFormationCollector, error) {
+	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *cloudformation.Client {
+		return cloudformation.NewFromConfig(*c, func(o *cloudformation.Options) {
+			o.Region = region
+		})
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CloudFormation clients: %w", err)
+	}
+
+	return &CloudFormationCollector{
+		clients:      clients,
+		nameResolver: nameResolver,
+	}, nil
+}
+
+// Name returns the resource name of the collector.
 func (*CloudFormationCollector) Name() string {
 	return "cloudformation"
 }
 
-// ShouldSort returns true.
+// ShouldSort returns whether the collected resources should be sorted.
 func (*CloudFormationCollector) ShouldSort() bool {
 	return true
 }
 
-// GetColumns returns the CSV column definitions for CloudFormation.
+// GetColumns returns the CSV columns for the collector.
 func (*CloudFormationCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
@@ -47,11 +77,13 @@ func (*CloudFormationCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects CloudFormation stacks and stack sets from the specified region.
-func (*CloudFormationCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	svc := cloudformation.NewFromConfig(*cfg, func(o *cloudformation.Options) {
-		o.Region = region
-	})
+// Collect collects CloudFormation resources for the specified region.
+// The collector must have been initialized with a client for this region.
+func (c *CloudFormationCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	svc, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
 	var resources []Resource
 

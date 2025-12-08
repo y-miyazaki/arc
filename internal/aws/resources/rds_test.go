@@ -1,16 +1,57 @@
 package resources
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
+func TestNewRDSCollector(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1", "eu-west-1"}
+
+	// Create a NameResolver for testing
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	require.NoError(t, err)
+
+	collector, err := NewRDSCollector(cfg, regions, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.NotNil(t, collector.clients)
+	assert.Len(t, collector.clients, len(regions))
+	assert.NotNil(t, collector.nameResolver)
+}
+
+func TestNewRDSCollector_EmptyRegions(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+
+	// Create a NameResolver even with empty regions
+	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
+	require.NoError(t, err)
+
+	collector, err := NewRDSCollector(cfg, []string{}, nameResolver)
+
+	require.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.NotNil(t, collector.clients)
+	assert.Len(t, collector.clients, 0)
+	assert.NotNil(t, collector.nameResolver)
+}
+
 func TestRDSCollector_Basic(t *testing.T) {
-	collector := &RDSCollector{}
+	collector := &RDSCollector{
+		clients: map[string]*rds.Client{},
+	}
 	assert.Equal(t, "rds", collector.Name())
 	assert.False(t, collector.ShouldSort())
 }
@@ -19,143 +60,51 @@ func TestRDSCollector_GetColumns(t *testing.T) {
 	collector := &RDSCollector{}
 	columns := collector.GetColumns()
 
-	// RDS has many columns, just check the first few
 	expectedHeaders := []string{
 		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
-		"ID", "Type", "Engine", "Version",
+		"ID", "Type", "Engine", "Version", "InstanceClass",
+		"AllocatedStorage", "MultiAZ", "DBClusterMembers", "EngineLifecycleSupport", "IAMDatabaseAuthenticationEnabled",
+		"KerberosAuth", "KmsKey", "AvailabilityZone", "BackupRetentionPeriod",
 	}
 
-	assert.True(t, len(columns) >= len(expectedHeaders))
-	for i, expected := range expectedHeaders {
-		assert.Equal(t, expected, columns[i].Header)
+	assert.Len(t, columns, len(expectedHeaders))
+	for i, column := range columns {
+		assert.Equal(t, expectedHeaders[i], column.Header)
 	}
 
-	// Test Value functions with a sample resource
+	// Test Value functions with sample resource
 	sampleResource := Resource{
 		Category:       "Database",
 		SubCategory:    "RDS",
 		SubSubCategory: "DBInstance",
-		Name:           "my-db-instance",
+		Name:           "test-db",
 		Region:         "us-east-1",
-		RawData: map[string]any{
-			"ID":      "db-1234567890abcdef0",
-			"Type":    "db.t3.micro",
-			"Engine":  "mysql",
-			"Version": "8.0.28",
+		RawData: map[string]interface{}{
+			"ID":                               "test-db",
+			"Type":                             "DBInstance",
+			"Engine":                           "mysql",
+			"Version":                          "8.0.32",
+			"InstanceClass":                    "db.t3.micro",
+			"AllocatedStorage":                 "20",
+			"MultiAZ":                          "false",
+			"DBClusterMembers":                 "0",
+			"EngineLifecycleSupport":           "open-source-rds-extended-support",
+			"IAMDatabaseAuthenticationEnabled": "false",
+			"KerberosAuth":                     "false",
+			"KmsKey":                           "alias/aws/rds",
+			"AvailabilityZone":                 "us-east-1a",
+			"BackupRetentionPeriod":            "7",
 		},
 	}
 
 	expectedValues := []string{
-		"Database", "RDS", "DBInstance", "my-db-instance", "us-east-1",
-		"db-1234567890abcdef0", "db.t3.micro", "mysql", "8.0.28",
+		"Database", "RDS", "DBInstance", "test-db", "us-east-1",
+		"test-db", "DBInstance", "mysql", "8.0.32", "db.t3.micro",
+		"20", "false", "0", "open-source-rds-extended-support", "false",
+		"false", "alias/aws/rds", "us-east-1a", "7",
 	}
 
-	for i, expected := range expectedValues {
-		assert.Equal(t, expected, columns[i].Value(sampleResource), "Column %d (%s) value mismatch", i, expectedHeaders[i])
+	for i, column := range columns {
+		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
-}
-
-// MockRDSCollector is a testable version of RDSCollector that uses mock data
-type MockRDSCollector struct{}
-
-func NewMockRDSCollector() *MockRDSCollector {
-	return &MockRDSCollector{}
-}
-
-func (c *MockRDSCollector) Name() string {
-	return "rds"
-}
-
-func (c *MockRDSCollector) ShouldSort() bool {
-	return false
-}
-
-func (c *MockRDSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
-		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
-	}
-}
-
-func (c *MockRDSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
-	// Return mock data without using actual AWS API calls
-	var resources []Resource
-
-	// Mock DB instance
-	r1 := Resource{
-		Category:    "rds",
-		SubCategory: "DBInstance",
-		Name:        "my-database",
-		Region:      region,
-		ARN:         "arn:aws:rds:us-east-1:123456789012:db:my-database",
-		RawData: helpers.NormalizeRawData(map[string]any{
-			"ID":      "my-database",
-			"Type":    "db.t3.micro",
-			"Engine":  "mysql",
-			"Version": "8.0.32",
-		}),
-	}
-	resources = append(resources, r1)
-
-	// Mock DB cluster
-	r2 := Resource{
-		Category:    "rds",
-		SubCategory: "DBCluster",
-		Name:        "my-cluster",
-		Region:      region,
-		ARN:         "arn:aws:rds:us-east-1:123456789012:cluster:my-cluster",
-		RawData: helpers.NormalizeRawData(map[string]any{
-			"ID":      "my-cluster",
-			"Type":    "db.r6g.large",
-			"Engine":  "aurora-mysql",
-			"Version": "8.0.mysql_aurora.3.02.0",
-		}),
-	}
-	resources = append(resources, r2)
-
-	return resources, nil
-}
-
-func TestMockRDSCollector_Collect(t *testing.T) {
-	ctx := context.Background()
-	cfg := &aws.Config{}
-	region := "us-east-1"
-
-	collector := NewMockRDSCollector()
-
-	resources, err := collector.Collect(ctx, cfg, region)
-
-	assert.NoError(t, err)
-	assert.Len(t, resources, 2)
-
-	// Check first resource (DB Instance)
-	r1 := resources[0]
-	assert.Equal(t, "rds", r1.Category)
-	assert.Equal(t, "DBInstance", r1.SubCategory)
-	assert.Equal(t, "my-database", r1.Name)
-	assert.Equal(t, region, r1.Region)
-	assert.Equal(t, "arn:aws:rds:us-east-1:123456789012:db:my-database", r1.ARN)
-	assert.Equal(t, "my-database", helpers.GetMapValue(r1.RawData, "ID"))
-	assert.Equal(t, "db.t3.micro", helpers.GetMapValue(r1.RawData, "Type"))
-	assert.Equal(t, "mysql", helpers.GetMapValue(r1.RawData, "Engine"))
-	assert.Equal(t, "8.0.32", helpers.GetMapValue(r1.RawData, "Version"))
-
-	// Check second resource (DB Cluster)
-	r2 := resources[1]
-	assert.Equal(t, "rds", r2.Category)
-	assert.Equal(t, "DBCluster", r2.SubCategory)
-	assert.Equal(t, "my-cluster", r2.Name)
-	assert.Equal(t, region, r2.Region)
-	assert.Equal(t, "arn:aws:rds:us-east-1:123456789012:cluster:my-cluster", r2.ARN)
-	assert.Equal(t, "my-cluster", helpers.GetMapValue(r2.RawData, "ID"))
-	assert.Equal(t, "db.r6g.large", helpers.GetMapValue(r2.RawData, "Type"))
-	assert.Equal(t, "aurora-mysql", helpers.GetMapValue(r2.RawData, "Engine"))
-	assert.Equal(t, "8.0.mysql_aurora.3.02.0", helpers.GetMapValue(r2.RawData, "Version"))
 }

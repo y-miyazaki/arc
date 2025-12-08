@@ -182,7 +182,7 @@
 - COMP-02: No Missing Commands
   - Problem: 検証コマンド不足
   - Impact: 実行不能な検証
-  - Recommendation: 実行可能な検証コマンドを網羅
+  - Recommendation: 実行可能な検証コマンドの網羅
 - COMP-03: Tool Coverage
   - Problem: ツール記載漏れ
   - Impact: 検証欠落
@@ -190,8 +190,7 @@
 - COMP-04: Real Commands
   - Problem: 実行例不足
   - Impact: 検証困難
-  - Recommendation: 実行例を具体的に記載
-
+  - Recommendation: 実行例の具体的に記載
 ## Validation Process
 
 ### 1. 章構成確認
