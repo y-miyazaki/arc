@@ -1,0 +1,102 @@
+package resources
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+)
+
+// KMSCollector collects KMS keys.
+type KMSCollector struct{}
+
+// Name returns the collector name.
+func (*KMSCollector) Name() string {
+	return "kms"
+}
+
+// ShouldSort returns false to preserve key order.
+func (*KMSCollector) ShouldSort() bool {
+	return true
+}
+
+// GetColumns returns the CSV column definitions for KMS keys.
+func (*KMSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "KeyUsage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyUsage") }},
+		{Header: "KeyManager", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyManager") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Collect collects KMS keys from the specified region.
+func (*KMSCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+	svc := kms.NewFromConfig(*cfg, func(o *kms.Options) {
+		o.Region = region
+	})
+
+	var resources []Resource
+
+	// List all KMS keys
+	listPaginator := kms.NewListKeysPaginator(svc, &kms.ListKeysInput{})
+	for listPaginator.HasMorePages() {
+		listPage, err := listPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+		}
+
+		for i := range listPage.Keys {
+			key := &listPage.Keys[i]
+
+			// Get detailed key information
+			var describeOut *kms.DescribeKeyOutput
+			describeOut, err = svc.DescribeKey(ctx, &kms.DescribeKeyInput{
+				KeyId: key.KeyId,
+			})
+			if err != nil {
+				// Skip keys that cannot be described (e.g., deleted keys)
+				continue
+			}
+
+			keyMetadata := describeOut.KeyMetadata
+
+			// Get key aliases
+			var keyName string
+			var aliasesOut *kms.ListAliasesOutput
+			aliasesOut, err = svc.ListAliases(ctx, &kms.ListAliasesInput{
+				KeyId: key.KeyId,
+			})
+			if err == nil && aliasesOut != nil && len(aliasesOut.Aliases) > 0 {
+				keyName = *aliasesOut.Aliases[0].AliasName
+			} else {
+				keyName = *key.KeyId
+			}
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:    "kms",
+				SubCategory: "Key",
+				Name:        keyName,
+				Region:      region,
+				ARN:         keyMetadata.Arn,
+				RawData: map[string]any{
+					"Description": keyMetadata.Description,
+					"KeyUsage":    keyMetadata.KeyUsage,
+					"KeyManager":  keyMetadata.KeyManager,
+					"State":       keyMetadata.KeyState,
+				},
+			}))
+		}
+	}
+
+	return resources, nil
+}

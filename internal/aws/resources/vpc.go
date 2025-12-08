@@ -1,0 +1,401 @@
+// Package resources provides AWS resource collectors for different services.
+//
+//nolint:revive // comments-density: VPC collector has many API calls, additional comments would be redundant
+package resources
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
+)
+
+// VPCCollector collects VPC resources.
+type VPCCollector struct{}
+
+// Name returns the resource name of the collector.
+func (*VPCCollector) Name() string {
+	return "vpc"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+// VPC should not be sorted to maintain parent-child order
+func (*VPCCollector) ShouldSort() bool {
+	return false
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*VPCCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "Name", Value: func(r Resource) string {
+			if r.Name == "" {
+				return "N/A"
+			}
+			return r.Name
+		}},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "CIDR", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CIDR") }},
+		{Header: "PublicIP", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PublicIP") }},
+		{Header: "Settings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Settings") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Collect collects VPC resources.
+//
+//nolint:revive // cognitive-complexity: VPC collector inherently complex due to many subresources
+func (*VPCCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
+		o.Region = region
+	})
+
+	var resources []Resource
+
+	// Get all VPCs
+	vpcsOut, err := svc.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe vpcs: %w", err)
+	}
+
+	for i := range vpcsOut.Vpcs {
+		vpc := &vpcsOut.Vpcs[i]
+
+		// Add VPC resource
+		resources = append(resources, NewResource(&ResourceInput{
+			Category:    "vpc",
+			SubCategory: "VPC",
+			Name:        helpers.GetTagValue(vpc.Tags, "Name"),
+			Region:      region,
+			RawData: map[string]any{
+				"ID":    vpc.VpcId,
+				"CIDR":  vpc.CidrBlock,
+				"State": vpc.State,
+			},
+		}))
+
+		// Get route tables for this VPC
+		rtOut, rtErr := svc.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
+			Filters: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if rtErr != nil {
+			return nil, fmt.Errorf("failed to describe route tables: %w", rtErr)
+		}
+
+		// Build route table to IGW mapping for subnet classification
+		rtHasIGW := make(map[string]bool)
+		var mainRTID string
+		for j := range rtOut.RouteTables {
+			rt := &rtOut.RouteTables[j]
+			rtID := helpers.StringValue(rt.RouteTableId)
+
+			// Check if main route table
+			for k := range rt.Associations {
+				if aws.ToBool(rt.Associations[k].Main) {
+					mainRTID = rtID
+					break
+				}
+			}
+
+			// Check if has IGW route
+			for k := range rt.Routes {
+				gwID := helpers.StringValue(rt.Routes[k].GatewayId)
+				if strings.HasPrefix(gwID, "igw-") {
+					rtHasIGW[rtID] = true
+					break
+				}
+			}
+		}
+
+		// Build subnet to route table mapping
+		subnetToRT := make(map[string]string)
+		for j := range rtOut.RouteTables {
+			rt := &rtOut.RouteTables[j]
+			rtID := helpers.StringValue(rt.RouteTableId)
+			for k := range rt.Associations {
+				if rt.Associations[k].SubnetId != nil {
+					subnetToRT[helpers.StringValue(rt.Associations[k].SubnetId)] = rtID
+				}
+			}
+		}
+
+		// Get subnets for this VPC
+		subnetsOut, subErr := svc.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+			Filters: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if subErr != nil {
+			return nil, fmt.Errorf("failed to describe subnets: %w", subErr)
+		}
+
+		var publicSubnets, privateSubnets []Resource
+		for j := range subnetsOut.Subnets {
+			subnet := &subnetsOut.Subnets[j]
+
+			// Determine if public or private
+			rtID := subnetToRT[helpers.StringValue(subnet.SubnetId)]
+			if rtID == "" {
+				rtID = mainRTID
+			}
+			isPublic := rtHasIGW[rtID]
+
+			subCategory := "PrivateSubnet"
+			if isPublic {
+				subCategory = "PublicSubnet"
+			}
+
+			subnetResource := NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: subCategory,
+				Name:           helpers.GetTagValue(subnet.Tags, "Name"),
+				Region:         region,
+				RawData: map[string]any{
+					"ID":   subnet.SubnetId,
+					"CIDR": subnet.CidrBlock,
+				},
+			})
+
+			if isPublic {
+				publicSubnets = append(publicSubnets, subnetResource)
+			} else {
+				privateSubnets = append(privateSubnets, subnetResource)
+			}
+		}
+
+		// Add public subnets first, then private
+		resources = append(resources, publicSubnets...)
+		resources = append(resources, privateSubnets...)
+
+		// Add route tables
+		for j := range rtOut.RouteTables {
+			rt := &rtOut.RouteTables[j]
+			rtID := helpers.StringValue(rt.RouteTableId)
+			rtName := helpers.GetTagValue(rt.Tags, "Name")
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "RouteTable",
+				Name:           rtName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID": rtID,
+				},
+			}))
+		}
+
+		// Get Internet Gateways
+		igwOut, igwErr := svc.DescribeInternetGateways(ctx, &ec2.DescribeInternetGatewaysInput{
+			Filters: []types.Filter{{Name: aws.String("attachment.vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if igwErr != nil {
+			return nil, fmt.Errorf("failed to describe internet gateways: %w", igwErr)
+		}
+
+		for j := range igwOut.InternetGateways {
+			igw := &igwOut.InternetGateways[j]
+			igwID := helpers.StringValue(igw.InternetGatewayId)
+			igwName := helpers.GetTagValue(igw.Tags, "Name")
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "InternetGateway",
+				Name:           igwName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID":    igwID,
+					"State": "attached",
+				},
+			}))
+		}
+
+		// Get NAT Gateways
+		natOut, natErr := svc.DescribeNatGateways(ctx, &ec2.DescribeNatGatewaysInput{
+			Filter: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if natErr != nil {
+			return nil, fmt.Errorf("failed to describe nat gateways: %w", natErr)
+		}
+
+		for j := range natOut.NatGateways {
+			nat := &natOut.NatGateways[j]
+			natID := helpers.StringValue(nat.NatGatewayId)
+			natName := helpers.GetTagValue(nat.Tags, "Name")
+			natState := string(nat.State)
+
+			// Collect all public IPs (primary and secondary)
+			var publicIPs []string
+			for k := range nat.NatGatewayAddresses {
+				addr := &nat.NatGatewayAddresses[k]
+				ip := helpers.StringValue(addr.PublicIp)
+				if ip != "" && ip != "N/A" {
+					isPrimary := ""
+					if addr.IsPrimary != nil && *addr.IsPrimary {
+						isPrimary = " (Primary)"
+					}
+					publicIPs = append(publicIPs, ip+isPrimary)
+				}
+			}
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "NATGateway",
+				Name:           natName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID":       natID,
+					"PublicIP": publicIPs,
+					"State":    natState,
+				},
+			}))
+		}
+
+		// Get Network ACLs
+		naclOut, naclErr := svc.DescribeNetworkAcls(ctx, &ec2.DescribeNetworkAclsInput{
+			Filters: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if naclErr != nil {
+			return nil, fmt.Errorf("failed to describe network acls: %w", naclErr)
+		}
+
+		for j := range naclOut.NetworkAcls {
+			nacl := &naclOut.NetworkAcls[j]
+			naclID := helpers.StringValue(nacl.NetworkAclId)
+			naclName := helpers.GetTagValue(nacl.Tags, "Name")
+
+			// Format entries
+			var entries []string
+			for k := range nacl.Entries {
+				entry := &nacl.Entries[k]
+				portRange := "-"
+				if entry.PortRange != nil {
+					portRange = fmt.Sprintf("%d-%d", aws.ToInt32(entry.PortRange.From), aws.ToInt32(entry.PortRange.To))
+				}
+				entryStr := fmt.Sprintf("Rule#: %d | Protocol: %s | RuleAction: %s | Egress: %t | CIDR: %s | PortRange: %s",
+					aws.ToInt32(entry.RuleNumber),
+					helpers.StringValue(entry.Protocol),
+					string(entry.RuleAction),
+					aws.ToBool(entry.Egress),
+					helpers.StringValue(entry.CidrBlock),
+					portRange)
+				entries = append(entries, entryStr)
+			}
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "NetworkACL",
+				Name:           naclName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID":       naclID,
+					"Settings": entries,
+				},
+			}))
+		}
+
+		// Get Security Groups
+		sgOut, sgErr := svc.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
+			Filters: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if sgErr != nil {
+			return nil, fmt.Errorf("failed to describe security groups: %w", sgErr)
+		}
+
+		for j := range sgOut.SecurityGroups {
+			sg := &sgOut.SecurityGroups[j]
+			sgID := helpers.StringValue(sg.GroupId)
+			sgName := helpers.StringValue(sg.GroupName)
+			sgDesc := helpers.StringValue(sg.Description)
+
+			// Format inbound rules
+			var inbound []string
+			for k := range sg.IpPermissions {
+				perm := &sg.IpPermissions[k]
+				for l := range perm.IpRanges {
+					inbound = append(inbound, fmt.Sprintf("Protocol: %s | FromPort: %d | ToPort: %d | CIDR: %s",
+						helpers.StringValue(perm.IpProtocol),
+						aws.ToInt32(perm.FromPort),
+						aws.ToInt32(perm.ToPort),
+						helpers.StringValue(perm.IpRanges[l].CidrIp)))
+				}
+			}
+
+			// Format outbound rules
+			var outbound []string
+			for k := range sg.IpPermissionsEgress {
+				perm := &sg.IpPermissionsEgress[k]
+				for l := range perm.IpRanges {
+					outbound = append(outbound, fmt.Sprintf("Protocol: %s | FromPort: %d | ToPort: %d | CIDR: %s",
+						helpers.StringValue(perm.IpProtocol),
+						aws.ToInt32(perm.FromPort),
+						aws.ToInt32(perm.ToPort),
+						helpers.StringValue(perm.IpRanges[l].CidrIp)))
+				}
+			}
+
+			settings := fmt.Sprintf("Inbound:"+"\n"+"%s"+"\n"+"Outbound:"+"\n"+"%s", strings.Join(inbound, "\n"), strings.Join(outbound, "\n"))
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "SecurityGroup",
+				Name:           sgName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID":          sgID,
+					"Description": sgDesc,
+					"Settings":    settings,
+				},
+			}))
+		}
+
+		// Get VPC Endpoints
+		epOut, epErr := svc.DescribeVpcEndpoints(ctx, &ec2.DescribeVpcEndpointsInput{
+			Filters: []types.Filter{{Name: aws.String("vpc-id"), Values: []string{aws.ToString(vpc.VpcId)}}},
+		})
+		if epErr != nil {
+			return nil, fmt.Errorf("failed to describe vpc endpoints: %w", epErr)
+		}
+
+		for j := range epOut.VpcEndpoints {
+			ep := &epOut.VpcEndpoints[j]
+			epID := helpers.StringValue(ep.VpcEndpointId)
+			epName := helpers.GetTagValue(ep.Tags, "Name")
+			epType := string(ep.VpcEndpointType)
+			epState := string(ep.State)
+			epService := helpers.StringValue(ep.ServiceName)
+
+			var sgIDs []string
+			for _, g := range ep.Groups {
+				sgIDs = append(sgIDs, helpers.StringValue(g.GroupId))
+			}
+
+			desc := fmt.Sprintf("Type: %s"+"\n"+"Service: %s"+"\n"+"Subnet: %s"+"\n"+"RouteTable: %s"+"\n"+"SecurityGroup: %s",
+				epType,
+				epService,
+				strings.Join(ep.SubnetIds, "\n"),
+				strings.Join(ep.RouteTableIds, "\n"),
+				strings.Join(sgIDs, "\n"))
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:       "vpc",
+				SubSubCategory: "Endpoint",
+				Name:           epName,
+				Region:         region,
+				RawData: map[string]any{
+					"ID":       epID,
+					"Settings": desc,
+					"State":    epState,
+				},
+			}))
+		}
+	}
+
+	return resources, nil
+}

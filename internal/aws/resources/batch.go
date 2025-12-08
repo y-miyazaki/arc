@@ -1,0 +1,222 @@
+// Package resources provides AWS resource collectors.
+package resources
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+
+	"github.com/y-miyazaki/arc/internal/aws/helpers"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/batch"
+	"github.com/aws/aws-sdk-go-v2/service/batch/types"
+)
+
+// BatchCollector collects AWS Batch resources.
+// It collects Job Queues, Compute Environments, and Job Definitions.
+type BatchCollector struct{}
+
+// Name returns the collector name.
+func (*BatchCollector) Name() string {
+	return "batch"
+}
+
+// ShouldSort returns true.
+func (*BatchCollector) ShouldSort() bool {
+	return true
+}
+
+// GetColumns returns the CSV column definitions for Batch.
+func (*BatchCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
+		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Priority", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Priority") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "JobRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JobRoleArn") }},
+		{Header: "ExecutionRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExecutionRoleArn") }},
+		{Header: "Image", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Image") }},
+		{Header: "vCPU", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "vCPU") }},
+		{Header: "Memory", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Memory") }},
+		{Header: "CpuArchitecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CpuArchitecture") }},
+		{Header: "OperatingSystemFamily", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OperatingSystemFamily") }},
+		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
+		{Header: "JSON", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JSON") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+	}
+}
+
+// Collect collects Batch resources from the specified region.
+func (*BatchCollector) Collect(ctx context.Context, cfg *aws.Config, region string) ([]Resource, error) {
+	svc := batch.NewFromConfig(*cfg, func(o *batch.Options) {
+		o.Region = region
+	})
+
+	var resources []Resource
+
+	// Describe Job Queues
+	jqPaginator := batch.NewDescribeJobQueuesPaginator(svc, &batch.DescribeJobQueuesInput{})
+	for jqPaginator.HasMorePages() {
+		page, err := jqPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe job queues: %w", err)
+		}
+
+		for i := range page.JobQueues {
+			jq := &page.JobQueues[i]
+
+			// JSON representation
+			var jsonData string
+			if jsonDataFormatted, formatErr := helpers.FormatJSONIndent(jq); formatErr == nil {
+				jsonData = jsonDataFormatted
+			}
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:    "batch",
+				SubCategory: "JobQueue",
+				Name:        jq.JobQueueName,
+				Region:      region,
+				ARN:         jq.JobQueueArn,
+				RawData: map[string]any{
+					"Priority": jq.Priority,
+					"Status":   jq.State,
+					"JSON":     jsonData,
+				},
+			}))
+		}
+	}
+
+	// Describe Compute Environments
+	cePaginator := batch.NewDescribeComputeEnvironmentsPaginator(svc, &batch.DescribeComputeEnvironmentsInput{})
+	for cePaginator.HasMorePages() {
+		page, err := cePaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe compute environments: %w", err)
+		}
+
+		for i := range page.ComputeEnvironments {
+			ce := &page.ComputeEnvironments[i]
+
+			// JSON representation
+			var jsonData string
+			if jsonDataFormatted, formatErr := helpers.FormatJSONIndent(ce); formatErr == nil {
+				jsonData = jsonDataFormatted
+			}
+
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:    "batch",
+				SubCategory: "ComputeEnvironment",
+				Name:        ce.ComputeEnvironmentName,
+				Region:      region,
+				ARN:         ce.ComputeEnvironmentArn,
+				RawData: map[string]any{
+					"Type":   ce.Type,
+					"Status": ce.State,
+					"JSON":   jsonData,
+				},
+			}))
+		}
+	}
+
+	// Describe Job Definitions
+	jdPaginator := batch.NewDescribeJobDefinitionsPaginator(svc, &batch.DescribeJobDefinitionsInput{
+		Status: aws.String("ACTIVE"),
+	})
+
+	// Map to store latest revision per job definition name
+	latestRevisions := make(map[string]*types.JobDefinition)
+
+	for jdPaginator.HasMorePages() {
+		page, err := jdPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe job definitions: %w", err)
+		}
+
+		for i := range page.JobDefinitions {
+			jd := &page.JobDefinitions[i]
+			name := aws.ToString(jd.JobDefinitionName)
+			if existing, ok := latestRevisions[name]; ok {
+				if aws.ToInt32(jd.Revision) > aws.ToInt32(existing.Revision) {
+					latestRevisions[name] = jd
+				}
+			} else {
+				latestRevisions[name] = jd
+			}
+		}
+	}
+
+	for _, jd := range latestRevisions {
+		var image, vcpu, memory, cpuArch, osFamily, timeout, jsonData string
+		if jd.ContainerProperties != nil {
+			image = aws.ToString(jd.ContainerProperties.Image)
+
+			// Try ResourceRequirements first
+			for i := range jd.ContainerProperties.ResourceRequirements {
+				req := &jd.ContainerProperties.ResourceRequirements[i]
+				if req.Type == types.ResourceTypeVcpu {
+					vcpu = aws.ToString(req.Value)
+				}
+				if req.Type == types.ResourceTypeMemory {
+					memory = aws.ToString(req.Value)
+				}
+			}
+
+			// Fallback to legacy fields
+			if vcpu == "" && jd.ContainerProperties.Vcpus != nil { //nolint:staticcheck
+				vcpu = strconv.Itoa(int(*jd.ContainerProperties.Vcpus)) //nolint:staticcheck
+			}
+			if memory == "" && jd.ContainerProperties.Memory != nil { //nolint:staticcheck
+				memory = strconv.Itoa(int(*jd.ContainerProperties.Memory)) //nolint:staticcheck
+			}
+
+			// New fields
+			if jd.ContainerProperties.RuntimePlatform != nil {
+				if jd.ContainerProperties.RuntimePlatform.CpuArchitecture != nil {
+					cpuArch = aws.ToString(jd.ContainerProperties.RuntimePlatform.CpuArchitecture)
+				}
+				if jd.ContainerProperties.RuntimePlatform.OperatingSystemFamily != nil {
+					osFamily = aws.ToString(jd.ContainerProperties.RuntimePlatform.OperatingSystemFamily)
+				}
+			}
+		}
+
+		// Timeout
+		if jd.Timeout != nil && jd.Timeout.AttemptDurationSeconds != nil {
+			timeout = strconv.Itoa(int(*jd.Timeout.AttemptDurationSeconds))
+		}
+
+		// JSON representation
+		if jsonDataFormatted, err := helpers.FormatJSONIndent(jd); err == nil {
+			jsonData = jsonDataFormatted
+		}
+
+		nameWithRev := fmt.Sprintf("%s:%d", aws.ToString(jd.JobDefinitionName), jd.Revision)
+		resources = append(resources, NewResource(&ResourceInput{
+			Category:    "batch",
+			SubCategory: "JobDefinition",
+			Name:        nameWithRev,
+			Region:      region,
+			ARN:         jd.JobDefinitionArn,
+			RawData: map[string]any{
+				"Type":                  jd.Type,
+				"JobRoleArn":            jd.ContainerProperties.JobRoleArn,
+				"ExecutionRoleArn":      jd.ContainerProperties.ExecutionRoleArn,
+				"Image":                 image,
+				"vCPU":                  vcpu,
+				"Memory":                memory,
+				"CpuArchitecture":       cpuArch,
+				"OperatingSystemFamily": osFamily,
+				"Timeout":               timeout,
+				"JSON":                  jsonData,
+				"Status":                jd.Status,
+			},
+		}))
+	}
+
+	return resources, nil
+}
