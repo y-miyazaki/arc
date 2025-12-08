@@ -4,7 +4,6 @@ package resources
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -113,8 +112,6 @@ func (c *LambdaCollector) Collect(ctx context.Context, region string) ([]Resourc
 					}
 					envEntries = append(envEntries, fmt.Sprintf("%s=%s", k, v))
 				}
-				// Sort for deterministic output
-				sort.Strings(envEntries)
 			}
 
 			r := NewResource(&ResourceInput{
