@@ -36,16 +36,30 @@ const (
 	TagNameKey = "Name"
 )
 
-// GetTagValue retrieves the value of a tag by key (case-insensitive) from EC2 tags.
-func GetTagValue(tags []ec2types.Tag, key string) string {
-	lowerKey := strings.ToLower(key)
-	for _, tag := range tags {
-		if strings.ToLower(aws.ToString(tag.Key)) == lowerKey {
-			return aws.ToString(tag.Value)
-		}
-	}
-	return ""
+// Package-level errors for client-type mismatches in test helpers.
+var (
+	ErrClientNotListKeys                  = errors.New("client does not implement ListKeysAPIClient")
+	ErrClientNotListAliases               = errors.New("client does not implement ListAliasesAPIClient")
+	ErrClientNotDescribeVPCs              = errors.New("client does not implement DescribeVpcsAPIClient")
+	ErrClientNotDescribeSGs               = errors.New("client does not implement DescribeSecurityGroupsAPIClient")
+	ErrClientNotDescribeSubnets           = errors.New("client does not implement DescribeSubnetsAPIClient")
+	ErrClientNotDescribeImages            = errors.New("client does not implement DescribeImagesAPIClient")
+	ErrClientNotDescribeSnapshots         = errors.New("client does not implement DescribeSnapshotsAPIClient")
+	ErrClientNotDescribeVolumes           = errors.New("client does not implement DescribeVolumesAPIClient")
+	ErrClientNotDescribeNetworkInterfaces = errors.New("client does not implement DescribeNetworkInterfacesAPIClient")
+)
+
+// ARN represents the components of an AWS ARN.
+type ARN struct {
+	Partition    string `json:"partition"`
+	Service      string `json:"service"`
+	Region       string `json:"region"`
+	AccountID    string `json:"accountId"`
+	ResourceType string `json:"resourceType"`
+	Resource     string `json:"resource"`
 }
+
+// secondary ARN/ParseARN copy removed — single definition exists above
 
 // GetAllKMSKeys retrieves all KMS keys and their aliases in the region.
 // Returns a map where both key ID and key ARN can be used as lookup keys to get the alias name.
@@ -64,12 +78,431 @@ func GetAllKMSKeys(ctx context.Context, cfg *aws.Config, region string) (map[str
 	return keyMap, nil
 }
 
-// Package-level errors for client-type mismatches in test helpers.
-var (
-	ErrClientNotListKeys     = errors.New("client does not implement ListKeysAPIClient")
-	ErrClientNotListAliases  = errors.New("client does not implement ListAliasesAPIClient")
-	ErrClientNotDescribeVPCs = errors.New("client does not implement DescribeVpcsAPIClient")
-)
+// GetAllImages retrieves all AMIs owned by the account in the region.
+// Returns a map of image ID to image name.
+func GetAllImages(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	imageMap, err := getAllImagesWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllImagesWithClient: %w", err)
+	}
+	return imageMap, nil
+}
+
+// GetAllNetworkInterfaces retrieves all network interfaces in the region.
+// Returns a map of network interface ID to network interface name.
+func GetAllNetworkInterfaces(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	eniMap, err := getAllNetworkInterfacesWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllNetworkInterfacesWithClient: %w", err)
+	}
+	return eniMap, nil
+}
+
+// GetAllSecurityGroups retrieves all security groups in the region.
+// Returns a map of security group ID to security group name.
+func GetAllSecurityGroups(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	sgMap, err := getAllSecurityGroupsWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllSecurityGroupsWithClient: %w", err)
+	}
+	return sgMap, nil
+}
+
+// GetAllSnapshots retrieves all EBS snapshots owned by the account in the region.
+// Returns a map of snapshot ID to snapshot name.
+func GetAllSnapshots(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	snapshotMap, err := getAllSnapshotsWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllSnapshotsWithClient: %w", err)
+	}
+	return snapshotMap, nil
+}
+
+// GetAllSubnets retrieves all subnets in the region.
+// Returns a map of subnet ID to subnet name.
+func GetAllSubnets(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	subnetMap, err := getAllSubnetsWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllSubnetsWithClient: %w", err)
+	}
+	return subnetMap, nil
+}
+
+// GetAllVolumes retrieves all EBS volumes in the region.
+// Returns a map of volume ID to volume name.
+func GetAllVolumes(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) { o.Region = region })
+	volumeMap, err := getAllVolumesWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllVolumesWithClient: %w", err)
+	}
+	return volumeMap, nil
+}
+
+// GetAllVPCs retrieves all VPCs in the region.
+// Returns a map of VPC ID to VPC name.
+func GetAllVPCs(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
+	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
+		o.Region = region
+	})
+
+	vpcMap, err := getAllVPCsWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllVPCsWithClient: %w", err)
+	}
+
+	return vpcMap, nil
+}
+
+// GetImageName resolves an image ID to a human-friendly name.
+func GetImageName(ctx context.Context, cfg *aws.Config, imageID *string, region string) string {
+	if imageID == nil || aws.ToString(imageID) == "" {
+		return NotAvailable
+	}
+
+	imageIDStr := aws.ToString(imageID)
+
+	if !strings.HasPrefix(imageIDStr, "ami-") {
+		return imageIDStr
+	}
+
+	// Get all images
+	imageMap, err := GetAllImages(ctx, cfg, region)
+	if err != nil {
+		return imageIDStr
+	}
+
+	// Look up the image name
+	if name, ok := imageMap[imageIDStr]; ok {
+		return name
+	}
+
+	return imageIDStr
+}
+
+// GetKMSName resolves a KMS key identifier to a human-friendly name.
+// It handles both alias ARNs and key ARNs, attempting to find an alias for the key.
+// This function is kept for backward compatibility but uses GetAllKMSKeys internally.
+func GetKMSName(ctx context.Context, cfg *aws.Config, kmsIdentifier *string, region string) string {
+	if kmsIdentifier == nil || aws.ToString(kmsIdentifier) == "" || aws.ToString(kmsIdentifier) == NotAvailable {
+		return NotAvailable
+	}
+
+	identifier := aws.ToString(kmsIdentifier)
+
+	// If this is an alias ARN, return the alias part (keeps "alias/" prefix)
+	if strings.Contains(identifier, ":alias/") {
+		parts := strings.Split(identifier, ":")
+		return parts[len(parts)-1]
+	}
+
+	// If the identifier is already an alias name (canonical form starting with "alias/"),
+	// return it as-is to avoid making an AWS call.
+	if strings.HasPrefix(identifier, "alias/") {
+		return identifier
+	}
+
+	// Extract key ID from ARN if needed
+	keyID := identifier
+	if strings.HasPrefix(identifier, "arn:aws:kms:") && strings.Contains(identifier, ":key/") {
+		parts := strings.Split(identifier, "/")
+		keyID = parts[len(parts)-1]
+	}
+
+	// Get all KMS keys and aliases
+	keyMap, err := GetAllKMSKeys(ctx, cfg, region)
+	if err != nil {
+		return keyID
+	}
+
+	// Look up the key name
+	if name, ok := keyMap[keyID]; ok {
+		return name
+	}
+
+	// Return key ID as fallback
+	return keyID
+}
+
+// GetNetworkInterfaceName resolves a network interface ID to a human-friendly name.
+func GetNetworkInterfaceName(ctx context.Context, cfg *aws.Config, eniID *string, region string) string {
+	if eniID == nil || aws.ToString(eniID) == "" {
+		return NotAvailable
+	}
+
+	eniIDStr := aws.ToString(eniID)
+
+	if !strings.HasPrefix(eniIDStr, "eni-") {
+		return eniIDStr
+	}
+
+	// Get all network interfaces
+	eniMap, err := GetAllNetworkInterfaces(ctx, cfg, region)
+	if err != nil {
+		return eniIDStr
+	}
+
+	// Look up the network interface name
+	if name, ok := eniMap[eniIDStr]; ok {
+		return name
+	}
+
+	return eniIDStr
+}
+
+// GetSecurityGroupName resolves a security group ID to a human-friendly name.
+func GetSecurityGroupName(ctx context.Context, cfg *aws.Config, sgID *string, region string) string {
+	if sgID == nil || aws.ToString(sgID) == "" {
+		return NotAvailable
+	}
+
+	sgIDStr := aws.ToString(sgID)
+
+	// Only attempt to resolve well-formed SG IDs
+	if !strings.HasPrefix(sgIDStr, "sg-") {
+		return sgIDStr
+	}
+
+	// Get all security groups
+	sgMap, err := GetAllSecurityGroups(ctx, cfg, region)
+	if err != nil {
+		return sgIDStr
+	}
+
+	// Look up the security group name
+	if name, ok := sgMap[sgIDStr]; ok {
+		return name
+	}
+
+	return sgIDStr
+}
+
+// GetSnapshotName resolves a snapshot ID to a human-friendly name.
+func GetSnapshotName(ctx context.Context, cfg *aws.Config, snapshotID *string, region string) string {
+	if snapshotID == nil || aws.ToString(snapshotID) == "" {
+		return NotAvailable
+	}
+
+	snapshotIDStr := aws.ToString(snapshotID)
+
+	if !strings.HasPrefix(snapshotIDStr, "snap-") {
+		return snapshotIDStr
+	}
+
+	// Get all snapshots
+	snapshotMap, err := GetAllSnapshots(ctx, cfg, region)
+	if err != nil {
+		return snapshotIDStr
+	}
+
+	// Look up the snapshot name
+	if name, ok := snapshotMap[snapshotIDStr]; ok {
+		return name
+	}
+
+	return snapshotIDStr
+}
+
+// GetSubnetName resolves a subnet ID to a human-friendly name.
+func GetSubnetName(ctx context.Context, cfg *aws.Config, subnetID *string, region string) string {
+	if subnetID == nil || aws.ToString(subnetID) == "" {
+		return NotAvailable
+	}
+
+	subnetIDStr := aws.ToString(subnetID)
+
+	if !strings.HasPrefix(subnetIDStr, "subnet-") {
+		return subnetIDStr
+	}
+
+	// Get all subnets
+	subnetMap, err := GetAllSubnets(ctx, cfg, region)
+	if err != nil {
+		return subnetIDStr
+	}
+
+	// Look up the subnet name
+	if name, ok := subnetMap[subnetIDStr]; ok {
+		return name
+	}
+
+	return subnetIDStr
+}
+
+// GetTagValue retrieves the value of a tag by key (case-insensitive) from EC2 tags.
+func GetTagValue(tags []ec2types.Tag, key string) string {
+	lowerKey := strings.ToLower(key)
+	for _, tag := range tags {
+		if strings.ToLower(aws.ToString(tag.Key)) == lowerKey {
+			return aws.ToString(tag.Value)
+		}
+	}
+	return ""
+}
+
+// GetResourceNameFromARN extracts the resource name from an ARN.
+func GetResourceNameFromARN(arnStr string) string {
+	arn, err := ParseARN(arnStr)
+	if err != nil {
+		return ""
+	}
+
+	return arn.Resource
+}
+
+// GetVolumeName resolves a volume ID to a human-friendly name.
+func GetVolumeName(ctx context.Context, cfg *aws.Config, volumeID *string, region string) string {
+	if volumeID == nil || aws.ToString(volumeID) == "" {
+		return NotAvailable
+	}
+
+	volumeIDStr := aws.ToString(volumeID)
+
+	if !strings.HasPrefix(volumeIDStr, "vol-") {
+		return volumeIDStr
+	}
+
+	// Get all volumes
+	volumeMap, err := GetAllVolumes(ctx, cfg, region)
+	if err != nil {
+		return volumeIDStr
+	}
+
+	// Look up the volume name
+	if name, ok := volumeMap[volumeIDStr]; ok {
+		return name
+	}
+
+	return volumeIDStr
+}
+
+// GetVPCName resolves a VPC ID to a human-friendly name.
+func GetVPCName(ctx context.Context, cfg *aws.Config, vpcID *string, region string) string {
+	if vpcID == nil || aws.ToString(vpcID) == "" {
+		return NotAvailable
+	}
+
+	vpcIDStr := aws.ToString(vpcID)
+
+	if !strings.HasPrefix(vpcIDStr, "vpc-") {
+		return vpcIDStr
+	}
+
+	// Get all VPCs
+	vpcMap, err := GetAllVPCs(ctx, cfg, region)
+	if err != nil {
+		return vpcIDStr
+	}
+
+	// Look up the VPC name
+	if name, ok := vpcMap[vpcIDStr]; ok {
+		return name
+	}
+
+	return vpcIDStr
+}
+
+// ParseARN parses an AWS ARN string into its components.
+func ParseARN(arnStr string) (*ARN, error) {
+	if !strings.HasPrefix(arnStr, "arn:") {
+		return nil, ErrInvalidARNFormat
+	}
+
+	parts := strings.SplitN(arnStr, Colon, ARNPartCount)
+	if len(parts) < ARNPartCount {
+		return nil, ErrInvalidARNFormat
+	}
+
+	arn := &ARN{
+		Partition: parts[ARNPartitionIndex],
+		Service:   parts[ARNServiceIndex],
+		Region:    parts[ARNRegionIndex],
+		AccountID: parts[ARNAccountIndex],
+		Resource:  parts[ARNResourceIndex],
+	}
+
+	// Parse resource type and resource name
+	if strings.Contains(arn.Resource, "/") {
+		resourceParts := strings.SplitN(arn.Resource, "/", ResourcePartCount)
+		arn.ResourceType = resourceParts[0]
+		arn.Resource = resourceParts[1]
+	} else if strings.Contains(arn.Resource, Colon) {
+		resourceParts := strings.SplitN(arn.Resource, Colon, ResourcePartCount)
+		arn.ResourceType = resourceParts[0]
+		arn.Resource = resourceParts[1]
+	}
+
+	return arn, nil
+}
+
+// ResolveNameFromMap resolves an ID to a name using a pre-built map.
+// If the ID is not found in the map, returns the ID itself.
+func ResolveNameFromMap(id *string, nameMap map[string]string) string {
+	idStr := StringValue(id)
+	if name, ok := nameMap[idStr]; ok {
+		return name
+	}
+	return idStr
+}
+
+// ResolveNamesFromMap resolves multiple IDs to names using a pre-built map.
+// Returns a slice of resolved names.
+// If an ID is not found in the map, uses the ID itself.
+func ResolveNamesFromMap(ids []*string, nameMap map[string]string) []string {
+	if len(ids) == 0 {
+		return make([]string, 0)
+	}
+
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		idStr := StringValue(id)
+		if name, ok := nameMap[idStr]; ok {
+			names = append(names, name)
+		} else {
+			names = append(names, idStr)
+		}
+	}
+
+	return names
+}
+
+// getAllImagesWithClient collects images via a provided EC2 client (testable helper).
+func getAllImagesWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeImagesAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeImages
+	}
+
+	paginator := ec2.NewDescribeImagesPaginator(cli, &ec2.DescribeImagesInput{Owners: []string{"self"}})
+	imageMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe images: %w", err)
+		}
+		for i := range page.Images {
+			image := &page.Images[i]
+			imageID := aws.ToString(image.ImageId)
+			name := aws.ToString(image.Name)
+			if name == "" {
+				name = GetTagValue(image.Tags, TagNameKey)
+			}
+			if name == "" {
+				name = imageID
+			}
+			imageMap[imageID] = name
+		}
+	}
+
+	return imageMap, nil
+}
+
+// (no-op) var block removed to avoid duplication.
 
 // getAllKMSKeysWithClient collects KMS keys and aliases using the provided client.
 // This helper exists so unit tests can inject a mock client that implements the
@@ -138,19 +571,144 @@ func getAllKMSKeysWithClient(ctx context.Context, client any) (map[string]string
 	return keyMap, nil
 }
 
-// GetAllVPCs retrieves all VPCs in the region.
-// Returns a map of VPC ID to VPC name.
-func GetAllVPCs(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	vpcMap, err := getAllVPCsWithClient(ctx, svc)
-	if err != nil {
-		return nil, fmt.Errorf("getAllVPCsWithClient: %w", err)
+// getAllNetworkInterfacesWithClient collects network interfaces via a provided EC2 client (testable helper).
+func getAllNetworkInterfacesWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeNetworkInterfacesAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeNetworkInterfaces
 	}
 
-	return vpcMap, nil
+	paginator := ec2.NewDescribeNetworkInterfacesPaginator(cli, &ec2.DescribeNetworkInterfacesInput{})
+	eniMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe network interfaces: %w", err)
+		}
+		for i := range page.NetworkInterfaces {
+			eni := &page.NetworkInterfaces[i]
+			eniID := aws.ToString(eni.NetworkInterfaceId)
+			name := GetTagValue(eni.TagSet, TagNameKey)
+			if name == "" {
+				name = eniID
+			}
+			eniMap[eniID] = name
+		}
+	}
+
+	return eniMap, nil
+}
+
+// getAllSecurityGroupsWithClient collects security groups via a provided EC2 client (testable helper).
+func getAllSecurityGroupsWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeSecurityGroupsAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeSGs
+	}
+
+	paginator := ec2.NewDescribeSecurityGroupsPaginator(cli, &ec2.DescribeSecurityGroupsInput{})
+	sgMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe security groups: %w", err)
+		}
+		for i := range page.SecurityGroups {
+			sg := &page.SecurityGroups[i]
+			sgID := aws.ToString(sg.GroupId)
+			name := aws.ToString(sg.GroupName)
+			if name == "" {
+				name = sgID
+			}
+			sgMap[sgID] = name
+		}
+	}
+
+	return sgMap, nil
+}
+
+// getAllSnapshotsWithClient collects snapshots via a provided EC2 client (testable helper).
+func getAllSnapshotsWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeSnapshotsAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeSnapshots
+	}
+
+	paginator := ec2.NewDescribeSnapshotsPaginator(cli, &ec2.DescribeSnapshotsInput{OwnerIds: []string{"self"}})
+	snapshotMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe snapshots: %w", err)
+		}
+		for i := range page.Snapshots {
+			snapshot := &page.Snapshots[i]
+			snapshotID := aws.ToString(snapshot.SnapshotId)
+			name := GetTagValue(snapshot.Tags, TagNameKey)
+			if name == "" {
+				name = snapshotID
+			}
+			snapshotMap[snapshotID] = name
+		}
+	}
+
+	return snapshotMap, nil
+}
+
+// getAllSubnetsWithClient collects subnets via a provided EC2 client (testable helper).
+func getAllSubnetsWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeSubnetsAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeSubnets
+	}
+
+	paginator := ec2.NewDescribeSubnetsPaginator(cli, &ec2.DescribeSubnetsInput{})
+	subnetMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe subnets: %w", err)
+		}
+		for i := range page.Subnets {
+			subnet := &page.Subnets[i]
+			subnetID := aws.ToString(subnet.SubnetId)
+			name := GetTagValue(subnet.Tags, TagNameKey)
+			if name == "" {
+				name = subnetID
+			}
+			subnetMap[subnetID] = name
+		}
+	}
+
+	return subnetMap, nil
+}
+
+// getAllVolumesWithClient collects volumes via a provided EC2 client (testable helper).
+func getAllVolumesWithClient(ctx context.Context, client any) (map[string]string, error) {
+	cli, ok := client.(ec2.DescribeVolumesAPIClient)
+	if !ok {
+		return nil, ErrClientNotDescribeVolumes
+	}
+
+	paginator := ec2.NewDescribeVolumesPaginator(cli, &ec2.DescribeVolumesInput{})
+	volumeMap := make(map[string]string)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe volumes: %w", err)
+		}
+		for i := range page.Volumes {
+			volume := &page.Volumes[i]
+			volumeID := aws.ToString(volume.VolumeId)
+			name := GetTagValue(volume.Tags, TagNameKey)
+			if name == "" {
+				name = volumeID
+			}
+			volumeMap[volumeID] = name
+		}
+	}
+
+	return volumeMap, nil
 }
 
 // getAllVPCsWithClient collects VPCs using a provided EC2 client (testable helper).
@@ -179,486 +737,4 @@ func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, e
 	}
 
 	return vpcMap, nil
-}
-
-// GetAllSecurityGroups retrieves all security groups in the region.
-// Returns a map of security group ID to security group name.
-func GetAllSecurityGroups(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeSecurityGroupsPaginator(svc, &ec2.DescribeSecurityGroupsInput{})
-	sgMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe security groups: %w", err)
-		}
-		for i := range page.SecurityGroups {
-			sg := &page.SecurityGroups[i]
-			sgID := aws.ToString(sg.GroupId)
-			name := aws.ToString(sg.GroupName)
-			if name == "" {
-				name = sgID
-			}
-			sgMap[sgID] = name
-		}
-	}
-
-	return sgMap, nil
-}
-
-// GetAllSubnets retrieves all subnets in the region.
-// Returns a map of subnet ID to subnet name.
-func GetAllSubnets(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeSubnetsPaginator(svc, &ec2.DescribeSubnetsInput{})
-	subnetMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe subnets: %w", err)
-		}
-		for i := range page.Subnets {
-			subnet := &page.Subnets[i]
-			subnetID := aws.ToString(subnet.SubnetId)
-			name := GetTagValue(subnet.Tags, TagNameKey)
-			if name == "" {
-				name = subnetID
-			}
-			subnetMap[subnetID] = name
-		}
-	}
-
-	return subnetMap, nil
-}
-
-// GetAllImages retrieves all AMIs owned by the account in the region.
-// Returns a map of image ID to image name.
-func GetAllImages(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeImagesPaginator(svc, &ec2.DescribeImagesInput{Owners: []string{"self"}})
-	imageMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe images: %w", err)
-		}
-		for i := range page.Images {
-			image := &page.Images[i]
-			imageID := aws.ToString(image.ImageId)
-			name := aws.ToString(image.Name)
-			if name == "" {
-				name = GetTagValue(image.Tags, TagNameKey)
-			}
-			if name == "" {
-				name = imageID
-			}
-			imageMap[imageID] = name
-		}
-	}
-
-	return imageMap, nil
-}
-
-// GetAllSnapshots retrieves all EBS snapshots owned by the account in the region.
-// Returns a map of snapshot ID to snapshot name.
-func GetAllSnapshots(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeSnapshotsPaginator(svc, &ec2.DescribeSnapshotsInput{OwnerIds: []string{"self"}})
-	snapshotMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe snapshots: %w", err)
-		}
-		for i := range page.Snapshots {
-			snapshot := &page.Snapshots[i]
-			snapshotID := aws.ToString(snapshot.SnapshotId)
-			name := GetTagValue(snapshot.Tags, TagNameKey)
-			if name == "" {
-				name = snapshotID
-			}
-			snapshotMap[snapshotID] = name
-		}
-	}
-
-	return snapshotMap, nil
-}
-
-// GetAllVolumes retrieves all EBS volumes in the region.
-// Returns a map of volume ID to volume name.
-func GetAllVolumes(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeVolumesPaginator(svc, &ec2.DescribeVolumesInput{})
-	volumeMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe volumes: %w", err)
-		}
-		for i := range page.Volumes {
-			volume := &page.Volumes[i]
-			volumeID := aws.ToString(volume.VolumeId)
-			name := GetTagValue(volume.Tags, TagNameKey)
-			if name == "" {
-				name = volumeID
-			}
-			volumeMap[volumeID] = name
-		}
-	}
-
-	return volumeMap, nil
-}
-
-// GetAllNetworkInterfaces retrieves all network interfaces in the region.
-// Returns a map of network interface ID to network interface name.
-func GetAllNetworkInterfaces(ctx context.Context, cfg *aws.Config, region string) (map[string]string, error) {
-	svc := ec2.NewFromConfig(*cfg, func(o *ec2.Options) {
-		o.Region = region
-	})
-
-	paginator := ec2.NewDescribeNetworkInterfacesPaginator(svc, &ec2.DescribeNetworkInterfacesInput{})
-	eniMap := make(map[string]string)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe network interfaces: %w", err)
-		}
-		for i := range page.NetworkInterfaces {
-			eni := &page.NetworkInterfaces[i]
-			eniID := aws.ToString(eni.NetworkInterfaceId)
-			name := GetTagValue(eni.TagSet, TagNameKey)
-			if name == "" {
-				name = eniID
-			}
-			eniMap[eniID] = name
-		}
-	}
-
-	return eniMap, nil
-}
-
-// GetKMSName resolves a KMS key identifier to a human-friendly name.
-// It handles both alias ARNs and key ARNs, attempting to find an alias for the key.
-// This function is kept for backward compatibility but uses GetAllKMSKeys internally.
-func GetKMSName(ctx context.Context, cfg *aws.Config, kmsIdentifier *string, region string) string {
-	if kmsIdentifier == nil || aws.ToString(kmsIdentifier) == "" || aws.ToString(kmsIdentifier) == NotAvailable {
-		return NotAvailable
-	}
-
-	identifier := aws.ToString(kmsIdentifier)
-
-	// If this is an alias ARN, return the alias part (keeps "alias/" prefix)
-	if strings.Contains(identifier, ":alias/") {
-		parts := strings.Split(identifier, ":")
-		return parts[len(parts)-1]
-	}
-
-	// If the identifier is already an alias name (canonical form starting with "alias/"),
-	// return it as-is to avoid making an AWS call.
-	if strings.HasPrefix(identifier, "alias/") {
-		return identifier
-	}
-
-	// Extract key ID from ARN if needed
-	keyID := identifier
-	if strings.HasPrefix(identifier, "arn:aws:kms:") && strings.Contains(identifier, ":key/") {
-		parts := strings.Split(identifier, "/")
-		keyID = parts[len(parts)-1]
-	}
-
-	// Get all KMS keys and aliases
-	keyMap, err := GetAllKMSKeys(ctx, cfg, region)
-	if err != nil {
-		return keyID
-	}
-
-	// Look up the key name
-	if name, ok := keyMap[keyID]; ok {
-		return name
-	}
-
-	// Return key ID as fallback
-	return keyID
-}
-
-// GetSecurityGroupName resolves a security group ID to a human-friendly name.
-func GetSecurityGroupName(ctx context.Context, cfg *aws.Config, sgID *string, region string) string {
-	if sgID == nil || aws.ToString(sgID) == "" {
-		return NotAvailable
-	}
-
-	sgIDStr := aws.ToString(sgID)
-
-	// Only attempt to resolve well-formed SG IDs
-	if !strings.HasPrefix(sgIDStr, "sg-") {
-		return sgIDStr
-	}
-
-	// Get all security groups
-	sgMap, err := GetAllSecurityGroups(ctx, cfg, region)
-	if err != nil {
-		return sgIDStr
-	}
-
-	// Look up the security group name
-	if name, ok := sgMap[sgIDStr]; ok {
-		return name
-	}
-
-	return sgIDStr
-}
-
-// GetSubnetName resolves a subnet ID to a human-friendly name.
-func GetSubnetName(ctx context.Context, cfg *aws.Config, subnetID *string, region string) string {
-	if subnetID == nil || aws.ToString(subnetID) == "" {
-		return NotAvailable
-	}
-
-	subnetIDStr := aws.ToString(subnetID)
-
-	if !strings.HasPrefix(subnetIDStr, "subnet-") {
-		return subnetIDStr
-	}
-
-	// Get all subnets
-	subnetMap, err := GetAllSubnets(ctx, cfg, region)
-	if err != nil {
-		return subnetIDStr
-	}
-
-	// Look up the subnet name
-	if name, ok := subnetMap[subnetIDStr]; ok {
-		return name
-	}
-
-	return subnetIDStr
-}
-
-// GetVPCName resolves a VPC ID to a human-friendly name.
-func GetVPCName(ctx context.Context, cfg *aws.Config, vpcID *string, region string) string {
-	if vpcID == nil || aws.ToString(vpcID) == "" {
-		return NotAvailable
-	}
-
-	vpcIDStr := aws.ToString(vpcID)
-
-	if !strings.HasPrefix(vpcIDStr, "vpc-") {
-		return vpcIDStr
-	}
-
-	// Get all VPCs
-	vpcMap, err := GetAllVPCs(ctx, cfg, region)
-	if err != nil {
-		return vpcIDStr
-	}
-
-	// Look up the VPC name
-	if name, ok := vpcMap[vpcIDStr]; ok {
-		return name
-	}
-
-	return vpcIDStr
-}
-
-// ResolveNameFromMap resolves an ID to a name using a pre-built map.
-// If the ID is not found in the map, returns the ID itself.
-func ResolveNameFromMap(id *string, nameMap map[string]string) string {
-	idStr := StringValue(id)
-	if name, ok := nameMap[idStr]; ok {
-		return name
-	}
-	return idStr
-}
-
-// ResolveNamesFromMap resolves multiple IDs to names using a pre-built map.
-// Returns a slice of resolved names.
-// If an ID is not found in the map, uses the ID itself.
-func ResolveNamesFromMap(ids []*string, nameMap map[string]string) []string {
-	if len(ids) == 0 {
-		return make([]string, 0)
-	}
-
-	names := make([]string, 0, len(ids))
-	for _, id := range ids {
-		idStr := StringValue(id)
-		if name, ok := nameMap[idStr]; ok {
-			names = append(names, name)
-		} else {
-			names = append(names, idStr)
-		}
-	}
-
-	return names
-}
-
-// GetImageName resolves an image ID to a human-friendly name.
-func GetImageName(ctx context.Context, cfg *aws.Config, imageID *string, region string) string {
-	if imageID == nil || aws.ToString(imageID) == "" {
-		return NotAvailable
-	}
-
-	imageIDStr := aws.ToString(imageID)
-
-	if !strings.HasPrefix(imageIDStr, "ami-") {
-		return imageIDStr
-	}
-
-	// Get all images
-	imageMap, err := GetAllImages(ctx, cfg, region)
-	if err != nil {
-		return imageIDStr
-	}
-
-	// Look up the image name
-	if name, ok := imageMap[imageIDStr]; ok {
-		return name
-	}
-
-	return imageIDStr
-}
-
-// GetSnapshotName resolves a snapshot ID to a human-friendly name.
-func GetSnapshotName(ctx context.Context, cfg *aws.Config, snapshotID *string, region string) string {
-	if snapshotID == nil || aws.ToString(snapshotID) == "" {
-		return NotAvailable
-	}
-
-	snapshotIDStr := aws.ToString(snapshotID)
-
-	if !strings.HasPrefix(snapshotIDStr, "snap-") {
-		return snapshotIDStr
-	}
-
-	// Get all snapshots
-	snapshotMap, err := GetAllSnapshots(ctx, cfg, region)
-	if err != nil {
-		return snapshotIDStr
-	}
-
-	// Look up the snapshot name
-	if name, ok := snapshotMap[snapshotIDStr]; ok {
-		return name
-	}
-
-	return snapshotIDStr
-}
-
-// GetVolumeName resolves a volume ID to a human-friendly name.
-func GetVolumeName(ctx context.Context, cfg *aws.Config, volumeID *string, region string) string {
-	if volumeID == nil || aws.ToString(volumeID) == "" {
-		return NotAvailable
-	}
-
-	volumeIDStr := aws.ToString(volumeID)
-
-	if !strings.HasPrefix(volumeIDStr, "vol-") {
-		return volumeIDStr
-	}
-
-	// Get all volumes
-	volumeMap, err := GetAllVolumes(ctx, cfg, region)
-	if err != nil {
-		return volumeIDStr
-	}
-
-	// Look up the volume name
-	if name, ok := volumeMap[volumeIDStr]; ok {
-		return name
-	}
-
-	return volumeIDStr
-}
-
-// GetNetworkInterfaceName resolves a network interface ID to a human-friendly name.
-func GetNetworkInterfaceName(ctx context.Context, cfg *aws.Config, eniID *string, region string) string {
-	if eniID == nil || aws.ToString(eniID) == "" {
-		return NotAvailable
-	}
-
-	eniIDStr := aws.ToString(eniID)
-
-	if !strings.HasPrefix(eniIDStr, "eni-") {
-		return eniIDStr
-	}
-
-	// Get all network interfaces
-	eniMap, err := GetAllNetworkInterfaces(ctx, cfg, region)
-	if err != nil {
-		return eniIDStr
-	}
-
-	// Look up the network interface name
-	if name, ok := eniMap[eniIDStr]; ok {
-		return name
-	}
-
-	return eniIDStr
-}
-
-// ARN represents the components of an AWS ARN.
-type ARN struct {
-	Partition    string `json:"partition"`
-	Service      string `json:"service"`
-	Region       string `json:"region"`
-	AccountID    string `json:"accountId"`
-	ResourceType string `json:"resourceType"`
-	Resource     string `json:"resource"`
-}
-
-// ParseARN parses an AWS ARN string into its components.
-func ParseARN(arnStr string) (*ARN, error) {
-	if !strings.HasPrefix(arnStr, "arn:") {
-		return nil, ErrInvalidARNFormat
-	}
-
-	parts := strings.SplitN(arnStr, Colon, ARNPartCount)
-	if len(parts) < ARNPartCount {
-		return nil, ErrInvalidARNFormat
-	}
-
-	arn := &ARN{
-		Partition: parts[ARNPartitionIndex],
-		Service:   parts[ARNServiceIndex],
-		Region:    parts[ARNRegionIndex],
-		AccountID: parts[ARNAccountIndex],
-		Resource:  parts[ARNResourceIndex],
-	}
-
-	// Parse resource type and resource name
-	if strings.Contains(arn.Resource, "/") {
-		resourceParts := strings.SplitN(arn.Resource, "/", ResourcePartCount)
-		arn.ResourceType = resourceParts[0]
-		arn.Resource = resourceParts[1]
-	} else if strings.Contains(arn.Resource, Colon) {
-		resourceParts := strings.SplitN(arn.Resource, Colon, ResourcePartCount)
-		arn.ResourceType = resourceParts[0]
-		arn.Resource = resourceParts[1]
-	}
-
-	return arn, nil
-}
-
-// GetResourceNameFromARN extracts the resource name from an ARN.
-func GetResourceNameFromARN(arnStr string) string {
-	arn, err := ParseARN(arnStr)
-	if err != nil {
-		return ""
-	}
-
-	return arn.Resource
 }

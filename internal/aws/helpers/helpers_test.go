@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -273,4 +274,342 @@ func TestGetAllVPCs_Pagination(t *testing.T) {
 	}
 	assert.Equal(t, expected, res)
 	me.AssertExpectations(t)
+}
+
+func TestGetAllSecurityGroups_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForSGs{}
+
+	// page 1
+	sg1 := ec2types.SecurityGroup{GroupId: aws.String("sg-1"), GroupName: aws.String("first-sg")}
+	page1 := &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []ec2types.SecurityGroup{sg1}, NextToken: aws.String("t1")}
+	sg2 := ec2types.SecurityGroup{GroupId: aws.String("sg-2"), GroupName: aws.String("second-sg")}
+	page2 := &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []ec2types.SecurityGroup{sg2}, NextToken: nil}
+
+	me.On("DescribeSecurityGroups", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeSecurityGroups", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSecurityGroupsWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"sg-1": "first-sg",
+		"sg-2": "second-sg",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+func TestGetAllSubnets_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForSubnets{}
+
+	// page 1
+	subnet1 := ec2types.Subnet{SubnetId: aws.String("subnet-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("first-subnet")}}}
+	page1 := &ec2.DescribeSubnetsOutput{Subnets: []ec2types.Subnet{subnet1}, NextToken: aws.String("t1")}
+	subnet2 := ec2types.Subnet{SubnetId: aws.String("subnet-2"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("second-subnet")}}}
+	page2 := &ec2.DescribeSubnetsOutput{Subnets: []ec2types.Subnet{subnet2}, NextToken: nil}
+
+	me.On("DescribeSubnets", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeSubnets", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSubnetsWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"subnet-1": "first-subnet",
+		"subnet-2": "second-subnet",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+func TestGetAllImages_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForImages{}
+
+	// page 1
+	image1 := ec2types.Image{ImageId: aws.String("ami-1"), Name: aws.String("first-image")}
+	page1 := &ec2.DescribeImagesOutput{Images: []ec2types.Image{image1}, NextToken: aws.String("t1")}
+	image2 := ec2types.Image{ImageId: aws.String("ami-2"), Name: aws.String("second-image")}
+	page2 := &ec2.DescribeImagesOutput{Images: []ec2types.Image{image2}, NextToken: nil}
+
+	me.On("DescribeImages", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeImages", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllImagesWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"ami-1": "first-image",
+		"ami-2": "second-image",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+func TestGetAllSnapshots_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForSnapshots{}
+
+	// page 1
+	snapshot1 := ec2types.Snapshot{SnapshotId: aws.String("snap-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("first-snapshot")}}}
+	page1 := &ec2.DescribeSnapshotsOutput{Snapshots: []ec2types.Snapshot{snapshot1}, NextToken: aws.String("t1")}
+	snapshot2 := ec2types.Snapshot{SnapshotId: aws.String("snap-2"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("second-snapshot")}}}
+	page2 := &ec2.DescribeSnapshotsOutput{Snapshots: []ec2types.Snapshot{snapshot2}, NextToken: nil}
+
+	me.On("DescribeSnapshots", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeSnapshots", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSnapshotsWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"snap-1": "first-snapshot",
+		"snap-2": "second-snapshot",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+func TestGetAllVolumes_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForVolumes{}
+
+	// page 1
+	volume1 := ec2types.Volume{VolumeId: aws.String("vol-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("first-volume")}}}
+	page1 := &ec2.DescribeVolumesOutput{Volumes: []ec2types.Volume{volume1}, NextToken: aws.String("t1")}
+	volume2 := ec2types.Volume{VolumeId: aws.String("vol-2"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("second-volume")}}}
+	page2 := &ec2.DescribeVolumesOutput{Volumes: []ec2types.Volume{volume2}, NextToken: nil}
+
+	me.On("DescribeVolumes", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeVolumes", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllVolumesWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"vol-1": "first-volume",
+		"vol-2": "second-volume",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+func TestGetAllNetworkInterfaces_Pagination(t *testing.T) {
+	ctx := context.Background()
+	me := &MockEC2ClientForENIs{}
+
+	// page 1
+	eni1 := ec2types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), TagSet: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("first-eni")}}}
+	page1 := &ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: []ec2types.NetworkInterface{eni1}, NextToken: aws.String("t1")}
+	eni2 := ec2types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), TagSet: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("second-eni")}}}
+	page2 := &ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: []ec2types.NetworkInterface{eni2}, NextToken: nil}
+
+	me.On("DescribeNetworkInterfaces", mock.Anything, mock.Anything, mock.Anything).Return(page1, nil).Once()
+	me.On("DescribeNetworkInterfaces", mock.Anything, mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllNetworkInterfacesWithClient(ctx, me)
+	assert.NoError(t, err)
+
+	expected := map[string]string{
+		"eni-1": "first-eni",
+		"eni-2": "second-eni",
+	}
+	assert.Equal(t, expected, res)
+	me.AssertExpectations(t)
+}
+
+// Additional testify mock types for other EC2 Describe APIs used in tests.
+type MockEC2ClientForSGs struct{ mock.Mock }
+
+func (m *MockEC2ClientForSGs) DescribeSecurityGroups(ctx context.Context, params *ec2.DescribeSecurityGroupsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeSecurityGroupsOutput), args.Error(1)
+}
+
+type MockEC2ClientForSubnets struct{ mock.Mock }
+
+func (m *MockEC2ClientForSubnets) DescribeSubnets(ctx context.Context, params *ec2.DescribeSubnetsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeSubnetsOutput), args.Error(1)
+}
+
+type MockEC2ClientForImages struct{ mock.Mock }
+
+func (m *MockEC2ClientForImages) DescribeImages(ctx context.Context, params *ec2.DescribeImagesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeImagesOutput), args.Error(1)
+}
+
+type MockEC2ClientForSnapshots struct{ mock.Mock }
+
+func (m *MockEC2ClientForSnapshots) DescribeSnapshots(ctx context.Context, params *ec2.DescribeSnapshotsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSnapshotsOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeSnapshotsOutput), args.Error(1)
+}
+
+type MockEC2ClientForVolumes struct{ mock.Mock }
+
+func (m *MockEC2ClientForVolumes) DescribeVolumes(ctx context.Context, params *ec2.DescribeVolumesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeVolumesOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeVolumesOutput), args.Error(1)
+}
+
+type MockEC2ClientForENIs struct{ mock.Mock }
+
+func (m *MockEC2ClientForENIs) DescribeNetworkInterfaces(ctx context.Context, params *ec2.DescribeNetworkInterfacesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeNetworkInterfacesOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*ec2.DescribeNetworkInterfacesOutput), args.Error(1)
+}
+
+func TestGetAllSecurityGroups_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForSGs{}
+
+	sg1 := ec2types.SecurityGroup{GroupId: aws.String("sg-1"), GroupName: aws.String("one")}
+	page1 := &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []ec2types.SecurityGroup{sg1}, NextToken: aws.String("t1")}
+	sg2 := ec2types.SecurityGroup{GroupId: aws.String("sg-2"), GroupName: aws.String("")}
+	page2 := &ec2.DescribeSecurityGroupsOutput{SecurityGroups: []ec2types.SecurityGroup{sg2}, NextToken: nil}
+
+	m.On("DescribeSecurityGroups", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeSecurityGroups", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSecurityGroupsWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"sg-1": "one", "sg-2": "sg-2"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllSubnets_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForSubnets{}
+
+	s1 := ec2types.Subnet{SubnetId: aws.String("sub-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("first")}}}
+	page1 := &ec2.DescribeSubnetsOutput{Subnets: []ec2types.Subnet{s1}, NextToken: aws.String("t1")}
+	s2 := ec2types.Subnet{SubnetId: aws.String("sub-2"), Tags: []ec2types.Tag{}}
+	page2 := &ec2.DescribeSubnetsOutput{Subnets: []ec2types.Subnet{s2}, NextToken: nil}
+
+	m.On("DescribeSubnets", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeSubnets", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSubnetsWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"sub-1": "first", "sub-2": "sub-2"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllImages_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForImages{}
+
+	img1 := ec2types.Image{ImageId: aws.String("ami-1"), Name: aws.String("img-one"), Tags: []ec2types.Tag{}}
+	page1 := &ec2.DescribeImagesOutput{Images: []ec2types.Image{img1}, NextToken: aws.String("t1")}
+	img2 := ec2types.Image{ImageId: aws.String("ami-2"), Name: nil, Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("img-two")}}}
+	page2 := &ec2.DescribeImagesOutput{Images: []ec2types.Image{img2}, NextToken: nil}
+
+	m.On("DescribeImages", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeImages", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllImagesWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"ami-1": "img-one", "ami-2": "img-two"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllSnapshots_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForSnapshots{}
+
+	snap1 := ec2types.Snapshot{SnapshotId: aws.String("snap-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("snap-one")}}}
+	page1 := &ec2.DescribeSnapshotsOutput{Snapshots: []ec2types.Snapshot{snap1}, NextToken: aws.String("t1")}
+	snap2 := ec2types.Snapshot{SnapshotId: aws.String("snap-2"), Tags: []ec2types.Tag{}}
+	page2 := &ec2.DescribeSnapshotsOutput{Snapshots: []ec2types.Snapshot{snap2}, NextToken: nil}
+
+	m.On("DescribeSnapshots", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeSnapshots", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllSnapshotsWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"snap-1": "snap-one", "snap-2": "snap-2"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllVolumes_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForVolumes{}
+
+	v1 := ec2types.Volume{VolumeId: aws.String("vol-1"), Tags: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("vol-one")}}}
+	page1 := &ec2.DescribeVolumesOutput{Volumes: []ec2types.Volume{v1}, NextToken: aws.String("t1")}
+	v2 := ec2types.Volume{VolumeId: aws.String("vol-2"), Tags: []ec2types.Tag{}}
+	page2 := &ec2.DescribeVolumesOutput{Volumes: []ec2types.Volume{v2}, NextToken: nil}
+
+	m.On("DescribeVolumes", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeVolumes", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllVolumesWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"vol-1": "vol-one", "vol-2": "vol-2"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllNetworkInterfaces_WithClientPagination(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForENIs{}
+
+	eni1 := ec2types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), TagSet: []ec2types.Tag{{Key: aws.String("Name"), Value: aws.String("eni-one")}}}
+	page1 := &ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: []ec2types.NetworkInterface{eni1}, NextToken: aws.String("t1")}
+	eni2 := ec2types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), TagSet: []ec2types.Tag{}}
+	page2 := &ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: []ec2types.NetworkInterface{eni2}, NextToken: nil}
+
+	m.On("DescribeNetworkInterfaces", mock.Anything, mock.Anything).Return(page1, nil).Once()
+	m.On("DescribeNetworkInterfaces", mock.Anything, mock.Anything).Return(page2, nil).Once()
+
+	res, err := getAllNetworkInterfacesWithClient(ctx, m)
+	assert.NoError(t, err)
+	expected := map[string]string{"eni-1": "eni-one", "eni-2": "eni-2"}
+	assert.Equal(t, expected, res)
+	m.AssertExpectations(t)
+}
+
+func TestGetAllSecurityGroups_InvalidClient(t *testing.T) {
+	ctx := context.Background()
+	// Provide a client that does not implement DescribeSecurityGroups
+	wrong := &MockEC2ClientForVPCs{}
+
+	_, err := getAllSecurityGroupsWithClient(ctx, wrong)
+	assert.ErrorIs(t, err, ErrClientNotDescribeSGs)
+}
+
+func TestGetAllVolumes_ClientError(t *testing.T) {
+	ctx := context.Background()
+	m := &MockEC2ClientForVolumes{}
+	// simulate API error
+	m.On("DescribeVolumes", mock.Anything, mock.Anything).Return((*ec2.DescribeVolumesOutput)(nil), assert.AnError).Once()
+
+	_, err := getAllVolumesWithClient(ctx, m)
+	assert.Error(t, err)
+	m.AssertExpectations(t)
+}
+
+// Mock KMS client that returns an error to validate error handling in paginator loops
+type MockKMSClientWithError struct{}
+
+func (m *MockKMSClientWithError) ListKeys(ctx context.Context, params *kms.ListKeysInput, optFns ...func(*kms.Options)) (*kms.ListKeysOutput, error) {
+	return nil, fmt.Errorf("kms failed")
+}
+func (m *MockKMSClientWithError) ListAliases(ctx context.Context, params *kms.ListAliasesInput, optFns ...func(*kms.Options)) (*kms.ListAliasesOutput, error) {
+	return &kms.ListAliasesOutput{}, nil
+}
+
+func TestGetAllKMSKeys_ListKeysError(t *testing.T) {
+	ctx := context.Background()
+	mk := &MockKMSClientWithError{}
+	_, err := getAllKMSKeysWithClient(ctx, mk)
+	assert.Error(t, err)
 }
