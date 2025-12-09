@@ -37,7 +37,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.0
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.15
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.3
-	github.com/aws/aws-sdk-go-v2/service/ses v1.34.16
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.57.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.8
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.18
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.3
@@ -60,7 +60,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.11.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.15 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.57.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.11 // indirect
