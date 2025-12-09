@@ -194,6 +194,7 @@ func generateIndexHTML(indexPath, accountID, outputFile string) error {
 	html = strings.ReplaceAll(html, "@@INDEX_TITLE@@", title)
 	html = strings.ReplaceAll(html, "@@INDEX_DESCRIPTION@@", description)
 	html = strings.ReplaceAll(html, "@@OUTPUT_FILE@@", outputFile)
+	html = strings.ReplaceAll(html, "@@ACCOUNT_ID@@", accountID)
 
 	// Write HTML file
 	f, err := os.Create(indexPath) //nolint:gosec // G304: Path is controlled and sanitized
