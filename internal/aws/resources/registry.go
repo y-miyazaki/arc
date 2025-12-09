@@ -79,7 +79,7 @@ func NewResource(input *ResourceInput) Resource {
 		SubSubCategory: helpers.StringValue(input.SubSubCategory, ""),
 		Name:           helpers.StringValue(input.Name),
 		Region:         helpers.StringValue(input.Region),
-		ARN:            helpers.StringValue(input.ARN),
+		ARN:            helpers.StringValue(input.ARN, ""),
 		RawData:        helpers.NormalizeRawData(input.RawData),
 	}
 }
@@ -148,6 +148,7 @@ func InitializeCollectors(cfg *aws.Config, regions []string) error {
 	RegisterConstructor("route53", NewRoute53Collector)
 	RegisterConstructor("s3", NewS3Collector)
 	RegisterConstructor("secretsmanager", NewSecretsManagerCollector)
+	RegisterConstructor("ses", NewSESCollector)
 	RegisterConstructor("sns", NewSNSCollector)
 	RegisterConstructor("sqs", NewSQSCollector)
 	RegisterConstructor("transferfamily", NewTransferFamilyCollector)

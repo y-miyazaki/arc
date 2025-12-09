@@ -146,10 +146,10 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		resources = append(resources, NewResource(&ResourceInput{
 			Category:    "rds",
 			SubCategory: "DBCluster",
-			Name:        clusterID,
+			Name:        cluster.DBClusterIdentifier,
 			Region:      region,
 			RawData: map[string]any{
-				"ID":                               clusterID,
+				"ID":                               cluster.DBClusterIdentifier,
 				"Type":                             "DBCluster",
 				"Engine":                           cluster.Engine,
 				"Version":                          cluster.EngineVersion,
@@ -220,7 +220,6 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	// Process standalone instances (not part of any cluster)
 	for i := range instancesOut.DBInstances {
 		inst := &instancesOut.DBInstances[i]
-		instID := helpers.StringValue(inst.DBInstanceIdentifier)
 		clusterID := helpers.StringValue(inst.DBClusterIdentifier)
 
 		// Skip if part of a cluster
@@ -240,10 +239,10 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		resources = append(resources, NewResource(&ResourceInput{
 			Category:    "rds",
 			SubCategory: "DBInstance",
-			Name:        instID,
+			Name:        inst.DBInstanceIdentifier,
 			Region:      region,
 			RawData: map[string]any{
-				"ID":                               instID,
+				"ID":                               inst.DBInstanceIdentifier,
 				"Type":                             "DBInstance",
 				"Engine":                           inst.Engine,
 				"Version":                          inst.EngineVersion,

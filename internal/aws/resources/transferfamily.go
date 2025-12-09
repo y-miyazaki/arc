@@ -102,7 +102,7 @@ func (c *TransferFamilyCollector) Collect(ctx context.Context, region string) ([
 				SubCategory: "Server",
 				Name:        server.ServerId,
 				Region:      region,
-				ARN:         server.ServerId,
+				ARN:         server.ServerId, // Using ServerID as ARN
 				RawData: map[string]any{
 					"Protocol": protocol,
 					"State":    server.State,

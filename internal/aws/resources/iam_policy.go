@@ -109,7 +109,7 @@ func (c *IAMPolicyCollector) Collect(ctx context.Context, region string) ([]Reso
 				ARN:         policy.Arn,
 				RawData: map[string]any{
 					"Description": description,
-					"Scope":       string(types.PolicyScopeTypeLocal),
+					"Scope":       types.PolicyScopeTypeLocal,
 					"Path":        policy.Path,
 					"CreateDate":  policy.CreateDate,
 				},

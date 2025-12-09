@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -232,6 +233,21 @@ func StringValue(v any, defaultValues ...string) string {
 		})
 		return strings.Join(strs, "\n")
 	default:
+		rv := reflect.ValueOf(val)
+		if rv.Kind() == reflect.Slice {
+			if rv.Len() == 0 {
+				return defaultValue
+			}
+			var strs []string
+			for i := 0; i < rv.Len(); i++ {
+				elem := rv.Index(i).Interface()
+				strs = append(strs, StringValue(elem, ""))
+			}
+			slices.SortFunc(strs, func(a, b string) int {
+				return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+			})
+			return strings.Join(strs, "\n")
+		}
 		return fmt.Sprintf("%v", val)
 	}
 }
