@@ -188,37 +188,38 @@ OPTIONS:
 
 ## Supported AWS Services
 
-| Service           | Category Name       | Description                                         |
-| ----------------- | ------------------- | --------------------------------------------------- |
-| ACM               | `acm`               | Certificate Manager                                 |
-| API Gateway       | `apigateway`        | REST and HTTP APIs                                  |
-| Batch             | `batch`             | Batch computing                                     |
-| CloudFormation    | `cloudformation`    | Infrastructure as Code stacks                       |
-| CloudFront        | `cloudfront`        | Content Delivery Network                            |
-| CloudWatch Alarms | `cloudwatch_alarms` | Monitoring alarms                                   |
-| CloudWatch Logs   | `cloudwatch_logs`   | Log groups and streams                              |
-| Cognito           | `cognito`           | User pools and identity pools                       |
-| DynamoDB          | `dynamodb`          | NoSQL database tables                               |
-| EC2               | `ec2`               | Virtual machines and related resources              |
-| ECR               | `ecr`               | Container registry                                  |
-| ECS               | `ecs`               | Container orchestration                             |
-| EFS               | `efs`               | Elastic File System                                 |
-| ElastiCache       | `elasticache`       | In-memory cache                                     |
-| ELB               | `elb`               | Load balancers (ALB, NLB, CLB)                      |
-| EventBridge       | `eventbridge`       | Event buses and rules                               |
-| IAM Policy        | `iam_policy`        | Customer-managed IAM Policies                       |
-| IAM Role          | `iam_role`          | IAM Roles with attached policies and last used info |
-| IAM User/Group    | `iam_user_group`    | IAM Users and Groups                                |
-| KMS               | `kms`               | Key Management Service                              |
-| Lambda            | `lambda`            | Serverless functions                                |
-| RDS               | `rds`               | Relational databases                                |
-| Redshift          | `redshift`          | Data warehouse                                      |
-| S3                | `s3`                | Object storage                                      |
-| Secrets Manager   | `secretsmanager`    | Secrets storage                                     |
-| SNS               | `sns`               | Simple Notification Service                         |
-| SQS               | `sqs`               | Simple Queue Service                                |
-| VPC               | `vpc`               | Virtual Private Cloud and networking                |
-| WAF               | `waf`               | Web Application Firewall                            |
+| Service           | Category Name       | Description                                                      |
+| ----------------- | ------------------- | ---------------------------------------------------------------- |
+| ACM               | `acm`               | Certificate Manager                                              |
+| API Gateway       | `apigateway`        | REST and HTTP APIs                                               |
+| Batch             | `batch`             | Batch computing                                                  |
+| CloudFormation    | `cloudformation`    | Infrastructure as Code stacks                                    |
+| CloudFront        | `cloudfront`        | Content Delivery Network                                         |
+| CloudWatch Alarms | `cloudwatch_alarms` | Monitoring alarms                                                |
+| CloudWatch Logs   | `cloudwatch_logs`   | Log groups and streams                                           |
+| Cognito           | `cognito`           | User pools and identity pools                                    |
+| DynamoDB          | `dynamodb`          | NoSQL database tables                                            |
+| EC2               | `ec2`               | Virtual machines and related resources                           |
+| ECR               | `ecr`               | Container registry                                               |
+| ECS               | `ecs`               | Container orchestration                                          |
+| EFS               | `efs`               | Elastic File System                                              |
+| ElastiCache       | `elasticache`       | In-memory cache                                                  |
+| ELB               | `elb`               | Load balancers (ALB, NLB, CLB)                                   |
+| EventBridge       | `eventbridge`       | Event buses and rules                                            |
+| IAM Policy        | `iam_policy`        | Customer-managed IAM Policies                                    |
+| IAM Role          | `iam_role`          | IAM Roles with attached policies and last used info              |
+| IAM User/Group    | `iam_user_group`    | IAM Users and Groups                                             |
+| KMS               | `kms`               | Key Management Service                                           |
+| Lambda            | `lambda`            | Serverless functions                                             |
+| RDS               | `rds`               | Relational databases                                             |
+| Redshift          | `redshift`          | Data warehouse                                                   |
+| S3                | `s3`                | Object storage                                                   |
+| Secrets Manager   | `secretsmanager`    | Secrets storage                                                  |
+| SNS               | `sns`               | Simple Notification Service                                      |
+| SES               | `ses`               | Simple Email Service (identities, configuration sets, templates) |
+| SQS               | `sqs`               | Simple Queue Service                                             |
+| VPC               | `vpc`               | Virtual Private Cloud and networking                             |
+| WAF               | `waf`               | Web Application Firewall                                         |
 
 ## Output Format
 
@@ -307,6 +308,11 @@ The tool requires read-only permissions for the services you want to collect. Ex
         "s3:Get*",
         "secretsmanager:List*",
         "secretsmanager:Describe*",
+        "ses:List*",
+        "ses:Get*",
+        "ses:Describe*",
+        "sesv2:List*",
+        "sesv2:Get*",
         "sns:List*",
         "sns:Get*",
         "sqs:List*",
