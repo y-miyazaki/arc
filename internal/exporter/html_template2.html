@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Favicon: simple AWS-style 'A' in orange circle (SVG data URI) -->
     <link rel="icon"
-        href="data:image/svg+xml;utf8,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'><rect%20fill='%23ffffff'%20width='64'%20height='64'/><circle%20cx='32'%20cy='32'%20r='30'%20fill='%23FF9900'/><text%20x='32'%20y='42'%20font-family='Arial,Helvetica,sans-serif'%20font-size='36'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'>A</text></svg>" />
-    <title>@@INDEX_TITLE@@</title>
+        href="data:image/svg+xml;utf8,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'><rect%20fill='%23ffffff'%20width='64'%20height='64'/><circle%20cx='32'%20cy='32'%20r='30'%20fill='%23FF9900'/><text%20x='32'%20y='42'%20font-family='Arial,Helvetica,sans-serif'%20font-size='36'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'>A</text></svg>' />
+    <title>@@INDEX_TITLE@@ (Enhanced)</title>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" />
-    <!-- minimal DataTables styles (Buttons/FixedColumns removed - viewer uses per-category tables) -->
     <style>
         :root {
             --max-width: 1400px;
@@ -69,7 +68,6 @@
             overflow: auto;
         }
 
-        /* horizontal scroll for wide tables */
         table {
             border-collapse: collapse;
             width: 100%;
@@ -97,9 +95,7 @@
             white-space: pre-wrap;
             overflow-wrap: break-word;
             min-width: 120px;
-            /* ensure minimum readable width */
             max-width: 400px;
-            /* prevent overly wide cells */
             position: relative;
         }
 
@@ -108,17 +104,14 @@
             word-break: normal;
             white-space: pre;
             max-width: none;
-            /* allow cells to expand when word wrap is disabled */
         }
 
-        /* Collapsible cell styles */
         .cell-content {
             display: block;
         }
 
         .cell-content.collapsed {
             max-height: 7.5em;
-            /* ~7 lines */
             overflow: hidden;
             cursor: pointer;
         }
@@ -140,24 +133,15 @@
             cursor: pointer;
         }
 
-        /* FixedColumns: ensure borders and background match table */
+        /* FixedColumns styling to match table borders and dark theme */
         .DTFC_LeftWrapper table th,
         .DTFC_LeftWrapper table td,
         .DTFC_LeftBodyWrapper table td,
-        .DTFC_LeftHeadWrapper table th {
-            border-color: #e1e4e8 !important;
-            background: #fff !important;
-        }
-
-        /* Dark theme adjustments for fixed column area */
+        .DTFC_LeftHeadWrapper table th { border-color: #e1e4e8 !important; background: #fff !important; }
         body[data-theme="dark"] .DTFC_LeftWrapper table th,
         body[data-theme="dark"] .DTFC_LeftWrapper table td,
         body[data-theme="dark"] .DTFC_LeftBodyWrapper table td,
-        body[data-theme="dark"] .DTFC_LeftHeadWrapper table th {
-            background: #0b1f2d !important;
-            color: #cbd5e1 !important;
-            border-color: #1f2d38 !important;
-        }
+        body[data-theme="dark"] .DTFC_LeftHeadWrapper table th { background:#0b1f2d !important; color:#cbd5e1 !important; border-color:#1f2d38 !important; }
 
         .btn {
             background: #0969da;
@@ -191,49 +175,66 @@
             max-width: 2000px;
         }
 
+        /* Additional: theme variants and list view */
+        body[data-theme="dark"] {
+            background: #0b1220;
+            color: #cbd5e1;
+        }
+        body[data-theme="dark"] .panel { background:#071224; border-color:#123; }
+        body[data-theme="dark"] th { background:#081426; color:#cbd5e1; }
+        body[data-theme="dark"] .btn { background:#0b6bd6; }
+
+        body[data-theme="compact"] { font-size: 12px; --max-width:1200px; }
+        body[data-theme="compact"] th, body[data-theme="compact"] td { padding:4px 6px; font-size:12px; }
+
+        /* List view styles */
+        body.list-view .table-container { display: none; }
+        .list-container { display:none; padding:8px 0; }
+        .list-container.active { display:block; }
+        .list-card { border:1px solid #e1e4e8; padding:10px; margin-bottom:8px; border-radius:6px; background:#fff; }
+        .list-card .card-row { display:flex; gap:8px; padding:4px 0; }
+        .card-key { font-weight:600; width:220px; color:#0969da; }
+        .card-value { white-space:pre-wrap; word-break:break-word; }
+
+        /* compact card tweaks */
+        body[data-theme="compact"] .card-key { width:160px; font-size:12px; }
+
         /* allow expanding viewer if desired */
     </style>
 </head>
 
-<body>
-    <h1>@@INDEX_TITLE@@</h1>
+<body data-theme="default">
+    <h1>@@INDEX_TITLE@@ (Enhanced)</h1>
     <p class="description">@@INDEX_DESCRIPTION@@</p>
 
     <div class="controls">
         <label for="panelFilter">Filter categories:</label>
         <input id="panelFilter" class="global-filter" placeholder="type to hide categories by name" />
 
-        <!-- <label style="display:flex;align-items:center;gap:6px;margin-left:8px">
-            <input type="checkbox" id="autoExpandCheckbox" />
-            <span style="font-size:13px">Auto-expand on load</span>
-        </label> -->
-
-        <!-- Display mode removed: viewer only shows per-category panels -->
-
         <a id="downloadAll" class="btn secondary" href="resources/@@OUTPUT_FILE@@" download
             style="margin-right: 8px">Download @@OUTPUT_FILE@@</a>
         <button id="expandAll" class="btn">Expand all</button>
         <button id="collapseAll" class="btn">Collapse all</button>
-        <button id="wordWrap" class="btn" title="Toggle word wrapping in cells">
-            Word wrap
-        </button>
-        <button id="wideView" class="btn" title="Toggle wide layout" style="margin-left: 8px">
-            Wide view
-        </button>
-        <button id="lockColumns" class="btn" title="Lock columns up to Name for horizontal scrolling">
-            Lock to Name
-        </button>
+        <button id="wordWrap" class="btn" title="Toggle word wrapping in cells">Word wrap</button>
+        <button id="wideView" class="btn" title="Toggle wide layout" style="margin-left: 8px">Wide view</button>
+        <button id="lockColumns" class="btn" title="Lock columns up to Name for horizontal scrolling">Lock to Name</button>
+
+        <!-- NEW: design selector and view toggle (Enhanced template) -->
+        <select id="designSelect" class="global-filter" title="Design">
+            <option value="default">Default</option>
+            <option value="compact">Compact</option>
+            <option value="dark">Dark</option>
+        </select>
+        <button id="toggleView" class="btn secondary" title="Toggle Table/List view">List View</button>
     </div>
 
     <div id="content"></div>
     <div class="meta">Generated: <span id="generated"></span></div>
 
-    <!-- Libraries: PapaParse for CSV parsing; jQuery + DataTables for table features -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"
-        crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js" crossorigin="anonymous"></script>
 
     <script>
         // ========================================
@@ -242,11 +243,13 @@
         const ViewState = {
             columnsLocked: false,
             wordWrapEnabled: true,
-            wideViewActive: true
+            wideViewActive: true,
+            viewMode: 'table' // 'table' or 'list'
         };
 
         // ========================================
         // Button Controller
+        // (unchanged)
         // ========================================
         class ButtonController {
             constructor(buttonId) {
@@ -297,7 +300,6 @@
                 );
             }
 
-            // Setup click event listener with callback
             onClick(callback) {
                 if (!this.button) return;
                 this.button.addEventListener("click", () => {
@@ -627,7 +629,6 @@
                                     );
                                     // initialize DataTable (jQuery) with horizontal scroll, pagination, search
                                     const dt = $(table).DataTable({
-                                        // show pagination and info at top and bottom
                                         dom: '<"top"ip><"table-wrapper"t><"bottom"lp>',
                                         scrollX: true,
                                         pageLength: 50,

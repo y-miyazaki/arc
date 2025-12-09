@@ -13,6 +13,15 @@ import (
 //go:embed html_template.html
 var htmlTemplate string
 
+//go:embed html_template2.html
+var htmlTemplate2 string
+
+//go:embed html_template3.html
+var htmlTemplate3 string
+
+//go:embed html_template4.html
+var htmlTemplate4 string
+
 // HTMLTemplateData represents the data structure for HTML template substitution
 type HTMLTemplateData struct {
 	Title       string
@@ -34,10 +43,28 @@ func GenerateHTML(outputDir, accountID, outputFile string, categories []string) 
 		return fmt.Errorf("failed to generate manifest: %w", err)
 	}
 
-	// Generate index.html
+	// Generate index.html (default template)
 	indexPath := filepath.Join(outputDir, accountID, "index.html")
 	if err := generateIndexHTML(indexPath, accountID, outputFile); err != nil {
 		return fmt.Errorf("failed to generate index.html: %w", err)
+	}
+
+	// Generate index2.html using html_template2.html
+	index2Path := filepath.Join(outputDir, accountID, "index2.html")
+	if err := generateIndexHTMLFrom(htmlTemplate2, index2Path, accountID, outputFile); err != nil {
+		return fmt.Errorf("failed to generate index2.html: %w", err)
+	}
+
+	// Generate index3.html using html_template3.html
+	index3Path := filepath.Join(outputDir, accountID, "index3.html")
+	if err := generateIndexHTMLFrom(htmlTemplate3, index3Path, accountID, outputFile); err != nil {
+		return fmt.Errorf("failed to generate index3.html: %w", err)
+	}
+
+	// Generate index4.html using html_template4.html (two-pane viewer)
+	index4Path := filepath.Join(outputDir, accountID, "index4.html")
+	if err := generateIndexHTMLFrom(htmlTemplate4, index4Path, accountID, outputFile); err != nil {
+		return fmt.Errorf("failed to generate index4.html: %w", err)
 	}
 
 	return nil
@@ -106,6 +133,33 @@ func generateIndexHTML(indexPath, accountID, outputFile string) error {
 
 	if _, writeErr := f.WriteString(html); writeErr != nil {
 		return fmt.Errorf("failed to write index.html: %w", writeErr)
+	}
+
+	return nil
+}
+
+// generateIndexHTMLFrom creates an index HTML at indexPath using the provided template string.
+func generateIndexHTMLFrom(templateStr, indexPath, accountID, outputFile string) error {
+	title := fmt.Sprintf("AWS Resources (%s)", accountID)
+	description := "AWS resource inventory collected by arc"
+
+	html := templateStr
+	html = strings.ReplaceAll(html, "@@INDEX_TITLE@@", title)
+	html = strings.ReplaceAll(html, "@@INDEX_DESCRIPTION@@", description)
+	html = strings.ReplaceAll(html, "@@OUTPUT_FILE@@", outputFile)
+
+	f, err := os.Create(indexPath) //nolint:gosec // G304: Path is controlled and sanitized
+	if err != nil {
+		return fmt.Errorf("failed to create %s: %w", indexPath, err)
+	}
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed to close %s: %v\n", indexPath, cerr)
+		}
+	}()
+
+	if _, writeErr := f.WriteString(html); writeErr != nil {
+		return fmt.Errorf("failed to write %s: %w", indexPath, writeErr)
 	}
 
 	return nil

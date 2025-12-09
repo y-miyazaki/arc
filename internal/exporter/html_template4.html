@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>@@INDEX_TITLE@@ (Two-Pane)</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.2.2/css/fixedColumns.dataTables.min.css" />
+  <style>
+    :root{ --sidebar-width:260px; --max-width:1400px; }
+    html, body { overflow-x: hidden }
+    body{ margin:0; font-family: -apple-system,BlinkMacSystemFont, "Segoe UI", Roboto, Arial; background:#f6f8fa; color:#24292f }
+    /* Use CSS Grid so sidebar and content form two columns; prevents overlap */
+    /* Full-width two-pane: use screen width rather than centering to allow wider content */
+    .viewer.two-pane{ display:grid; grid-template-columns: var(--sidebar-width) 1fr; column-gap:24px; width:calc(100% - 24px); max-width:none; margin:12px; height:calc(100vh - 48px); align-items:start; overflow-x:hidden }
+    aside.sidebar{ width:var(--sidebar-width); min-width:220px; background:#ffffff; border:1px solid #cfd8e6; border-radius:0; padding:18px; overflow:auto; box-shadow:0 6px 18px rgba(16,24,40,0.06); position:sticky; top:12px; height:calc(100vh - 48px); z-index:20 }
+    .sidebar h2{ font-size:14px; margin:0 0 8px 0; color:#0b2440 }
+    .sidebar .search{ width:100%; box-sizing:border-box; padding:8px; border-radius:6px; border:1px solid #cbd5e1 }
+    .category-list{ list-style:none; padding:6px 0; margin:8px 0 0 0; border-top:1px solid #eef3f8 }
+    .category-list li{ display:block; padding:8px 10px; margin:4px 0; border-radius:6px; cursor:pointer; color:#24292f; font-size:13px; line-height:1.2; position:relative }
+    .category-list li:hover{ background:#f6fbff; color:#0366d6 }
+    .category-list li:focus{ outline:2px solid rgba(3,102,214,0.12); outline-offset:2px }
+    .category-list li.active{ background:#eaf5ff; font-weight:600; color:#0366d6; box-shadow:inset 0 0 0 1px rgba(3,102,214,0.06) }
+    .category-list li.active::before{ content:''; position:absolute; left:0; top:6px; bottom:6px; width:3px; background:#0366d6; border-radius:3px }
+
+    main.content{ display:block; padding:0 20px; min-width:0 }
+    .toolbar{ display:flex; gap:8px; align-items:center }
+    .toolbar .btn{ background:#0969da; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer }
+    .toolbar .btn.secondary{ background:#fff; color:#0969da; border:1px solid #cbd5e1 }
+    .toolbar .select{ padding:6px 8px; border-radius:6px; border:1px solid #cbd5e1 }
+
+    #tableArea{ flex:1; background:#fff; border:1px solid #d0d7de; border-radius:6px; padding:12px; overflow:visible; min-width:0 }
+    /* confine horizontal scrolling to the table container */
+    .table-container{ width:100%; max-width:100%; overflow-x:auto; overflow-y:visible; -webkit-overflow-scrolling:touch }
+    /* allow table to be wider than its container so horizontal scroll appears on the container only */
+    table.dataTable{ width: max-content !important; min-width:100%; border-collapse:collapse }
+    table.dataTable th, table.dataTable td{ border:1px solid #e1e4e8 }
+
+    /* cell behavior copied from html_template: pre-wrap-like behavior and collapsible long content */
+    table.dataTable thead tr th {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    table.dataTable tbody td {
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      min-width: 120px;
+      /* ensure minimum readable width */
+      max-width: 400px;
+      /* prevent overly wide cells */
+      position: relative;
+    }
+
+    table.dataTable tbody td.no-wrap {
+      overflow-wrap: normal;
+      word-break: normal;
+      white-space: pre;
+      max-width: none;
+      /* allow cells to expand when word wrap is disabled */
+    }
+
+    /* Collapsible cell styles */
+    .cell-content { display: block; }
+
+    .cell-content.collapsed {
+      max-height: 7.5em; /* ~7 lines */
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .cell-content.collapsed::after {
+      content: "... (click to expand)";
+      display: block;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: linear-gradient(to right, transparent, #fff 50%);
+      padding: 0 8px 0 30px;
+      color: #0969da;
+      font-style: italic;
+      font-size: 11px;
+    }
+    /* Ensure FixedColumns wrapper stays behind the sidebar */
+    .DTFC_LeftWrapper, .DTFC_LeftBodyWrapper, .DTFC_LeftHeadWrapper { z-index:5 }
+    /* make FixedColumns borders visible and match other table borders */
+    .DTFC_LeftWrapper table.dataTable th,
+    .DTFC_LeftWrapper table.dataTable td,
+    .DTFC_LeftBodyWrapper table.dataTable td,
+    .DTFC_LeftHeadWrapper table.dataTable th {
+      border-color: #e1e4e8 !important;
+      background: #fff !important;
+    }
+    /* Higher z-index for sidebar so it remains visible above fixed columns */
+    aside.sidebar { z-index: 30 }
+
+    /* Compact theme adjustments */
+    body[data-theme="compact"]{ --max-width:1000px; font-size:13px }
+    body[data-theme="compact"] .toolbar .btn{ padding:5px 8px }
+    body[data-theme="compact"] .category-list li{ padding:8px 6px; font-size:12px }
+
+    /* responsive */
+    @media (max-width:900px){
+      .viewer.two-pane{ display:block; height:auto }
+      aside.sidebar{ width:100%; max-height:220px; position:static; height:auto; margin-bottom:12px }
+      main.content{ margin-left:0 }
+    }
+
+    /* content inner max width not restricted for full-bleed layout */
+    .content-inner{ max-width: none; margin: 0 auto; }
+
+    /* theme variables */
+    body[data-theme="dark"]{ background:#071224; color:#cbd5e1 }
+    body[data-theme="dark"] aside.sidebar, body[data-theme="dark"] #tableArea{ background:#071224; border-color:#123 }
+    /* make FixedColumns use dark backgrounds in dark theme */
+    body[data-theme="dark"] .DTFC_LeftWrapper table.dataTable th,
+    body[data-theme="dark"] .DTFC_LeftWrapper table.dataTable td,
+    body[data-theme="dark"] .DTFC_LeftBodyWrapper table.dataTable td,
+    body[data-theme="dark"] .DTFC_LeftHeadWrapper table.dataTable th {
+      background: #0b1f2d !important;
+      color: #cbd5e1 !important;
+      border-color: #1f2d38 !important;
+    }
+    /* dark theme: improve sidebar link contrast */
+    body[data-theme="dark"] .category-list li{ color:#cbd5e1 }
+    body[data-theme="dark"] .category-list li.active{ background:#063150; color:#e6f0ff }
+    body[data-theme="dark"] .category-list li:hover{ background:#062033 }
+    body[data-theme="dark"] .category-list li.active{ background:#063150 }
+  </style>
+</head>
+<body data-theme="default">
+  <h1 style="display:none">@@INDEX_TITLE@@</h1>
+  <div class="viewer two-pane">
+    <aside class="sidebar" role="navigation" aria-label="Resources">
+      <h2>Resources</h2>
+      <input id="sideSearch" class="search" placeholder="search categories" />
+      <ul id="categoryList" class="category-list" role="listbox" aria-label="Category list"></ul>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <select id="designSelect" class="select" title="Design">
+          <option value="default">Default</option>
+          <option value="compact">Compact</option>
+          <option value="dark">Dark</option>
+        </select>
+        <a id="downloadAll" class="btn secondary" href="resources/@@OUTPUT_FILE@@" download>Download</a>
+        <button id="reload" class="btn">Reload</button>
+        <div style="margin-left:auto" id="meta">Generated: <span id="generated"></span></div>
+      </div>
+
+      <div id="tableArea">
+        <div id="tablePlaceholder">Select a resource on the left to load its table.</div>
+        <div id="tableContainer" style="display:none"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.datatables.net/fixedcolumns/4.2.2/js/dataTables.fixedColumns.min.js" crossorigin="anonymous"></script>
+  <script>
+    // Two-pane viewer: build category list and render selected CSV in right pane
+    const TwoPane = { current: null };
+
+    function setTheme(v){ if(v==='default') document.body.removeAttribute('data-theme'); else document.body.setAttribute('data-theme', v); }
+
+    async function loadManifest(){ const resp = await fetch('files.json'); if(!resp.ok) throw new Error('failed to load files.json'); return resp.json(); }
+
+    function renderCategoryList(files){ const list = document.getElementById('categoryList'); list.innerHTML=''; files.forEach((f, idx)=>{ const li = document.createElement('li'); li.setAttribute('role','option'); li.tabIndex=0; li.textContent = f.display_name || f.path; li.dataset.path = f.path; li.addEventListener('click', ()=>selectCategory(li)); li.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ selectCategory(li); } }); list.appendChild(li) }); }
+
+    function selectCategory(li){ const list = document.querySelectorAll('#categoryList li'); list.forEach(n=>n.classList.remove('active')); li.classList.add('active'); const path = li.dataset.path; TwoPane.current = { li, path }; loadAndShowCSV(path); }
+
+    async function loadAndShowCSV(path){ const area = document.getElementById('tableArea'); const container = document.getElementById('tableContainer'); const placeholder = document.getElementById('tablePlaceholder'); placeholder.style.display='none'; container.style.display='block'; container.innerHTML = '<div>Loading '+path+'...</div>'; try{ const r = await fetch(path); if(!r.ok) throw new Error('failed to fetch '+path); const txt = await r.text(); const parsed = Papa.parse(txt, { header:true, skipEmptyLines:true }); const rows = parsed.data || []; const fields = parsed.meta && parsed.meta.fields ? parsed.meta.fields : (rows.length? Object.keys(rows[0]):[]);
+      container.innerHTML = '';
+      const table = document.createElement('table'); table.classList.add('dataTable');
+      const thead = document.createElement('thead'); const tr = document.createElement('tr');
+      fields.forEach(h=>{ const th = document.createElement('th'); th.textContent=h; tr.appendChild(th); }); thead.appendChild(tr); table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        rows.forEach(row=>{
+          const tr = document.createElement('tr');
+          fields.forEach(h=>{
+            const td = document.createElement('td');
+            const content = row[h] ?? '';
+            // If content contains many lines, render collapsed pre-like block with click-to-expand
+            const lineCount = (content && typeof content === 'string') ? content.split('\n').length : 0;
+            if(lineCount >= 7){
+              const wrapper = document.createElement('div');
+              wrapper.classList.add('cell-content','collapsed');
+              wrapper.textContent = content;
+              wrapper.addEventListener('click', function(e){
+                e.stopPropagation();
+                if(this.classList.contains('collapsed')){ this.classList.remove('collapsed'); this.classList.add('expanded'); }
+                else { this.classList.remove('expanded'); this.classList.add('collapsed'); }
+              });
+              td.appendChild(wrapper);
+            } else {
+              td.textContent = content;
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+      // wrap table so horizontal scrolling stays inside right pane
+      const wrapper = document.createElement('div'); wrapper.classList.add('table-container'); wrapper.appendChild(table);
+      container.appendChild(wrapper);
+      // init DataTable (enable FixedColumns to lock leftmost column)
+      $(table).DataTable({
+        // show paging/control both above and below the table
+        dom: '<"top"ip><"table-wrapper"t><"bottom"lp>',
+        scrollX: true,
+        pageLength: 50,
+        lengthMenu: [10, 25, 50, 100],
+        deferRender: true,
+        processing: true,
+        autoWidth: false,
+        fixedColumns: { leftColumns: 4 }
+      });
+    }catch(err){ container.innerHTML = '<div style="color:#900">Error: '+String(err)+'</div>'; }
+    }
+
+    async function init(){
+      try{
+        const files = await loadManifest();
+        renderCategoryList(files);
+        document.getElementById('generated').textContent = new Date().toUTCString();
+
+        // auto-select first category if available
+        const first = document.querySelector('#categoryList li');
+        if(first){
+          // small timeout to ensure UI paints
+          setTimeout(()=>{ try{ selectCategory(first); }catch(e){ console.warn('auto-select failed', e) } }, 50);
+        }
+
+        document.getElementById('sideSearch').addEventListener('input', (e)=>{ const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#categoryList li').forEach(li=>{ const name = li.textContent.toLowerCase(); li.style.display = (!q || name.includes(q)) ? 'block':'none'; }); });
+        document.getElementById('designSelect').addEventListener('change', ()=>{ setTheme(document.getElementById('designSelect').value); });
+        document.getElementById('reload').addEventListener('click', async ()=>{ const cur = TwoPane.current; try{ const files = await loadManifest(); renderCategoryList(files); if(cur && cur.path){ // re-select by path
+              const node = Array.from(document.querySelectorAll('#categoryList li')).find(n=>n.dataset.path===cur.path); if(node) selectCategory(node);
+            }
+          }catch(e){ alert('Reload failed: '+e) }
+        });
+    }catch(e){ document.getElementById('tableArea').textContent = 'Failed to initialize viewer: '+e }
+    }
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
