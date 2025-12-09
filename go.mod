@@ -4,7 +4,7 @@ module github.com/y-miyazaki/arc
 go 1.25.4
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.40.1
+	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.3
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.16
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.2
@@ -23,7 +23,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/efs v1.41.7
 	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.6
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.3
-	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.15
+	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.16
 	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.6
 	github.com/aws/aws-sdk-go-v2/service/glue v1.135.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.0
@@ -50,10 +50,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.3 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.15 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.15 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.15 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.16 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.15 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.11.15 // indirect
