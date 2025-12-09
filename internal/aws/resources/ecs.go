@@ -217,7 +217,6 @@ func (*ECSCollector) collectScheduledTasks(ctx context.Context, ecsClient *ecs.C
 				// The target ARN is the Cluster ARN for ECS targets
 				clusterArn := helpers.StringValue(target.Arn)
 				taskDefArn := helpers.StringValue(target.EcsParameters.TaskDefinitionArn)
-				taskLaunchType := string(target.EcsParameters.LaunchType)
 
 				// Get RoleARN from task definition
 				var taskRoleArn string
@@ -242,7 +241,7 @@ func (*ECSCollector) collectScheduledTasks(ctx context.Context, ecsClient *ecs.C
 					RawData: map[string]any{
 						"RoleARN":        taskRoleArn,
 						"TaskDefinition": taskDefArn,
-						"LaunchType":     taskLaunchType,
+						"LaunchType":     target.EcsParameters.LaunchType,
 						"Status":         rule.State,
 						"CronSchedule":   rule.ScheduleExpression,
 					},

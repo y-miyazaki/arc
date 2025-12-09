@@ -56,7 +56,7 @@ go install github.com/y-miyazaki/arc/cmd/arc@latest
 
 ### Using Release tar.gz
 
-You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.1 release; replace `v1.0.1` with the version you need.
+You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.2 release; replace `v1.0.2` with the version you need.
 
 Available platforms:
 - Linux (amd64, arm64)
@@ -66,13 +66,13 @@ Available platforms:
 Linux (AMD64) example:
 
 ```bash
-VERSION=v1.0.1 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.2 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 macOS (ARM64) example:
 
 ```bash
-VERSION=v1.0.1 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.2 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 Notes:
@@ -188,37 +188,38 @@ OPTIONS:
 
 ## Supported AWS Services
 
-| Service           | Category Name       | Description                                         |
-| ----------------- | ------------------- | --------------------------------------------------- |
-| ACM               | `acm`               | Certificate Manager                                 |
-| API Gateway       | `apigateway`        | REST and HTTP APIs                                  |
-| Batch             | `batch`             | Batch computing                                     |
-| CloudFormation    | `cloudformation`    | Infrastructure as Code stacks                       |
-| CloudFront        | `cloudfront`        | Content Delivery Network                            |
-| CloudWatch Alarms | `cloudwatch_alarms` | Monitoring alarms                                   |
-| CloudWatch Logs   | `cloudwatch_logs`   | Log groups and streams                              |
-| Cognito           | `cognito`           | User pools and identity pools                       |
-| DynamoDB          | `dynamodb`          | NoSQL database tables                               |
-| EC2               | `ec2`               | Virtual machines and related resources              |
-| ECR               | `ecr`               | Container registry                                  |
-| ECS               | `ecs`               | Container orchestration                             |
-| EFS               | `efs`               | Elastic File System                                 |
-| ElastiCache       | `elasticache`       | In-memory cache                                     |
-| ELB               | `elb`               | Load balancers (ALB, NLB, CLB)                      |
-| EventBridge       | `eventbridge`       | Event buses and rules                               |
-| IAM Policy        | `iam_policy`        | Customer-managed IAM Policies                       |
-| IAM Role          | `iam_role`          | IAM Roles with attached policies and last used info |
-| IAM User/Group    | `iam_user_group`    | IAM Users and Groups                                |
-| KMS               | `kms`               | Key Management Service                              |
-| Lambda            | `lambda`            | Serverless functions                                |
-| RDS               | `rds`               | Relational databases                                |
-| Redshift          | `redshift`          | Data warehouse                                      |
-| S3                | `s3`                | Object storage                                      |
-| Secrets Manager   | `secretsmanager`    | Secrets storage                                     |
-| SNS               | `sns`               | Simple Notification Service                         |
-| SQS               | `sqs`               | Simple Queue Service                                |
-| VPC               | `vpc`               | Virtual Private Cloud and networking                |
-| WAF               | `waf`               | Web Application Firewall                            |
+| Service           | Category Name       | Description                                                      |
+| ----------------- | ------------------- | ---------------------------------------------------------------- |
+| ACM               | `acm`               | Certificate Manager                                              |
+| API Gateway       | `apigateway`        | REST and HTTP APIs                                               |
+| Batch             | `batch`             | Batch computing                                                  |
+| CloudFormation    | `cloudformation`    | Infrastructure as Code stacks                                    |
+| CloudFront        | `cloudfront`        | Content Delivery Network                                         |
+| CloudWatch Alarms | `cloudwatch_alarms` | Monitoring alarms                                                |
+| CloudWatch Logs   | `cloudwatch_logs`   | Log groups and streams                                           |
+| Cognito           | `cognito`           | User pools and identity pools                                    |
+| DynamoDB          | `dynamodb`          | NoSQL database tables                                            |
+| EC2               | `ec2`               | Virtual machines and related resources                           |
+| ECR               | `ecr`               | Container registry                                               |
+| ECS               | `ecs`               | Container orchestration                                          |
+| EFS               | `efs`               | Elastic File System                                              |
+| ElastiCache       | `elasticache`       | In-memory cache                                                  |
+| ELB               | `elb`               | Load balancers (ALB, NLB, CLB)                                   |
+| EventBridge       | `eventbridge`       | Event buses and rules                                            |
+| IAM Policy        | `iam_policy`        | Customer-managed IAM Policies                                    |
+| IAM Role          | `iam_role`          | IAM Roles with attached policies and last used info              |
+| IAM User/Group    | `iam_user_group`    | IAM Users and Groups                                             |
+| KMS               | `kms`               | Key Management Service                                           |
+| Lambda            | `lambda`            | Serverless functions                                             |
+| RDS               | `rds`               | Relational databases                                             |
+| Redshift          | `redshift`          | Data warehouse                                                   |
+| S3                | `s3`                | Object storage                                                   |
+| Secrets Manager   | `secretsmanager`    | Secrets storage                                                  |
+| SNS               | `sns`               | Simple Notification Service                                      |
+| SES               | `ses`               | Simple Email Service (identities, configuration sets, templates) |
+| SQS               | `sqs`               | Simple Queue Service                                             |
+| VPC               | `vpc`               | Virtual Private Cloud and networking                             |
+| WAF               | `waf`               | Web Application Firewall                                         |
 
 ## Output Format
 
@@ -307,6 +308,11 @@ The tool requires read-only permissions for the services you want to collect. Ex
         "s3:Get*",
         "secretsmanager:List*",
         "secretsmanager:Describe*",
+        "ses:List*",
+        "ses:Get*",
+        "ses:Describe*",
+        "sesv2:List*",
+        "sesv2:Get*",
         "sns:List*",
         "sns:Get*",
         "sqs:List*",

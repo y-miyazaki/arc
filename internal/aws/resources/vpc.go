@@ -217,16 +217,14 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		// Add route tables
 		for j := range rtOut.RouteTables {
 			rt := &rtOut.RouteTables[j]
-			rtID := helpers.StringValue(rt.RouteTableId)
-			rtName := helpers.GetTagValue(rt.Tags, "Name")
 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "RouteTable",
-				Name:           rtName,
+				Name:           helpers.GetTagValue(rt.Tags, "Name"),
 				Region:         region,
 				RawData: map[string]any{
-					"ID": rtID,
+					"ID": rt.RouteTableId,
 				},
 			}))
 		}
@@ -264,9 +262,6 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		for j := range natOut.NatGateways {
 			nat := &natOut.NatGateways[j]
-			natID := helpers.StringValue(nat.NatGatewayId)
-			natName := helpers.GetTagValue(nat.Tags, "Name")
-			natState := string(nat.State)
 
 			// Collect all public IPs (primary and secondary)
 			var publicIPs []string
@@ -285,12 +280,12 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "NATGateway",
-				Name:           natName,
+				Name:           helpers.GetTagValue(nat.Tags, "Name"),
 				Region:         region,
 				RawData: map[string]any{
-					"ID":       natID,
+					"ID":       nat.NatGatewayId,
 					"PublicIP": publicIPs,
-					"State":    natState,
+					"State":    nat.State,
 				},
 			}))
 		}
@@ -305,8 +300,6 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		for j := range naclOut.NetworkAcls {
 			nacl := &naclOut.NetworkAcls[j]
-			naclID := helpers.StringValue(nacl.NetworkAclId)
-			naclName := helpers.GetTagValue(nacl.Tags, "Name")
 
 			// Format entries
 			var entries []string
@@ -329,10 +322,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "NetworkACL",
-				Name:           naclName,
+				Name:           helpers.GetTagValue(nacl.Tags, "Name"),
 				Region:         region,
 				RawData: map[string]any{
-					"ID":       naclID,
+					"ID":       nacl.NetworkAclId,
 					"Settings": entries,
 				},
 			}))
@@ -348,9 +341,6 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		for j := range sgOut.SecurityGroups {
 			sg := &sgOut.SecurityGroups[j]
-			sgID := helpers.StringValue(sg.GroupId)
-			sgName := helpers.StringValue(sg.GroupName)
-			sgDesc := helpers.StringValue(sg.Description)
 
 			// Format inbound rules
 			var inbound []string
@@ -381,11 +371,11 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "SecurityGroup",
-				Name:           sgName,
+				Name:           sg.GroupName,
 				Region:         region,
 				RawData: map[string]any{
-					"ID":          sgID,
-					"Description": sgDesc,
+					"ID":          sg.GroupId,
+					"Description": sg.Description,
 					"Inbound":     inbound,
 					"Outbound":    outbound,
 				},
@@ -402,11 +392,6 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		for j := range epOut.VpcEndpoints {
 			ep := &epOut.VpcEndpoints[j]
-			epID := helpers.StringValue(ep.VpcEndpointId)
-			epName := helpers.GetTagValue(ep.Tags, "Name")
-			epType := string(ep.VpcEndpointType)
-			epState := string(ep.State)
-			epService := helpers.StringValue(ep.ServiceName)
 
 			var sgIDs []string
 			for _, g := range ep.Groups {
@@ -416,16 +401,16 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:       "vpc",
 				SubSubCategory: "Endpoint",
-				Name:           epName,
+				Name:           helpers.GetTagValue(ep.Tags, "Name"),
 				Region:         region,
 				RawData: map[string]any{
-					"ID":             epID,
-					"Type":           epType,
-					"Service":        epService,
+					"ID":             ep.VpcEndpointId,
+					"Type":           ep.VpcEndpointType,
+					"Service":        ep.ServiceName,
 					"Subnets":        ep.SubnetIds,
 					"RouteTables":    ep.RouteTableIds,
 					"SecurityGroups": sgIDs,
-					"State":          epState,
+					"State":          ep.State,
 				},
 			}))
 		}

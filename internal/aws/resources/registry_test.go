@@ -104,7 +104,7 @@ func TestNewResource_WithNilValues(t *testing.T) {
 	assert.Equal(t, "", resource.SubSubCategory) // empty string for nil with default ""
 	assert.Equal(t, "test-name", resource.Name)
 	assert.Equal(t, "us-east-1", resource.Region)
-	assert.Equal(t, "N/A", resource.ARN) // "N/A" for nil without default
+	assert.Equal(t, "", resource.ARN) // empty string for nil when default is empty
 }
 
 func TestRegister(t *testing.T) {
