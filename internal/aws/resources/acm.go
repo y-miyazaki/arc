@@ -127,5 +127,5 @@ func (c *ACMCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		}
 	}
 
-    return resources, nil
+	return resources, nil
 }
