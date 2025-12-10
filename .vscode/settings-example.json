@@ -89,7 +89,8 @@
     "curl": true,
     "rm": false,
     "git add": false,
-    "git commit": false
+    "git commit": false,
+    "git checkout": false
   },
   "editor.inlineSuggest.enabled": true,
   "github.copilot.chat.agent.autoFix": true,
@@ -233,17 +234,33 @@
   "go.testTags": null,
   "go.testTimeout": "30s",
   "go.toolsEnvVars": {
+    "PATH": "/go/bin:${env:PATH}",
+    "GOPATH": "/go",
     "GO111MODULE": "on"
   },
   "go.toolsGopath": "/go",
   "go.toolsManagement.autoUpdate": true,
   "go.toolsManagement.checkForUpdates": "proxy",
-  "go.trace.server": "off",
+  "go.trace.server": "verbose",
   "go.useLanguageServer": true,
   "go.vetFlags": [],
   "gopls": {
     "usePlaceholders": true,
-    "completeUnimported": true
+    "completeUnimported": true,
+    "staticcheck": false,
+    // "verboseOutput": true,
+    "directoryFilters": [
+      "-/workspace/.devcontainer",
+      "-/workspace/.git",
+      "-/workspace/.serena",
+      "-/workspace/.vscode",
+      "-/workspace/node_modules",
+      "-/workspace/output",
+      "-/workspace/tmp",
+      "-/workspace/vendor",
+      "-/mnt/",
+      "-/proc/"
+    ]
   },
   "[go]": {
     "editor.snippetSuggestions": "bottom",
@@ -344,7 +361,7 @@
   },
   "shellcheck.customArgs": ["-x -e SC1091"],
   "[shellscript]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format",
+    "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
     "editor.formatOnSave": true
   },
   "[bats]": {

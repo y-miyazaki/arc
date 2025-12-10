@@ -111,9 +111,6 @@ arc --html
 ```bash
 # CSV files will be in ./output/{account-id}/resources/
 ls -lh ./output/*/resources/
-
-# Open HTML viewer in browser
-open ./output/*/index.html
 ```
 
 ### Serve the HTML locally (recommended)

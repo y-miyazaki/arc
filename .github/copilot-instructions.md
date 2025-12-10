@@ -16,7 +16,7 @@
   - 自動適用でも `read_file` で内容確認
   - 検証コマンド・コーディング規約の遵守
 - **Serena Memory の活用（最重要）**
-  - 新規作業開始時に `mcp_serena_list_memories` で利用可能なプロジェクトメモリの確認
+  - 新規作業開始時に `mcp_serena_list_memories` で利用可能なプロジェクトメモリを確認
   - 関連するメモリを `mcp_serena_read_memory` で参照し、プロジェクト知識を活用
   - 主要メモリ: project_overview, suggested_commands, style_conventions, post_task_checklist, system_utilities
   - **Fallback**: 指定された MCP ツールが利用できない場合は、このステップをスキップし、ユーザーに手動確認が必要な旨を報告（捏造禁止）
@@ -140,7 +140,7 @@ Model Context Protocol (MCP) 対応ツールを活用。目的: コードベー�
 
    - 大ファイルは段階的読取（`get_symbols_overview` → `find_symbol`）
    - 編集前に `find_referencing_symbols` で影響範囲確認
-   - **プロジェクトメモリ活用**: 作業前に `mcp_serena_list_memories` で利用可能なメモリの確認、関連情報を `mcp_serena_read_memory` で参照
+   - **プロジェクトメモリ活用**: 作業前に `mcp_serena_list_memories` で利用可能なメモリを確認し、関連情報を `mcp_serena_read_memory` で参照
    - **利用可能なメモリ**:
      - `project_overview.md`: プロジェクト目的・技術スタック・構造
      - `suggested_commands.md`: 開発・検証・デプロイコマンド
