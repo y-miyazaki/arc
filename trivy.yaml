@@ -26,8 +26,10 @@ scan:
   skip-dirs:
     - ".copilot/"
     - ".git/"
+    - ".serena/"
     - "env/"
     - "test/"
+    - "tmp/"
     - "**/.terraform/**/*"
   # Same as '--skip-files'
   # Default is empty
