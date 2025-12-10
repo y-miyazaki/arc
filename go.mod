@@ -33,7 +33,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/quicksight v1.98.3
 	github.com/aws/aws-sdk-go-v2/service/rds v1.113.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.61.3
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.61.2
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.1
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.16
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.4
