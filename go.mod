@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.17
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4
-	github.com/aws/aws-sdk-go-v2/service/batch v1.58.10
+	github.com/aws/aws-sdk-go-v2/service/batch v1.58.11
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.3
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.52.7

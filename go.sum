@@ -22,8 +22,8 @@ github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3 h1:nnhGwOSJAnWSwcOINuRUq
 github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3/go.mod h1:U3xTNpFRAV7yduECTfDBDJVFmY5FLrL5HsTSigwOeHs=
 github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4 h1:FcarAOOdK+8gIYD8/90x7JTOAno+U6IrzMdowePmyBA=
 github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4/go.mod h1:pCcxm44Iqac20ss6LXtMfg9eAqrP0HHmovnX5PZuHcE=
-github.com/aws/aws-sdk-go-v2/service/batch v1.58.10 h1:VKo45ZqrO2nzVB6Q7TGF4dCb5+3wF9sVWkuqAjrF63w=
-github.com/aws/aws-sdk-go-v2/service/batch v1.58.10/go.mod h1:wcqihqx5FqtYtykgE5ZMCVgkLaBFrr/0JqOZp8xowaw=
+github.com/aws/aws-sdk-go-v2/service/batch v1.58.11 h1:A3s5XrpKnhe84eWf8FnwtbDFD81mtCAvTLDAJe67vOo=
+github.com/aws/aws-sdk-go-v2/service/batch v1.58.11/go.mod h1:wcqihqx5FqtYtykgE5ZMCVgkLaBFrr/0JqOZp8xowaw=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.3 h1:Ty9sAwOAbFdwunVFNkFatJdZK2fTSUa4P4Z8IXUbbzU=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.3/go.mod h1:R4SVh77rxRZut8uzbNhnXcwA5m99OT4hqhHkZjh5NAk=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3 h1:/nyo0QD97D5VQQL/UE+rKGNKz+BesiqJgjdmp0qtTOQ=
