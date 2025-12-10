@@ -72,8 +72,8 @@ github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.8 h1:pOqWn2Z2VeZOQW+dLVpnJVRD
 github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.8/go.mod h1:77+d3nX1hnx0CMC+FG3N34e86SOaEKGpSP+8bQYkX90=
 github.com/aws/aws-sdk-go-v2/service/kms v1.49.3 h1:FtjNR2BaMf/Wu3Um8RNSAfi9An5bEYxJU6f4rLOqSLU=
 github.com/aws/aws-sdk-go-v2/service/kms v1.49.3/go.mod h1:HO31s0qt0lso/ADvZQyzKs8js/ku0fMHsfyXW8OPVYc=
-github.com/aws/aws-sdk-go-v2/service/lambda v1.86.1 h1:FlILMW5agAXI4cRb32RseZToUeeGPWXudF7Zl9Ssxb8=
-github.com/aws/aws-sdk-go-v2/service/lambda v1.86.1/go.mod h1:6f64Y1BEf6e1uCI+LtGbcZSKDK1GvgJ+iI4vP/bbE8s=
+github.com/aws/aws-sdk-go-v2/service/lambda v1.86.2 h1:GH1uSrR+NtQullzmEb09VCo8c7V4xOMc3lymEhZuK3g=
+github.com/aws/aws-sdk-go-v2/service/lambda v1.86.2/go.mod h1:6f64Y1BEf6e1uCI+LtGbcZSKDK1GvgJ+iI4vP/bbE8s=
 github.com/aws/aws-sdk-go-v2/service/quicksight v1.98.3 h1:8RAvmyDJHM1XuA43Ce+kSth8hl5H8lJhojLjzQh6B1g=
 github.com/aws/aws-sdk-go-v2/service/quicksight v1.98.3/go.mod h1:KAaahVusrdA/r85MdLCUtcqaHihnERMIe+E13wBdWy4=
 github.com/aws/aws-sdk-go-v2/service/rds v1.113.0 h1:jgmNoTn1Rs4Vm0mPScC6ba1nUPHU3qf6V4ax2BGB3QY=

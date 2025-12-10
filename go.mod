@@ -29,7 +29,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.8
 	github.com/aws/aws-sdk-go-v2/service/kms v1.49.3
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.86.1
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.86.2
 	github.com/aws/aws-sdk-go-v2/service/quicksight v1.98.3
 	github.com/aws/aws-sdk-go-v2/service/rds v1.113.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.61.3
