@@ -38,7 +38,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.16
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.4
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.57.0
-	github.com/aws/aws-sdk-go-v2/service/sns v1.39.9
+	github.com/aws/aws-sdk-go-v2/service/sns v1.39.10
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.19
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.4
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.68.3
