@@ -175,7 +175,6 @@ OPTIONS:
    --verbose, -v              Enable verbose output
    --region, -r value         AWS region(s) to use (comma-separated) (default: "ap-northeast-1") [$AWS_DEFAULT_REGION]
    --profile value            AWS profile to use [$AWS_PROFILE]
-   --output, -o value         Output filename (default: "all.csv")
    --output-dir, -D value     Base output directory (default: "./output")
    --categories, -c value     Comma-separated list of categories to collect
    --html, -H                 Generate HTML index (default: false)

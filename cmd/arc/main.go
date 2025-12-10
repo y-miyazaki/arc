@@ -52,7 +52,6 @@ var (
 type CollectionOptions struct {
 	Region         string
 	Profile        string
-	OutputFile     string
 	OutputDir      string
 	Categories     string
 	HTML           bool
@@ -329,7 +328,7 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	l.Info("Collection completed successfully", "outputDir", resourcesDir)
 	if html {
 		l.Info("Generating HTML index...")
-		if htmlErr := exporter.GenerateHTML(outputDir, accountID, opts.OutputFile, categories); htmlErr != nil {
+		if htmlErr := exporter.GenerateHTML(outputDir, accountID, "all.csv", categories); htmlErr != nil {
 			return fmt.Errorf("failed to generate HTML: %w", htmlErr)
 		}
 		l.Info("HTML index generated successfully", "indexPath", filepath.Join(outputDir, accountID, "index.html"))
@@ -376,12 +375,6 @@ func main() {
 				EnvVars: []string{"AWS_PROFILE"},
 			},
 			&cli.StringFlag{
-				Name:    "output",
-				Aliases: []string{"o"},
-				Usage:   "Output filename",
-				Value:   "all.csv",
-			},
-			&cli.StringFlag{
 				Name:    "output-dir",
 				Aliases: []string{"D"},
 				Usage:   "Base output directory",
@@ -416,7 +409,6 @@ func main() {
 			ctx := c.Context
 			region := c.String("region")
 			profile := c.String("profile")
-			outputFile := c.String("output")
 			outputDir := c.String("output-dir")
 			categories := c.String("categories")
 			html := c.Bool("html")
@@ -426,7 +418,6 @@ func main() {
 			opts := &CollectionOptions{
 				Region:         region,
 				Profile:        profile,
-				OutputFile:     outputFile,
 				OutputDir:      outputDir,
 				Categories:     categories,
 				HTML:           html,

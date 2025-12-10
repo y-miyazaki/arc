@@ -159,7 +159,6 @@ CSVフィールド値はnull/空値処理のルールに従う:
 | :----------------- | :------------- | :--------------------------- |
 | (New)              | `--profile`    | 使用するAWSプロファイル      |
 | `-v, --verbose`    | `--verbose`    | デバッグログを有効化         |
-| `-o, --output`     | `--output`     | 出力ファイル名               |
 | `-D, --output-dir` | `--output-dir` | 出力ディレクトリ             |
 | `-r, --region`     | `--region`     | 対象AWSリージョン            |
 | `-c, --categories` | `--categories` | カテゴリのカンマ区切りリスト |
