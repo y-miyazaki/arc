@@ -199,17 +199,23 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Notify success
-        if: success()
-        run: |
-          VERSION="${{ steps.check-tag.outputs.version }}"
-          echo "🎉 Successfully released $COMPONENT $VERSION"
-          echo "📦 Release URL: https://github.com/${{ github.repository }}/releases/tag/$VERSION"
-
-      - name: Notify failure
-        if: failure()
-        run: |
-          VERSION="${{ steps.check-tag.outputs.version }}"
-          echo "❌ Failed to release $COMPONENT $VERSION"
-          echo "Please check the logs for details"
-          exit 1
+      - name: Summary
+        if: always()
+        uses: ./.github/actions/summary
+        with:
+          artifacts: |
+            goreleaser-dist-${{ inputs.component }}-${{ steps.check-tag.outputs.version }}
+          outputs: |
+            version: ${{ steps.check-tag.outputs.version }}
+            tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
+          params: |
+            component: ${{ inputs.component }}
+            create_tag: ${{ inputs.create_tag }}
+            draft: ${{ inputs.draft }}
+            go_path: ${{ inputs.go_path }}
+            go_version: ${{ inputs.go_version }}
+            goreleaser_version: ${{ inputs.goreleaser_version }}
+            prerelease: ${{ inputs.prerelease }}
+            version: ${{ inputs.version }}
+          status: "${{ job.status }}"
+          title: "${{ format('Go Release: {0} {1}', inputs.component, steps.check-tag.outputs.version) }}"
