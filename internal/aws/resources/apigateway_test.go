@@ -81,7 +81,7 @@ func TestAPIGatewayCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
 		"Description", "ID", "ProtocolType", "WAF", "AuthorizerType",
 		"AuthorizerProviderARN", "CreatedDate",
 	}
@@ -93,11 +93,11 @@ func TestAPIGatewayCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "API Gateway",
-		SubCategory:    "REST API",
-		SubSubCategory: "",
-		Name:           "test-api",
-		Region:         "us-east-1",
+		Category:     "API Gateway",
+		SubCategory1: "REST API",
+		SubCategory2: "",
+		Name:         "test-api",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"Description":           "Test API",
 			"ID":                    "test-api-id",

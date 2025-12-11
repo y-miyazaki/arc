@@ -61,7 +61,7 @@ func TestLambdaCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ARN", "RoleARN", "Type", "Runtime", "Architecture",
 		"MemorySize", "Timeout", "EnvVars", "LastModified",
 	}
@@ -73,12 +73,11 @@ func TestLambdaCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Compute",
-		SubCategory:    "Lambda",
-		SubSubCategory: "Function",
-		Name:           "test-function",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:lambda:us-east-1:123456789012:function:test-function",
+		Category:     "Compute",
+		SubCategory1: "Lambda",
+		Name:         "test-function",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:lambda:us-east-1:123456789012:function:test-function",
 		RawData: map[string]interface{}{
 			"RoleARN":      "arn:aws:iam::123456789012:role/lambda-role",
 			"Type":         "Function",
@@ -92,7 +91,7 @@ func TestLambdaCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Compute", "Lambda", "Function", "test-function", "us-east-1",
+		"Compute", "Lambda", "test-function", "us-east-1",
 		"arn:aws:lambda:us-east-1:123456789012:function:test-function", "arn:aws:iam::123456789012:role/lambda-role", "Function", "python3.9", "x86_64",
 		"128", "30", "KEY1=value1,KEY2=value2", "2023-09-25T01:07:55.000+0000",
 	}

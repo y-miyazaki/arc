@@ -61,7 +61,7 @@ func TestVPCCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ID",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ID",
 		"Description", "CIDR", "PublicIP", "Inbound", "Outbound", "Type",
 		"Service", "Subnets", "RouteTables", "SecurityGroups", "Settings", "State",
 	}
@@ -73,11 +73,11 @@ func TestVPCCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Network",
-		SubCategory:    "VPC",
-		SubSubCategory: "",
-		Name:           "test-vpc",
-		Region:         "us-east-1",
+		Category:     "Network",
+		SubCategory1: "VPC",
+		SubCategory2: "",
+		Name:         "test-vpc",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"ID":             "vpc-12345678",
 			"Description":    "Test VPC",

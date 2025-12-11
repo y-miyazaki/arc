@@ -65,7 +65,7 @@ func TestQuickSightCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
 		"ID", "Type", "Status", "CreatedDate",
 	}
 
@@ -76,12 +76,12 @@ func TestQuickSightCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Analytics",
-		SubCategory:    "QuickSight",
-		SubSubCategory: "DataSource",
-		Name:           "test-datasource",
-		Region:         "us-east-1",
-		ARN:            "test-datasource-id",
+		Category:     "Analytics",
+		SubCategory1: "QuickSight",
+		SubCategory2: "DataSource",
+		Name:         "test-datasource",
+		Region:       "us-east-1",
+		ARN:          "test-datasource-id",
 		RawData: map[string]interface{}{
 			"Type":        "REDSHIFT",
 			"Status":      "CREATION_SUCCESSFUL",

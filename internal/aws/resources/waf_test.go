@@ -63,7 +63,7 @@ func TestWAFCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Description", "Scope", "Rules", "AssociatedResources", "Logging",
 	}
 
@@ -74,12 +74,11 @@ func TestWAFCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "WAF",
-		SubSubCategory: "WebACL",
-		Name:           "test-web-acl",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-web-acl/12345678-1234-1234-1234-123456789012",
+		Category:     "Security",
+		SubCategory1: "WAF",
+		Name:         "test-web-acl",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-web-acl/12345678-1234-1234-1234-123456789012",
 		RawData: map[string]interface{}{
 			"Description":         "Test WebACL",
 			"Scope":               "REGIONAL",
@@ -90,7 +89,7 @@ func TestWAFCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "WAF", "WebACL", "test-web-acl", "us-east-1", "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-web-acl/12345678-1234-1234-1234-123456789012",
+		"Security", "WAF", "test-web-acl", "us-east-1", "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-web-acl/12345678-1234-1234-1234-123456789012",
 		"Test WebACL", "REGIONAL", "Rule1\nRule2", "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/test-alb/1234567890abcdef", "arn:aws:s3:::aws-waf-logs-test",
 	}
 

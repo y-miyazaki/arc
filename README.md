@@ -56,7 +56,7 @@ go install github.com/y-miyazaki/arc/cmd/arc@latest
 
 ### Using Release tar.gz
 
-You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.3 release; replace `v1.0.3` with the version you need.
+You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.4 release; replace `v1.0.4` with the version you need.
 
 Available platforms:
 - Linux (amd64, arm64)
@@ -66,13 +66,13 @@ Available platforms:
 Linux (AMD64) example:
 
 ```bash
-VERSION=v1.0.3 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.4 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 macOS (ARM64) example:
 
 ```bash
-VERSION=v1.0.3 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.4 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 Notes:
@@ -111,9 +111,6 @@ arc --html
 ```bash
 # CSV files will be in ./output/{account-id}/resources/
 ls -lh ./output/*/resources/
-
-# Open HTML viewer in browser
-open ./output/*/index.html
 ```
 
 ### Serve the HTML locally (recommended)
@@ -178,7 +175,6 @@ OPTIONS:
    --verbose, -v              Enable verbose output
    --region, -r value         AWS region(s) to use (comma-separated) (default: "ap-northeast-1") [$AWS_DEFAULT_REGION]
    --profile value            AWS profile to use [$AWS_PROFILE]
-   --output, -o value         Output filename (default: "all.csv")
    --output-dir, -D value     Base output directory (default: "./output")
    --categories, -c value     Comma-separated list of categories to collect
    --html, -H                 Generate HTML index (default: false)

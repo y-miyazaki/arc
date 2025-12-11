@@ -73,8 +73,8 @@ func (*APIGatewayCollector) ShouldSort() bool {
 func (*APIGatewayCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
@@ -142,11 +142,11 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "apigateway",
-				SubCategory: "RestAPI",
-				Name:        api.Name,
-				Region:      region,
-				ARN:         "",
+				Category:     "apigateway",
+				SubCategory1: "RestAPI",
+				Name:         api.Name,
+				Region:       region,
+				ARN:          "",
 				RawData: map[string]any{
 					"Description":  api.Description,
 					"ID":           api.Id,
@@ -170,12 +170,12 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 					}
 
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "apigateway",
-						SubCategory:    "",
-						SubSubCategory: "Authorizer",
-						Name:           auth.Name,
-						Region:         region,
-						ARN:            "",
+						Category:     "apigateway",
+						SubCategory1: "",
+						SubCategory2: "Authorizer",
+						Name:         auth.Name,
+						Region:       region,
+						ARN:          "",
 						RawData: map[string]any{
 							"AuthorizerType":        auth.Type,
 							"AuthorizerProviderARN": providerARNs,
@@ -201,11 +201,11 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 
 			// WAF extraction for HTTP APIs is skipped as it's not straightforward in SDK v2 struct
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "apigateway",
-				SubCategory: "HttpAPI",
-				Name:        api.Name,
-				Region:      region,
-				ARN:         "",
+				Category:     "apigateway",
+				SubCategory1: "HttpAPI",
+				Name:         api.Name,
+				Region:       region,
+				ARN:          "",
 				RawData: map[string]any{
 					"Description":  api.Description,
 					"ID":           api.ApiId,
@@ -235,12 +235,12 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 						providerInfo = append(providerInfo, *auth.AuthorizerCredentialsArn)
 					}
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "apigateway",
-						SubCategory:    "",
-						SubSubCategory: "Authorizer",
-						Name:           auth.Name,
-						Region:         region,
-						ARN:            "",
+						Category:     "apigateway",
+						SubCategory1: "",
+						SubCategory2: "Authorizer",
+						Name:         auth.Name,
+						Region:       region,
+						ARN:          "",
 						RawData: map[string]any{
 							"AuthorizerType":        auth.AuthorizerType,
 							"AuthorizerProviderARN": providerInfo,

@@ -103,8 +103,8 @@ func (*ECSCollector) ShouldSort() bool {
 func (*ECSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -232,12 +232,12 @@ func (*ECSCollector) collectScheduledTasks(ctx context.Context, ecsClient *ecs.C
 				}
 
 				r := NewResource(&ResourceInput{
-					Category:       "ecs",
-					SubCategory:    "",
-					SubSubCategory: "ScheduledTask",
-					Name:           rule.Name,
-					Region:         region,
-					ARN:            rule.Arn,
+					Category:     "ecs",
+					SubCategory1: "",
+					SubCategory2: "ScheduledTask",
+					Name:         rule.Name,
+					Region:       region,
+					ARN:          rule.Arn,
 					RawData: map[string]any{
 						"RoleARN":        taskRoleArn,
 						"TaskDefinition": taskDefArn,
@@ -292,11 +292,11 @@ func (c *ECSCollector) collectClustersAndServices(ctx context.Context, ecsClient
 
 			// Add cluster
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "ecs",
-				SubCategory: "Cluster",
-				Name:        cluster.ClusterName,
-				Region:      region,
-				ARN:         cluster.ClusterArn,
+				Category:     "ecs",
+				SubCategory1: "Cluster",
+				Name:         cluster.ClusterName,
+				Region:       region,
+				ARN:          cluster.ClusterArn,
 				RawData: map[string]any{
 					"Status": cluster.Status,
 				},
@@ -374,12 +374,12 @@ func (*ECSCollector) collectServices(ctx context.Context, ecsClient *ecs.Client,
 				}
 
 				resources = append(resources, NewResource(&ResourceInput{
-					Category:       "ecs",
-					SubCategory:    "",
-					SubSubCategory: "Service",
-					Name:           service.ServiceName,
-					Region:         region,
-					ARN:            service.ServiceArn,
+					Category:     "ecs",
+					SubCategory1: "",
+					SubCategory2: "Service",
+					Name:         service.ServiceName,
+					Region:       region,
+					ARN:          service.ServiceArn,
 					RawData: map[string]any{
 						"RoleARN":        taskRoleArn,
 						"TaskDefinition": taskDefArn,
@@ -501,11 +501,11 @@ func (*ECSCollector) collectTaskDefinitions(ctx context.Context, ecsClient *ecs.
 		name := fmt.Sprintf("%s:%d", helpers.StringValue(td.Family), td.Revision)
 
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "ecs",
-			SubCategory: "TaskDefinition",
-			Name:        name,
-			Region:      region,
-			ARN:         td.TaskDefinitionArn,
+			Category:     "ecs",
+			SubCategory1: "TaskDefinition",
+			Name:         name,
+			Region:       region,
+			ARN:          td.TaskDefinitionArn,
 			RawData: map[string]any{
 				"RoleARN":         taskRoleArn,
 				"TaskDefinition":  td.TaskDefinitionArn,

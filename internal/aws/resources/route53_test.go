@@ -59,7 +59,7 @@ func TestRoute53Collector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ID",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ID",
 		"Type", "Comment", "TTL", "RecordType", "Value", "RecordCount",
 	}
 
@@ -70,11 +70,11 @@ func TestRoute53Collector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Networking",
-		SubCategory:    "Route53",
-		SubSubCategory: "Record",
-		Name:           "example.com",
-		Region:         "us-east-1",
+		Category:     "Networking",
+		SubCategory1: "Route53",
+		SubCategory2: "Record",
+		Name:         "example.com",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"ID":          "Z123456789",
 			"Type":        "Hosted Zone",

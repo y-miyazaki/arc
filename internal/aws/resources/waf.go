@@ -67,8 +67,7 @@ func (*WAFCollector) ShouldSort() bool {
 func (*WAFCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -174,11 +173,11 @@ func (*WAFCollector) collectScope(ctx context.Context, svc *wafv2.Client, cfSvc 
 			}
 
 			*resources = append(*resources, NewResource(&ResourceInput{
-				Category:    "waf",
-				SubCategory: "WebACL",
-				Name:        summary.Name,
-				Region:      regionDesc,
-				ARN:         summary.ARN,
+				Category:     "waf",
+				SubCategory1: "WebACL",
+				Name:         summary.Name,
+				Region:       regionDesc,
+				ARN:          summary.ARN,
 				RawData: map[string]any{
 					"Description":         summary.Description,
 					"Scope":               string(scope),

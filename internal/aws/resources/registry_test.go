@@ -58,11 +58,11 @@ func (m *MockCollector) Collect(ctx context.Context, region string) ([]Resource,
 
 func TestNewResource(t *testing.T) {
 	input := &ResourceInput{
-		Category:    "test-category",
-		SubCategory: "test-subcategory",
-		Name:        "test-name",
-		Region:      "us-east-1",
-		ARN:         "arn:aws:test:us-east-1:123456789012:test/test-name",
+		Category:     "test-category",
+		SubCategory1: "test-subcategory",
+		Name:         "test-name",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:test:us-east-1:123456789012:test/test-name",
 		RawData: map[string]any{
 			"Status":      "active",
 			"CreatedDate": "2023-01-01T00:00:00Z",
@@ -73,8 +73,8 @@ func TestNewResource(t *testing.T) {
 	resource := NewResource(input)
 
 	assert.Equal(t, "test-category", resource.Category)
-	assert.Equal(t, "test-subcategory", resource.SubCategory)
-	assert.Equal(t, "", resource.SubSubCategory) // empty string for nil input
+	assert.Equal(t, "test-subcategory", resource.SubCategory1)
+	assert.Equal(t, "", resource.SubCategory2) // empty string for nil input
 	assert.Equal(t, "test-name", resource.Name)
 	assert.Equal(t, "us-east-1", resource.Region)
 	assert.Equal(t, "arn:aws:test:us-east-1:123456789012:test/test-name", resource.ARN)
@@ -93,15 +93,15 @@ func TestNewResource_WithNilValues(t *testing.T) {
 		RawData:  map[string]any{},
 	}
 	// Explicitly set nil values
-	input.SubCategory = nil
-	input.SubSubCategory = nil
+	input.SubCategory1 = nil
+	input.SubCategory2 = nil
 	input.ARN = nil
 
 	resource := NewResource(input)
 
 	assert.Equal(t, "test-category", resource.Category)
-	assert.Equal(t, "", resource.SubCategory)    // empty string for nil with default ""
-	assert.Equal(t, "", resource.SubSubCategory) // empty string for nil with default ""
+	assert.Equal(t, "", resource.SubCategory1) // empty string for nil with default ""
+	assert.Equal(t, "", resource.SubCategory2) // empty string for nil with default ""
 	assert.Equal(t, "test-name", resource.Name)
 	assert.Equal(t, "us-east-1", resource.Region)
 	assert.Equal(t, "", resource.ARN) // empty string for nil when default is empty

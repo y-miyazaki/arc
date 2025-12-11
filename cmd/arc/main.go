@@ -41,7 +41,7 @@ const (
 )
 
 var (
-	version = "dev"
+	version = "1.0.4"
 	commit  = "none"
 	date    = "unknown"
 
@@ -52,7 +52,6 @@ var (
 type CollectionOptions struct {
 	Region         string
 	Profile        string
-	OutputFile     string
 	OutputDir      string
 	Categories     string
 	HTML           bool
@@ -232,15 +231,18 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 		if collector.ShouldSort() {
 			sort.Slice(result.resources, func(i, j int) bool {
 				a, b := result.resources[i], result.resources[j]
-				// Sort by: Region, SubCategory, SubSubCategory, Name
+				// Sort by: Region, SubCategory1, SubCategory2, Name
 				if a.Region != b.Region {
 					return a.Region < b.Region
 				}
-				if a.SubCategory != b.SubCategory {
-					return a.SubCategory < b.SubCategory
+				if a.SubCategory1 != b.SubCategory1 {
+					return a.SubCategory1 < b.SubCategory1
 				}
-				if a.SubSubCategory != b.SubSubCategory {
-					return a.SubSubCategory < b.SubSubCategory
+				if a.SubCategory2 != b.SubCategory2 {
+					return a.SubCategory2 < b.SubCategory2
+				}
+				if a.SubCategory3 != b.SubCategory3 {
+					return a.SubCategory3 < b.SubCategory3
 				}
 				return a.Name < b.Name
 			})
@@ -329,7 +331,7 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	l.Info("Collection completed successfully", "outputDir", resourcesDir)
 	if html {
 		l.Info("Generating HTML index...")
-		if htmlErr := exporter.GenerateHTML(outputDir, accountID, opts.OutputFile, categories); htmlErr != nil {
+		if htmlErr := exporter.GenerateHTML(outputDir, accountID, "all.csv", categories); htmlErr != nil {
 			return fmt.Errorf("failed to generate HTML: %w", htmlErr)
 		}
 		l.Info("HTML index generated successfully", "indexPath", filepath.Join(outputDir, accountID, "index.html"))
@@ -376,12 +378,6 @@ func main() {
 				EnvVars: []string{"AWS_PROFILE"},
 			},
 			&cli.StringFlag{
-				Name:    "output",
-				Aliases: []string{"o"},
-				Usage:   "Output filename",
-				Value:   "all.csv",
-			},
-			&cli.StringFlag{
 				Name:    "output-dir",
 				Aliases: []string{"D"},
 				Usage:   "Base output directory",
@@ -416,7 +412,6 @@ func main() {
 			ctx := c.Context
 			region := c.String("region")
 			profile := c.String("profile")
-			outputFile := c.String("output")
 			outputDir := c.String("output-dir")
 			categories := c.String("categories")
 			html := c.Bool("html")
@@ -426,7 +421,6 @@ func main() {
 			opts := &CollectionOptions{
 				Region:         region,
 				Profile:        profile,
-				OutputFile:     outputFile,
 				OutputDir:      outputDir,
 				Categories:     categories,
 				HTML:           html,

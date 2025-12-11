@@ -61,7 +61,7 @@ func TestGlueCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ID", "Description", "RoleARN", "Timeout", "WorkerType",
 		"NumberOfWorkers", "MaxRetries", "GlueVersion", "Language", "ScriptLocation",
 	}
@@ -73,12 +73,11 @@ func TestGlueCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Analytics",
-		SubCategory:    "Glue",
-		SubSubCategory: "Job",
-		Name:           "test-job",
-		Region:         "us-east-1",
-		ARN:            "test-job",
+		Category:     "Analytics",
+		SubCategory1: "Glue",
+		Name:         "test-job",
+		Region:       "us-east-1",
+		ARN:          "test-job",
 		RawData: map[string]interface{}{
 			"Description":     "Test Glue job",
 			"RoleARN":         "arn:aws:iam::123456789012:role/GlueServiceRole",
@@ -93,7 +92,7 @@ func TestGlueCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Analytics", "Glue", "Job", "test-job", "us-east-1",
+		"Analytics", "Glue", "test-job", "us-east-1",
 		"test-job", "Test Glue job", "arn:aws:iam::123456789012:role/GlueServiceRole", "60", "G.1X",
 		"2", "0", "3.0", "python", "s3://my-bucket/scripts/test.py",
 	}

@@ -1,9 +1,8 @@
-# copilot
-.copilot/**
-
 # root
+.copilot/**
 .DS_Store
-/.devcontainer/devcontainer.json
+.devcontainer/devcontainer.json
+.serena
 .vscode/**
 !.vscode/cspell.json
 !.vscode/cspell-project.txt
@@ -59,9 +58,6 @@ node_modules
 outputs
 !lambda/outputs
 !nodejs/*/nodejs/node_modules
-
-# mcp
-.serena
 
 # python
 __pycache__

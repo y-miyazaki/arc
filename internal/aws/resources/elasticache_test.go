@@ -61,7 +61,7 @@ func TestElastiCacheCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
 		"Description", "ReplicationGroupID", "ClusterID", "Engine", "Version",
 		"NodeType", "NodeGroups", "NumNodes", "CacheParameterGroup", "SecurityGroup",
 		"MultiAZ", "AutomaticFailover", "EncryptedAtRest", "EncryptedTransit",
@@ -76,12 +76,12 @@ func TestElastiCacheCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "ElastiCache",
-		SubCategory:    "ReplicationGroup",
-		SubSubCategory: "",
-		Name:           "test-cluster",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:elasticache:us-east-1:123456789012:replicationgroup:test-cluster",
+		Category:     "ElastiCache",
+		SubCategory1: "ReplicationGroup",
+		SubCategory2: "",
+		Name:         "test-cluster",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:elasticache:us-east-1:123456789012:replicationgroup:test-cluster",
 		RawData: map[string]interface{}{
 			"Description":                "Test cluster description",
 			"ReplicationGroupID":         "test-replication-group",

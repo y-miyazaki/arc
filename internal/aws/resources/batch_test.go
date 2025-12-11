@@ -74,7 +74,7 @@ func TestBatchCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Priority", "Type", "JobRoleArn", "ExecutionRoleArn", "Image",
 		"vCPU", "Memory", "CpuArchitecture", "OperatingSystemFamily", "Timeout", "JSON", "Status",
 	}
@@ -86,12 +86,11 @@ func TestBatchCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Batch",
-		SubCategory:    "Job Queue",
-		SubSubCategory: "",
-		Name:           "test-queue",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
+		Category:     "Batch",
+		SubCategory1: "Job Queue",
+		Name:         "test-queue",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
 		RawData: map[string]interface{}{
 			"Priority":              "1",
 			"Type":                  "EC2",
@@ -109,7 +108,7 @@ func TestBatchCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Batch", "Job Queue", "", "test-queue", "us-east-1", "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
+		"Batch", "Job Queue", "test-queue", "us-east-1", "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
 		"1", "EC2", "arn:aws:iam::123456789012:role/BatchJobRole", "arn:aws:iam::123456789012:role/BatchExecutionRole", "busybox",
 		"1", "512", "X86_64", "LINUX", "3600", "{}", "ACTIVE",
 	}

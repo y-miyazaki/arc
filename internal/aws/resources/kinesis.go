@@ -75,8 +75,7 @@ func (*KinesisCollector) ShouldSort() bool {
 func (*KinesisCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -124,11 +123,11 @@ func (c *KinesisCollector) Collect(ctx context.Context, region string) ([]Resour
 			s := desc.StreamDescription
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "kinesis",
-				SubCategory: "Stream",
-				Name:        s.StreamName,
-				Region:      region,
-				ARN:         s.StreamARN,
+				Category:     "kinesis",
+				SubCategory1: "Stream",
+				Name:         s.StreamName,
+				Region:       region,
+				ARN:          s.StreamARN,
 				RawData: map[string]any{
 					"Status":               s.StreamStatus,
 					"Shards":               len(s.Shards),
@@ -165,11 +164,11 @@ func (c *KinesisCollector) Collect(ctx context.Context, region string) ([]Resour
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "kinesis",
-				SubCategory: "Firehose",
-				Name:        ds.DeliveryStreamName,
-				Region:      region,
-				ARN:         ds.DeliveryStreamARN,
+				Category:     "kinesis",
+				SubCategory1: "Firehose",
+				Name:         ds.DeliveryStreamName,
+				Region:       region,
+				ARN:          ds.DeliveryStreamARN,
 				RawData: map[string]any{
 					"Status":          ds.DeliveryStreamStatus,
 					"DestinationId":   destID,

@@ -59,7 +59,7 @@ func TestIAMPolicyCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ARN", "Description", "Scope", "Path", "CreateDate",
 	}
 
@@ -70,12 +70,12 @@ func TestIAMPolicyCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "IAM",
-		SubSubCategory: "Policy",
-		Name:           "test-policy",
-		Region:         "Global",
-		ARN:            "arn:aws:iam::123456789012:policy/test-policy",
+		Category:     "Security",
+		SubCategory1: "IAM",
+		SubCategory2: "Policy",
+		Name:         "test-policy",
+		Region:       "Global",
+		ARN:          "arn:aws:iam::123456789012:policy/test-policy",
 		RawData: map[string]interface{}{
 			"Description": "Test IAM policy",
 			"Scope":       "Local",
@@ -85,7 +85,7 @@ func TestIAMPolicyCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "IAM", "Policy", "test-policy", "Global",
+		"Security", "IAM", "test-policy", "Global",
 		"arn:aws:iam::123456789012:policy/test-policy", "Test IAM policy", "Local", "/", "2023-09-25T01:07:55Z",
 	}
 

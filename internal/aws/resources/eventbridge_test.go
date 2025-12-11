@@ -67,7 +67,7 @@ func TestEventBridgeCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Description", "RoleARN", "ScheduleExpression", "Target", "RetryMaxAttempts",
 		"RetryMaxEventAgeSeconds", "State",
 	}
@@ -79,12 +79,11 @@ func TestEventBridgeCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "EventBridge",
-		SubCategory:    "Rule",
-		SubSubCategory: "",
-		Name:           "test-rule",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:events:us-east-1:123456789012:rule/test-rule",
+		Category:     "EventBridge",
+		SubCategory1: "Rule",
+		Name:         "test-rule",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:events:us-east-1:123456789012:rule/test-rule",
 		RawData: map[string]interface{}{
 			"Description":             "Test EventBridge rule",
 			"RoleARN":                 "arn:aws:iam::123456789012:role/EventBridgeRole",
@@ -97,7 +96,7 @@ func TestEventBridgeCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"EventBridge", "Rule", "", "test-rule", "us-east-1", "arn:aws:events:us-east-1:123456789012:rule/test-rule",
+		"EventBridge", "Rule", "test-rule", "us-east-1", "arn:aws:events:us-east-1:123456789012:rule/test-rule",
 		"Test EventBridge rule", "arn:aws:iam::123456789012:role/EventBridgeRole", "rate(1 hour)", "arn:aws:lambda:us-east-1:123456789012:function:MyFunction", "3",
 		"3600", "ENABLED",
 	}

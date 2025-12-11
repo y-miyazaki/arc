@@ -61,7 +61,7 @@ func TestRedshiftCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"RoleARN", "NodeType", "NumberOfNodes", "DBName", "Endpoint",
 		"Port", "MasterUsername", "VPCName", "ClusterSubnetGroupName", "SecurityGroup",
 		"Encrypted", "KmsKey", "PubliclyAccessible", "ClusterStatus",
@@ -74,12 +74,12 @@ func TestRedshiftCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Database",
-		SubCategory:    "Redshift",
-		SubSubCategory: "Cluster",
-		Name:           "test-cluster",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:iam::123456789012:role/RedshiftRole",
+		Category:     "Database",
+		SubCategory1: "Redshift",
+		SubCategory2: "Cluster",
+		Name:         "test-cluster",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:iam::123456789012:role/RedshiftRole",
 		RawData: map[string]interface{}{
 			"NodeType":               "dc2.large",
 			"NumberOfNodes":          "2",
@@ -98,7 +98,7 @@ func TestRedshiftCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Database", "Redshift", "Cluster", "test-cluster", "us-east-1",
+		"Database", "Redshift", "test-cluster", "us-east-1",
 		"arn:aws:iam::123456789012:role/RedshiftRole", "dc2.large", "2", "mydb", "test-cluster.cluster-random.us-east-1.redshift.amazonaws.com",
 		"5439", "admin", "vpc-prod", "redshift-subnet-group", "sg-12345678",
 		"true", "alias/aws/redshift", "false", "available",

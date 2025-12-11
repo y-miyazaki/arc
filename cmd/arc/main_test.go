@@ -15,7 +15,6 @@ func TestCollectionOptions(t *testing.T) {
 	opts := &CollectionOptions{
 		Region:     "us-east-1",
 		Profile:    "default",
-		OutputFile: "output.csv",
 		OutputDir:  "/tmp/output",
 		Categories: "ec2,s3",
 		HTML:       true,
@@ -26,9 +25,6 @@ func TestCollectionOptions(t *testing.T) {
 	}
 	if opts.Profile != "default" {
 		t.Errorf("Expected Profile to be 'default', got %s", opts.Profile)
-	}
-	if opts.OutputFile != "output.csv" {
-		t.Errorf("Expected OutputFile to be 'output.csv', got %s", opts.OutputFile)
 	}
 	if opts.OutputDir != "/tmp/output" {
 		t.Errorf("Expected OutputDir to be '/tmp/output', got %s", opts.OutputDir)

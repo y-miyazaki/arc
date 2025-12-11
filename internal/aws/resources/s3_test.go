@@ -59,9 +59,11 @@ func TestS3Collector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
-		"Encryption", "Versioning", "PABBlockPublicACLs", "PABIgnorePublicACLs", "PABBlockPublicPolicy",
-		"PABRestrictPublicBuckets", "AccessLogARN", "LifecycleRules", "CreationDate",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
+		"Versioning", "BucketABAC", "Encryption", "KMSKey", "AccessLogARN",
+		"TransferAcceleration", "ObjectLock", "RequesterPays", "StaticWebsiteHosting",
+		"PABBlockPublicACLs", "PABIgnorePublicACLs", "PABBlockPublicPolicy",
+		"PABRestrictPublicBuckets", "ACL", "LifecycleRules", "CreationDate",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
@@ -71,28 +73,37 @@ func TestS3Collector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Storage",
-		SubCategory:    "S3",
-		SubSubCategory: "Bucket",
-		Name:           "test-bucket",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:s3:::test-bucket",
+		Category:     "Storage",
+		SubCategory1: "S3",
+		SubCategory2: "Bucket",
+		Name:         "test-bucket",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:s3:::test-bucket",
 		RawData: map[string]interface{}{
-			"Encryption":               "AES256",
 			"Versioning":               "Enabled",
+			"BucketABAC":               "[Environment=Production Team=DevOps]",
+			"Encryption":               "AES256",
+			"KMSKey":                   "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"AccessLogARN":             "arn:aws:s3:::log-bucket",
+			"TransferAcceleration":     "Enabled",
+			"ObjectLock":               "Enabled",
+			"RequesterPays":            "Requester",
+			"StaticWebsiteHosting":     "Enabled",
 			"PABBlockPublicACLs":       "true",
 			"PABIgnorePublicACLs":      "true",
 			"PABBlockPublicPolicy":     "true",
 			"PABRestrictPublicBuckets": "true",
-			"AccessLogARN":             "arn:aws:s3:::log-bucket",
+			"ACL":                      "[CanonicalUser:abc123=FULL_CONTROL]",
 			"LifecycleRules":           "2",
 			"CreationDate":             "2023-09-25T01:07:55Z",
 		},
 	}
 
 	expectedValues := []string{
-		"Storage", "S3", "Bucket", "test-bucket", "us-east-1", "arn:aws:s3:::test-bucket",
-		"AES256", "Enabled", "true", "true", "true", "true", "arn:aws:s3:::log-bucket", "2", "2023-09-25T01:07:55Z",
+		"Storage", "S3", "test-bucket", "us-east-1", "arn:aws:s3:::test-bucket",
+		"Enabled", "[Environment=Production Team=DevOps]", "AES256", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "arn:aws:s3:::log-bucket",
+		"Enabled", "Enabled", "Requester", "Enabled",
+		"true", "true", "true", "true", "[CanonicalUser:abc123=FULL_CONTROL]", "2", "2023-09-25T01:07:55Z",
 	}
 
 	for i, column := range columns {

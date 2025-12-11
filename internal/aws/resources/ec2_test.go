@@ -61,7 +61,7 @@ func TestEC2Collector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"InstanceID", "InstanceType", "ImageID", "VPC", "Subnet",
 		"SecurityGroup", "State",
 	}
@@ -73,11 +73,10 @@ func TestEC2Collector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "EC2",
-		SubCategory:    "Instance",
-		SubSubCategory: "",
-		Name:           "test-instance",
-		Region:         "us-east-1",
+		Category:     "EC2",
+		SubCategory1: "Instance",
+		Name:         "test-instance",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"InstanceID":    "i-1234567890abcdef0",
 			"InstanceType":  "t3.micro",
@@ -90,7 +89,7 @@ func TestEC2Collector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"EC2", "Instance", "", "test-instance", "us-east-1",
+		"EC2", "Instance", "test-instance", "us-east-1",
 		"i-1234567890abcdef0", "t3.micro", "ami-12345678", "vpc-12345678 (my-vpc)", "subnet-12345678 (my-subnet)",
 		"sg-12345678 (my-sg)", "running",
 	}

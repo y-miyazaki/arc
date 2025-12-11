@@ -43,7 +43,7 @@ jobs:
     with:
       environment: "base"
       component: "arc"
-      go_path: "."
+      go_project_path: "."
     permissions:
       contents: read
       id-token: write

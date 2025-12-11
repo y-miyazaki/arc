@@ -60,8 +60,7 @@ func (*CloudWatchAlarmsCollector) ShouldSort() bool {
 func (*CloudWatchAlarmsCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -97,11 +96,11 @@ func (c *CloudWatchAlarmsCollector) Collect(ctx context.Context, region string) 
 			alarm := &page.MetricAlarms[i]
 			// Dereference Threshold pointer to get the actual value
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "cloudwatch",
-				SubCategory: "Alarm",
-				Name:        alarm.AlarmName,
-				Region:      region,
-				ARN:         alarm.AlarmArn,
+				Category:     "cloudwatch",
+				SubCategory1: "Alarm",
+				Name:         alarm.AlarmName,
+				Region:       region,
+				ARN:          alarm.AlarmArn,
 				RawData: map[string]any{
 					"MetricName":         alarm.MetricName,
 					"Namespace":          alarm.Namespace,
@@ -118,11 +117,11 @@ func (c *CloudWatchAlarmsCollector) Collect(ctx context.Context, region string) 
 		for i := range page.CompositeAlarms {
 			alarm := &page.CompositeAlarms[i]
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "cloudwatch",
-				SubCategory: "Alarm",
-				Name:        alarm.AlarmName,
-				Region:      region,
-				ARN:         alarm.AlarmArn,
+				Category:     "cloudwatch",
+				SubCategory1: "Alarm",
+				Name:         alarm.AlarmName,
+				Region:       region,
+				ARN:          alarm.AlarmArn,
 				RawData: map[string]any{
 					"MetricName": "Composite",
 					"Namespace":  "Composite",

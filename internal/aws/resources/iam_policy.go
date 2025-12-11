@@ -55,8 +55,7 @@ func (*IAMPolicyCollector) ShouldSort() bool {
 func (*IAMPolicyCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -102,11 +101,11 @@ func (c *IAMPolicyCollector) Collect(ctx context.Context, region string) ([]Reso
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "iam_policy",
-				SubCategory: "Policy",
-				Name:        policy.PolicyName,
-				Region:      "Global",
-				ARN:         policy.Arn,
+				Category:     "iam_policy",
+				SubCategory1: "Policy",
+				Name:         policy.PolicyName,
+				Region:       "Global",
+				ARN:          policy.Arn,
 				RawData: map[string]any{
 					"Description": description,
 					"Scope":       types.PolicyScopeTypeLocal,

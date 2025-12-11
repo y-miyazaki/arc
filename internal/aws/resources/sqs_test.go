@@ -74,7 +74,7 @@ func TestSQSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"DelaySeconds", "MaximumMessageSize", "MessageRetentionPeriod", "ReceiveMessageWaitTimeSeconds",
 		"VisibilityTimeout", "RedrivePolicy", "CreatedTimestamp", "LastModifiedTimestamp",
 	}
@@ -86,12 +86,11 @@ func TestSQSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "SQS",
-		SubCategory:    "Queue",
-		SubSubCategory: "",
-		Name:           "test-queue",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:sqs:us-east-1:123456789012:test-queue",
+		Category:     "SQS",
+		SubCategory1: "Queue",
+		Name:         "test-queue",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:sqs:us-east-1:123456789012:test-queue",
 		RawData: map[string]interface{}{
 			"DelaySeconds":                  "0",
 			"MaximumMessageSize":            "262144",
@@ -105,7 +104,7 @@ func TestSQSCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"SQS", "Queue", "", "test-queue", "us-east-1", "arn:aws:sqs:us-east-1:123456789012:test-queue",
+		"SQS", "Queue", "test-queue", "us-east-1", "arn:aws:sqs:us-east-1:123456789012:test-queue",
 		"0", "262144", "345600", "0",
 		"30", "{}", "1695600475", "1695600475",
 	}

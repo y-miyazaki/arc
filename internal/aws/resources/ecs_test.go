@@ -67,7 +67,7 @@ func TestECSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
 		"RoleARN", "TaskDefinition", "LaunchType", "Status", "CronSchedule",
 		"Spec", "RuntimePlatform", "PortMappings", "Environment",
 	}
@@ -79,12 +79,12 @@ func TestECSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "ECS",
-		SubCategory:    "Service",
-		SubSubCategory: "",
-		Name:           "test-service",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
+		Category:     "ECS",
+		SubCategory1: "Service",
+		SubCategory2: "",
+		Name:         "test-service",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
 		RawData: map[string]interface{}{
 			"RoleARN":         "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
 			"TaskDefinition":  "test-task-definition:1",

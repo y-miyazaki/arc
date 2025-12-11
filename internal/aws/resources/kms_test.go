@@ -61,7 +61,7 @@ func TestKMSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ARN", "Description", "KeyUsage", "KeyManager", "State",
 	}
 
@@ -72,12 +72,11 @@ func TestKMSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "KMS",
-		SubSubCategory: "Key",
-		Name:           "alias/test-key",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+		Category:     "Security",
+		SubCategory1: "KMS",
+		Name:         "alias/test-key",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 		RawData: map[string]interface{}{
 			"Description": "Test KMS key",
 			"KeyUsage":    "ENCRYPT_DECRYPT",
@@ -87,7 +86,7 @@ func TestKMSCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "KMS", "Key", "alias/test-key", "us-east-1",
+		"Security", "KMS", "alias/test-key", "us-east-1",
 		"arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "Test KMS key", "ENCRYPT_DECRYPT", "CUSTOMER", "Enabled",
 	}
 

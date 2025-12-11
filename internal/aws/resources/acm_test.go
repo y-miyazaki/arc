@@ -74,7 +74,7 @@ func TestACMCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Type", "KeyAlgorithm", "InUse", "Status", "CreatedDate", "IssuedDate", "ExpirationDate",
 	}
 
@@ -85,12 +85,11 @@ func TestACMCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "ACM",
-		SubSubCategory: "Certificate",
-		Name:           "example.com",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
+		Category:     "Security",
+		SubCategory1: "ACM",
+		Name:         "example.com",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
 		RawData: map[string]interface{}{
 			"Status":         "ISSUED",
 			"Type":           "AMAZON_ISSUED",
@@ -104,7 +103,7 @@ func TestACMCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "ACM", "Certificate", "example.com", "us-east-1", "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
+		"Security", "ACM", "example.com", "us-east-1", "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
 		"AMAZON_ISSUED", "RSA_2048", "test-alb", "ISSUED", "2023-09-25T01:07:55Z", "2023-09-25T01:07:55Z", "2024-09-25T01:07:55Z",
 	}
 

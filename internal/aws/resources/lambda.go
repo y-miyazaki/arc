@@ -60,8 +60,7 @@ func (*LambdaCollector) ShouldSort() bool {
 func (*LambdaCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -115,11 +114,11 @@ func (c *LambdaCollector) Collect(ctx context.Context, region string) ([]Resourc
 			}
 
 			r := NewResource(&ResourceInput{
-				Category:    "lambda",
-				SubCategory: "Function",
-				Name:        function.FunctionName,
-				Region:      region,
-				ARN:         function.FunctionArn,
+				Category:     "lambda",
+				SubCategory1: "Function",
+				Name:         function.FunctionName,
+				Region:       region,
+				ARN:          function.FunctionArn,
 				RawData: map[string]any{
 					"RoleARN":      function.Role,
 					"Type":         "Function",

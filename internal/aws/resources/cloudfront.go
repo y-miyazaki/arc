@@ -60,8 +60,7 @@ func (*CloudFrontCollector) ShouldSort() bool {
 func (*CloudFrontCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
@@ -138,10 +137,10 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 				}
 
 				resources = append(resources, NewResource(&ResourceInput{
-					Category:    "cloudfront",
-					SubCategory: "Distribution",
-					Name:        dist.DomainName,
-					Region:      "Global",
+					Category:     "cloudfront",
+					SubCategory1: "Distribution",
+					Name:         dist.DomainName,
+					Region:       "Global",
 					RawData: map[string]any{
 						"ID":              dist.Id,
 						"AlternateDomain": aliases,

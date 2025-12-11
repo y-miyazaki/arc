@@ -59,8 +59,7 @@ func (*SecretsManagerCollector) ShouldSort() bool {
 func (*SecretsManagerCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -100,11 +99,11 @@ func (c *SecretsManagerCollector) Collect(ctx context.Context, region string) ([
 		for i := range page.SecretList {
 			secret := &page.SecretList[i]
 			r := NewResource(&ResourceInput{
-				Category:    "secretsmanager",
-				SubCategory: "Secret",
-				Name:        secret.Name,
-				Region:      region,
-				ARN:         secret.ARN,
+				Category:     "secretsmanager",
+				SubCategory1: "Secret",
+				Name:         secret.Name,
+				Region:       region,
+				ARN:          secret.ARN,
 				RawData: map[string]any{
 					"Description":       secret.Description,
 					"KmsKey":            helpers.ResolveNameFromMap(secret.KmsKeyId, kmsMap),

@@ -74,7 +74,7 @@ func TestCloudFormationCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Description", "Type", "Outputs", "Parameters", "Resources", "Status", "DriftStatus", "CreatedDate", "UpdatedDate",
 	}
 
@@ -85,12 +85,11 @@ func TestCloudFormationCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "CloudFormation",
-		SubCategory:    "Stack",
-		SubSubCategory: "",
-		Name:           "test-stack",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:cloudformation:us-east-1:123456789012:stack/test-stack/12345678-1234-1234-1234-123456789012",
+		Category:     "CloudFormation",
+		SubCategory1: "Stack",
+		Name:         "test-stack",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:cloudformation:us-east-1:123456789012:stack/test-stack/12345678-1234-1234-1234-123456789012",
 		RawData: map[string]interface{}{
 			"Description": "Test CloudFormation stack",
 			"Type":        "Stack",
@@ -105,7 +104,7 @@ func TestCloudFormationCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"CloudFormation", "Stack", "", "test-stack", "us-east-1", "arn:aws:cloudformation:us-east-1:123456789012:stack/test-stack/12345678-1234-1234-1234-123456789012",
+		"CloudFormation", "Stack", "test-stack", "us-east-1", "arn:aws:cloudformation:us-east-1:123456789012:stack/test-stack/12345678-1234-1234-1234-123456789012",
 		"Test CloudFormation stack", "Stack", "[]", "{}", "5", "CREATE_COMPLETE", "IN_SYNC", "2023-09-25T01:07:55Z", "2023-09-25T01:07:55Z",
 	}
 

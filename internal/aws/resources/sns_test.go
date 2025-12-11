@@ -61,7 +61,7 @@ func TestSNSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"DisplayName", "Owner", "Policy",
 	}
 
@@ -72,12 +72,11 @@ func TestSNSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "sns",
-		SubCategory:    "Topic",
-		SubSubCategory: "",
-		Name:           "test-topic",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:sns:us-east-1:123456789012:test-topic",
+		Category:     "sns",
+		SubCategory1: "Topic",
+		Name:         "test-topic",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:sns:us-east-1:123456789012:test-topic",
 		RawData: map[string]interface{}{
 			"DisplayName": "Test Topic",
 			"Owner":       "123456789012",
@@ -86,7 +85,7 @@ func TestSNSCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"sns", "Topic", "", "test-topic", "us-east-1", "arn:aws:sns:us-east-1:123456789012:test-topic",
+		"sns", "Topic", "test-topic", "us-east-1", "arn:aws:sns:us-east-1:123456789012:test-topic",
 		"Test Topic", "123456789012", "{\"Version\":\"2012-10-17\"}",
 	}
 

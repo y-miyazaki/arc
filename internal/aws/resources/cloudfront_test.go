@@ -74,7 +74,7 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ID",
+		"Category", "SubCategory1", "Name", "Region", "ID",
 		"AlternateDomain", "Origin", "PriceClass", "WAF", "Status",
 	}
 
@@ -85,12 +85,11 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "CloudFront",
-		SubCategory:    "Distribution",
-		SubSubCategory: "",
-		Name:           "test-distribution",
-		Region:         "us-east-1",
-		ARN:            "",
+		Category:     "CloudFront",
+		SubCategory1: "Distribution",
+		Name:         "test-distribution",
+		Region:       "us-east-1",
+		ARN:          "",
 		RawData: map[string]interface{}{
 			"ID":              "E1A2B3C4D5F6G",
 			"AlternateDomain": "cdn.example.com",
@@ -102,7 +101,7 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"CloudFront", "Distribution", "", "test-distribution", "us-east-1", "E1A2B3C4D5F6G",
+		"CloudFront", "Distribution", "test-distribution", "us-east-1", "E1A2B3C4D5F6G",
 		"cdn.example.com", "example.s3.amazonaws.com", "PriceClass_100", "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-waf/12345678-1234-1234-1234-123456789012", "Deployed",
 	}
 

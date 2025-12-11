@@ -73,7 +73,7 @@ func TestELBCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
 		"DNSName", "Type", "VPC", "AvailabilityZone", "SecurityGroup", "WAF",
 		"Protocol", "Port", "HealthCheck", "SSLPolicy", "State", "CreatedTime",
 	}
@@ -85,12 +85,12 @@ func TestELBCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "ELB",
-		SubCategory:    "LoadBalancer",
-		SubSubCategory: "Application",
-		Name:           "test-alb",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/test-alb/1234567890123456",
+		Category:     "ELB",
+		SubCategory1: "LoadBalancer",
+		SubCategory2: "Application",
+		Name:         "test-alb",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/test-alb/1234567890123456",
 		RawData: map[string]interface{}{
 			"DNSName":          "test-alb-123456789.us-east-1.elb.amazonaws.com",
 			"Type":             "application",

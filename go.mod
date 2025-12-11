@@ -5,43 +5,43 @@ go 1.25.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.0
-	github.com/aws/aws-sdk-go-v2/config v1.32.4
-	github.com/aws/aws-sdk-go-v2/service/acm v1.37.17
+	github.com/aws/aws-sdk-go-v2/config v1.32.5
+	github.com/aws/aws-sdk-go-v2/service/acm v1.37.18
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.3
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.33.4
-	github.com/aws/aws-sdk-go-v2/service/batch v1.58.10
-	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.3
+	github.com/aws/aws-sdk-go-v2/service/batch v1.58.11
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.4
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.58.3
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.52.7
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.62.1
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.53.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.62.2
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.16
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.57.17
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.53.4
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.276.0
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.54.3
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.69.4
-	github.com/aws/aws-sdk-go-v2/service/efs v1.41.8
-	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.7
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.4
-	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.16
-	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.7
-	github.com/aws/aws-sdk-go-v2/service/glue v1.135.2
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.53.5
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.276.1
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.54.4
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.69.5
+	github.com/aws/aws-sdk-go-v2/service/efs v1.41.9
+	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.8
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.5
+	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.17
+	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.8
+	github.com/aws/aws-sdk-go-v2/service/glue v1.135.3
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.1
-	github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.8
-	github.com/aws/aws-sdk-go-v2/service/kms v1.49.3
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.86.1
+	github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.9
+	github.com/aws/aws-sdk-go-v2/service/kms v1.49.4
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.86.2
 	github.com/aws/aws-sdk-go-v2/service/quicksight v1.98.3
-	github.com/aws/aws-sdk-go-v2/service/rds v1.113.0
-	github.com/aws/aws-sdk-go-v2/service/redshift v1.61.3
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.61.2
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.1
-	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.16
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.4
-	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.57.0
-	github.com/aws/aws-sdk-go-v2/service/sns v1.39.9
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.19
-	github.com/aws/aws-sdk-go-v2/service/sts v1.41.4
-	github.com/aws/aws-sdk-go-v2/service/transfer v1.68.3
+	github.com/aws/aws-sdk-go-v2/service/rds v1.113.1
+	github.com/aws/aws-sdk-go-v2/service/redshift v1.61.4
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2
+	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.17
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.5
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.57.1
+	github.com/aws/aws-sdk-go-v2/service/sns v1.39.10
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
+	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5
+	github.com/aws/aws-sdk-go-v2/service/transfer v1.68.4
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.70.4
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
@@ -49,7 +49,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.4 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.5 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.16 // indirect

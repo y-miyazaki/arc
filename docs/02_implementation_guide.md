@@ -408,6 +408,140 @@ func (_c *MyCollector) GetColumns() []Column {
 }
 ```
 
+### SubCategory階層構造の設計
+
+#### 基本原則
+
+- **SubCategory1, SubCategory2, SubCategory3にはリソースタイプを設定する**（実際の値は設定しない）
+- **Name フィールドには実際のリソース識別子（名前、ID など）を設定する**
+- **親リソースの名前はRawDataに格納する**（トレーサビリティのため）
+- **親子関係のある場合、SubCategory1は空文字列とする**（視覚的にネストしていることを表現）
+  - CSV/HTML出力で表として見た際に、インデントされた階層構造がわかりやすくなる
+  - 例: UserPool配下のGroup、Group配下のUserなど
+
+#### CSV出力の制御
+
+- `GetColumns()`で定義されたカラムのみがCSV出力される
+- SubCategory2, SubCategory3が不要な場合は、`GetColumns()`から除外する
+- ただし、`Resource`構造体には全てのSubCategoryフィールドを保持する（データの一貫性のため）
+
+```go
+// SubCategory2/3を使用しないコレクターの例
+func (*S3Collector) GetColumns() []Column {
+    return []Column{
+        {Header: "Category", Value: func(r Resource) string { return r.Category }},
+        {Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+        // SubCategory2, SubCategory3はCSV出力に含めない
+        {Header: "Name", Value: func(r Resource) string { return r.Name }},
+        {Header: "Region", Value: func(r Resource) string { return r.Region }},
+        // ... その他のカラム
+    }
+}
+```
+
+#### 実装例: Cognito
+
+Cognitoのような階層構造を持つリソースでは、以下のように実装します:
+
+```go
+// IdentityPool: 最上位リソース
+NewResource(&ResourceInput{
+    Category:     "cognito",
+    SubCategory1: "IdentityPool",  // リソースタイプ
+    Name:         identityPoolId,   // 実際のID
+    Region:       region,
+    ARN:          identityPoolArn,
+    RawData: map[string]any{
+        "IdentityPoolName": identityPoolName,
+        // ... その他のデータ
+    },
+})
+
+// UserPool: 最上位リソース
+NewResource(&ResourceInput{
+    Category:     "cognito",
+    SubCategory1: "UserPool",      // リソースタイプ
+    Name:         userPoolId,       // 実際のID
+    Region:       region,
+    ARN:          userPoolArn,
+    RawData: map[string]any{
+        "UserPoolName": userPoolName,
+        "MfaConfiguration": mfaConfig,
+        // ... その他のデータ
+    },
+})
+
+// Group: UserPoolの子リソース（親子関係の視覚的表現のためSubCategory1は空）
+NewResource(&ResourceInput{
+    Category:     "cognito",
+    SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
+    SubCategory2: "Group",         // 自身のリソースタイプ
+    Name:         groupName,        // 実際のグループ名
+    Region:       region,
+    ARN:          groupName,
+    RawData: map[string]any{
+        "UserPoolId":   userPoolId,   // 親リソースのIDを保存
+        "Description":  description,
+        "AttachedUsers": usernames,
+        // ... その他のデータ
+    },
+})
+
+// User with Group: Groupの子リソース（親子関係の視覚的表現のためSubCategory1は空）
+NewResource(&ResourceInput{
+    Category:     "cognito",
+    SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
+    SubCategory2: "Group",         // 親のリソースタイプ
+    SubCategory3: "User",          // 自身のリソースタイプ
+    Name:         username,         // 実際のユーザー名
+    Region:       region,
+    ARN:          username,
+    RawData: map[string]any{
+        "UserPoolId": userPoolId,   // 最上位親のIDを保存
+        "GroupName":  groupName,    // 親のグループ名を保存
+        "Attributes": attributes,
+        // ... その他のデータ
+    },
+})
+
+// User without Group: UserPoolの直接の子リソース（親子関係の視覚的表現のためSubCategory1は空）
+NewResource(&ResourceInput{
+    Category:     "cognito",
+    SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
+    SubCategory2: "User",          // 自身のリソースタイプ
+    Name:         username,         // 実際のユーザー名
+    Region:       region,
+    ARN:          username,
+    RawData: map[string]any{
+        "UserPoolId": userPoolId,   // 親リソースのIDを保存
+        "Attributes": attributes,
+        // ... その他のデータ
+    },
+})
+```
+
+#### 階層構造の判断基準
+
+以下の場合にSubCategory2, SubCategory3を使用します:
+
+1. **論理的な親子関係が存在する場合**
+   - 例: UserPool → Group → User
+   - 例: VPC → Subnet → NetworkInterface
+
+2. **リソースが複数レベルのコンテナに属する場合**
+   - 例: ECS Cluster → Service → Task
+
+3. **サブリソースの分類が必要な場合**
+   - 例: APIGateway → RestAPI → Resource → Method
+
+#### SubCategory不要な場合
+
+以下の場合はSubCategory1のみを使用します:
+
+1. **フラットな構造のリソース**: S3 Bucket, EC2 Instance, Lambda Function など
+2. **単一のリソースタイプのみ**: 複数のサブタイプが存在しない場合
+3. **親子関係が不要**: リソース間に明確な階層がない場合
+
 ### r.RawData["somekey"]が存在しない場合の扱い
 
 #### 方針

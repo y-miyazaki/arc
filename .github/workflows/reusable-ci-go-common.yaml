@@ -17,7 +17,7 @@ on:
         description: "Target environment (dev, qa, stg, prd, etc.)"
         required: true
         type: string
-      go_path:
+      go_project_path:
         description: "Path (relative) to the Go project root (directory containing go.mod)"
         required: true
         type: string
@@ -40,7 +40,7 @@ on:
 env:
   COMPONENT: ${{ inputs.component }}
   ENVIRONMENT: ${{ inputs.environment }}
-  GO_PROJECT_PATH: ${{ inputs.go_path }}
+  GO_PROJECT_PATH: ${{ inputs.go_project_path }}
   GO_VERSION: ${{ inputs.go_version }}
   GOLANGCI_LINT_VERSION: ${{ inputs.golangci_lint_version }} # Defaults via inputs
   GOVULNCHECK_VERSION: ${{ inputs.govulncheck_version }} # Defaults via inputs
@@ -146,7 +146,7 @@ jobs:
       - name: Upload to Codecov
         # Run upload only when repo is public OR codecov_token is provided
         if: ${{ (steps.repo_visibility.outputs.result != 'true') || (inputs.codecov_token != '') }}
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           use_oidc: true
           files: ${{ env.GO_PROJECT_PATH }}/coverage/coverage.out

@@ -56,8 +56,8 @@ func (*Route53Collector) ShouldSort() bool {
 func (*Route53Collector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
@@ -104,10 +104,10 @@ func (c *Route53Collector) Collect(ctx context.Context, region string) ([]Resour
 			}
 			// Add HostedZone resource
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "route53",
-				SubCategory: "HostedZone",
-				Name:        zoneName,
-				Region:      "Global",
+				Category:     "route53",
+				SubCategory1: "HostedZone",
+				Name:         zoneName,
+				Region:       "Global",
 				RawData: map[string]any{
 					"ID":          zoneID,
 					"Type":        zoneType,
@@ -145,11 +145,11 @@ func (c *Route53Collector) Collect(ctx context.Context, region string) ([]Resour
 
 					// Add RecordSet resource
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "route53",
-						SubCategory:    "",
-						SubSubCategory: "RecordSet",
-						Name:           record.Name,
-						Region:         "Global",
+						Category:     "route53",
+						SubCategory1: "",
+						SubCategory2: "RecordSet",
+						Name:         record.Name,
+						Region:       "Global",
 						RawData: map[string]any{
 							"ID":         zoneID, // Use ZoneID for grouping context
 							"TTL":        ttl,

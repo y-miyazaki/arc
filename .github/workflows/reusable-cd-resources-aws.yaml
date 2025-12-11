@@ -5,6 +5,11 @@ name: reusable-cd-resources-aws
 on:
   workflow_call:
     inputs:
+      arc_version:
+        description: "arc version to use (e.g. v1.0.4)"
+        required: false
+        type: string
+        default: "v1.0.4"
       categories:
         description: "Comma-separated categories to limit collection (optional)"
         required: false
@@ -19,11 +24,6 @@ on:
         required: false
         type: string
         default: "./output"
-      output_file:
-        description: "Combined output file name (placed inside output_dir)"
-        required: false
-        type: string
-        default: "aws_resources.csv"
       region:
         description: "AWS region to query (optional)"
         required: false
@@ -40,10 +40,10 @@ on:
         required: true
 
 env:
+  ARC_VERSION: ${{ inputs.arc_version }}
   CATEGORIES: ${{ inputs.categories }}
   ENVIRONMENT: ${{ inputs.environment }}
   OUTPUT_DIR: ${{ inputs.output_dir }}
-  OUTPUT_FILE: ${{ inputs.output_file }}
   REGION: ${{ inputs.region }}
 
 jobs:
@@ -73,6 +73,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Download and install arc
+        run: |
+          set -euo pipefail
+          VERSION="${ARC_VERSION}"
+          ASSET="arc-${VERSION#v}-linux-amd64.tar.gz"
+          curl -L "https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET}" | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+          arc --version
+
       - name: Setup Parameters
         id: setup-parameters
         shell: bash
@@ -84,16 +92,12 @@ jobs:
           ARTIFACT_BASE="resources-${ENVIRONMENT}"
           ARTIFACT_NAME="${ARTIFACT_BASE}.zip"
           OUTDIR="${OUTPUT_DIR}"
-          OUTFILE="${OUTPUT_FILE}"
-          TITLE="AWS Resources(${ENVIRONMENT})"
 
           # Write environment variables to the GitHub environment file in one grouped redirect
           {
             echo "ARTIFACT_BASE=${ARTIFACT_BASE}"
             echo "ARTIFACT_NAME=${ARTIFACT_NAME}"
             echo "OUTDIR=${OUTDIR}"
-            echo "OUTFILE=${OUTFILE}"
-            echo "TITLE=${TITLE}"
           } >> "$GITHUB_ENV"
 
           # Write outputs to the GitHub output file in one grouped redirect
@@ -101,18 +105,15 @@ jobs:
             echo "artifact_base=${ARTIFACT_BASE}"
             echo "artifact_name=${ARTIFACT_NAME}"
             echo "outdir=${OUTDIR}"
-            echo "outfile=${OUTFILE}"
-            echo "title=${TITLE}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Exec get AWS Resource Script
+      - name: Exec arc to collect AWS resources
         run: |
-          # shellcheck disable=SC2086,SC2046
           set -euo pipefail
           CATS="${CATEGORIES}"
           REGION_ARG="${REGION}"
 
-          CMD=("./scripts/terraform/aws_get_resources.sh" -v -p -H -D "$OUTDIR" -o "$OUTFILE" -T "$TITLE")
+          CMD=(arc -H -D "$OUTDIR")
           if [[ -n "$CATS" ]]; then
             CMD+=( -c "$CATS" )
           fi
@@ -160,14 +161,14 @@ jobs:
         if: always()
         uses: ./.github/actions/summary
         with:
-          title: "${{ steps.setup-parameters.outputs.title }}"
+          title: "AWS Resources (${{ inputs.environment }})"
           status: "${{ job.status }}"
           params: |
-            environment: ${{ inputs.environment }}
+            arc_version: ${{ inputs.arc_version }}
             categories: ${{ inputs.categories }}
-            region: ${{ inputs.region }}
+            environment: ${{ inputs.environment }}
             output_dir: ${{ inputs.output_dir }}
-            output_file: ${{ inputs.output_file }}
+            region: ${{ inputs.region }}
           outputs: |
             artifact_name: ${{ steps.setup-parameters.outputs.artifact_name }}
           artifacts: |

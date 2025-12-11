@@ -60,8 +60,7 @@ func (*SNSCollector) ShouldSort() bool {
 func (*SNSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -120,11 +119,11 @@ func (c *SNSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			r := NewResource(&ResourceInput{
-				Category:    "sns",
-				SubCategory: "Topic",
-				Name:        name,
-				Region:      region,
-				ARN:         arn,
+				Category:     "sns",
+				SubCategory1: "Topic",
+				Name:         name,
+				Region:       region,
+				ARN:          arn,
 				RawData: map[string]any{
 					"DisplayName": attrs["DisplayName"],
 					"Owner":       attrs["Owner"],

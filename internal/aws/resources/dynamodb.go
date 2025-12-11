@@ -60,8 +60,7 @@ func (*DynamoDBCollector) ShouldSort() bool {
 func (*DynamoDBCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -181,11 +180,11 @@ func (c *DynamoDBCollector) Collect(ctx context.Context, region string) ([]Resou
 				streamEnabled = table.StreamSpecification.StreamEnabled
 			}
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "dynamodb",
-				SubCategory: "Table",
-				Name:        tableName,
-				Region:      region,
-				ARN:         table.TableArn,
+				Category:     "dynamodb",
+				SubCategory1: "Table",
+				Name:         tableName,
+				Region:       region,
+				ARN:          table.TableArn,
 				RawData: map[string]any{
 					"AttributeDefinitions":       attrDefs,
 					"BillingMode":                billingMode,

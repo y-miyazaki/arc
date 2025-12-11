@@ -54,8 +54,8 @@ func (*IAMUserGroupCollector) ShouldSort() bool {
 func (*IAMUserGroupCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -87,11 +87,11 @@ func (c *IAMUserGroupCollector) Collect(ctx context.Context, region string) ([]R
 		for i := range page.Users {
 			user := &page.Users[i]
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "iam_user_group",
-				SubCategory: "User",
-				Name:        user.UserName,
-				Region:      "Global",
-				ARN:         user.Arn,
+				Category:     "iam_user_group",
+				SubCategory1: "User",
+				Name:         user.UserName,
+				Region:       "Global",
+				ARN:          user.Arn,
 				RawData: map[string]any{
 					"Path":             user.Path,
 					"PasswordLastUsed": user.PasswordLastUsed,
@@ -141,11 +141,11 @@ func (c *IAMUserGroupCollector) Collect(ctx context.Context, region string) ([]R
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "iam_user_group",
-				SubCategory: "Group",
-				Name:        group.GroupName,
-				Region:      "Global",
-				ARN:         group.Arn,
+				Category:     "iam_user_group",
+				SubCategory1: "Group",
+				Name:         group.GroupName,
+				Region:       "Global",
+				ARN:          group.Arn,
 				RawData: map[string]any{
 					"Path":             group.Path,
 					"CreateDate":       group.CreateDate,

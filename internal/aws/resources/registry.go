@@ -49,38 +49,41 @@ type Column struct {
 
 // Resource represents a single collected AWS resource
 type Resource struct {
-	ARN            string
-	Category       string
-	Name           string
-	RawData        map[string]any
-	Region         string
-	SubCategory    string
-	SubSubCategory string
+	ARN          string
+	Category     string
+	Name         string
+	RawData      map[string]any
+	Region       string
+	SubCategory1 string
+	SubCategory2 string
+	SubCategory3 string
 }
 
 // ResourceInput is the input for creating a new Resource.
 // Fields are of type 'any' to allow passing pointers directly.
 type ResourceInput struct {
-	ARN            any
-	Category       any
-	Name           any
-	RawData        map[string]any
-	Region         any
-	SubCategory    any
-	SubSubCategory any
+	ARN          any
+	Category     any
+	Name         any
+	RawData      map[string]any
+	Region       any
+	SubCategory1 any
+	SubCategory2 any
+	SubCategory3 any
 }
 
 // NewResource creates a new Resource and normalizes its RawData.
 // It automatically converts all input fields to strings using helpers.StringValue.
 func NewResource(input *ResourceInput) Resource {
 	return Resource{
-		Category:       helpers.StringValue(input.Category),
-		SubCategory:    helpers.StringValue(input.SubCategory, ""),
-		SubSubCategory: helpers.StringValue(input.SubSubCategory, ""),
-		Name:           helpers.StringValue(input.Name),
-		Region:         helpers.StringValue(input.Region),
-		ARN:            helpers.StringValue(input.ARN, ""),
-		RawData:        helpers.NormalizeRawData(input.RawData),
+		Category:     helpers.StringValue(input.Category),
+		SubCategory1: helpers.StringValue(input.SubCategory1, ""),
+		SubCategory2: helpers.StringValue(input.SubCategory2, ""),
+		SubCategory3: helpers.StringValue(input.SubCategory3, ""),
+		Name:         helpers.StringValue(input.Name),
+		Region:       helpers.StringValue(input.Region),
+		ARN:          helpers.StringValue(input.ARN, ""),
+		RawData:      helpers.NormalizeRawData(input.RawData),
 	}
 }
 
@@ -126,7 +129,8 @@ func InitializeCollectors(cfg *aws.Config, regions []string) error {
 	RegisterConstructor("cloudfront", NewCloudFrontCollector)
 	RegisterConstructor("cloudwatch_alarms", NewCloudWatchAlarmsCollector)
 	RegisterConstructor("cloudwatch_logs", NewCloudWatchLogsCollector)
-	RegisterConstructor("cognito", NewCognitoCollector)
+	RegisterConstructor("cognito_identity_pool", NewCognitoIdentityPoolCollector)
+	RegisterConstructor("cognito_user_pool", NewCognitoUserPoolCollector)
 	RegisterConstructor("dynamodb", NewDynamoDBCollector)
 	RegisterConstructor("ec2", NewEC2Collector)
 	RegisterConstructor("ecr", NewECRCollector)

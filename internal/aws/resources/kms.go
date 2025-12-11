@@ -59,8 +59,7 @@ func (*KMSCollector) ShouldSort() bool {
 func (*KMSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -117,11 +116,11 @@ func (c *KMSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "kms",
-				SubCategory: "Key",
-				Name:        keyName,
-				Region:      region,
-				ARN:         keyMetadata.Arn,
+				Category:     "kms",
+				SubCategory1: "Key",
+				Name:         keyName,
+				Region:       region,
+				ARN:          keyMetadata.Arn,
 				RawData: map[string]any{
 					"Description": keyMetadata.Description,
 					"KeyUsage":    keyMetadata.KeyUsage,

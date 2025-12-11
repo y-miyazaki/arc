@@ -67,7 +67,7 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ARN", "Status", "Shards", "DestinationId", "RetentionPeriodHours",
 		"EncryptionType", "CreatedDate", "LastUpdatedDate",
 	}
@@ -79,12 +79,11 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Analytics",
-		SubCategory:    "Kinesis",
-		SubSubCategory: "Stream",
-		Name:           "test-stream",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+		Category:     "Analytics",
+		SubCategory1: "Kinesis",
+		Name:         "test-stream",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
 		RawData: map[string]interface{}{
 			"Status":               "ACTIVE",
 			"Shards":               "2",
@@ -97,7 +96,7 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Analytics", "Kinesis", "Stream", "test-stream", "us-east-1",
+		"Analytics", "Kinesis", "test-stream", "us-east-1",
 		"arn:aws:kinesis:us-east-1:123456789012:stream/test-stream", "ACTIVE", "2", "", "24",
 		"KMS", "2023-09-25T01:07:55Z", "2023-09-26T10:30:00Z",
 	}

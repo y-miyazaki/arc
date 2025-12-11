@@ -85,8 +85,8 @@ func (*ELBCollector) ShouldSort() bool {
 func (*ELBCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -210,11 +210,11 @@ func (c *ELBCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 			// Add load balancer resource to results
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "elb",
-				SubCategory: "LoadBalancer",
-				Name:        lb.LoadBalancerName,
-				Region:      region,
-				ARN:         lb.LoadBalancerArn,
+				Category:     "elb",
+				SubCategory1: "LoadBalancer",
+				Name:         lb.LoadBalancerName,
+				Region:       region,
+				ARN:          lb.LoadBalancerArn,
 				RawData: map[string]any{
 					"DNSName":          lb.DNSName,
 					"Type":             lb.Type,
@@ -241,12 +241,12 @@ func (c *ELBCollector) Collect(ctx context.Context, region string) ([]Resource, 
 					tg := &tgPage.TargetGroups[k]
 					// Add target group resource to results
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "elb",
-						SubCategory:    "",
-						SubSubCategory: "TargetGroup",
-						Name:           tg.TargetGroupName,
-						Region:         region,
-						ARN:            tg.TargetGroupArn,
+						Category:     "elb",
+						SubCategory1: "",
+						SubCategory2: "TargetGroup",
+						Name:         tg.TargetGroupName,
+						Region:       region,
+						ARN:          tg.TargetGroupArn,
 						RawData: map[string]any{
 							"Type":        tg.TargetType,
 							"Protocol":    tg.Protocol,
@@ -272,12 +272,12 @@ func (c *ELBCollector) Collect(ctx context.Context, region string) ([]Resource, 
 					name := fmt.Sprintf("%s:%d", ls.Protocol, aws.ToInt32(ls.Port))
 					// Add listener resource to results
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "elb",
-						SubCategory:    "",
-						SubSubCategory: "Listener",
-						Name:           name,
-						Region:         region,
-						ARN:            ls.ListenerArn,
+						Category:     "elb",
+						SubCategory1: "",
+						SubCategory2: "Listener",
+						Name:         name,
+						Region:       region,
+						ARN:          ls.ListenerArn,
 						RawData: map[string]any{
 							"Protocol":  ls.Protocol,
 							"Port":      ls.Port,
