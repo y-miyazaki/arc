@@ -55,8 +55,7 @@ func (*IAMRoleCollector) ShouldSort() bool {
 func (*IAMRoleCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -112,11 +111,11 @@ func (c *IAMRoleCollector) Collect(ctx context.Context, region string) ([]Resour
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "iam_role_policy",
-				SubCategory: "Role",
-				Name:        role.RoleName,
-				Region:      "Global",
-				ARN:         role.Arn,
+				Category:     "iam_role_policy",
+				SubCategory1: "Role",
+				Name:         role.RoleName,
+				Region:       "Global",
+				ARN:          role.Arn,
 				RawData: map[string]any{
 					"Path":                role.Path,
 					"AttachedPolicies":    attachedPolicies,

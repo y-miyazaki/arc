@@ -74,7 +74,7 @@ func TestDynamoDBCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"AttributeDefinitions", "BillingMode", "StreamEnabled", "GlobalTable", "PointInTimeRecovery",
 		"RecoveryPeriodInDays", "EarliestRestorableDateTime", "LatestRestorableDateTime", "DeletionProtection",
 		"TTLAttribute", "SSE", "KmsKey", "ItemCount", "TableSize(Bytes)", "Status", "CreationDateTime",
@@ -87,12 +87,11 @@ func TestDynamoDBCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "DynamoDB",
-		SubCategory:    "Table",
-		SubSubCategory: "",
-		Name:           "test-table",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
+		Category:     "DynamoDB",
+		SubCategory1: "Table",
+		Name:         "test-table",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
 		RawData: map[string]interface{}{
 			"AttributeDefinitions":       "id:S",
 			"BillingMode":                "PAY_PER_REQUEST",
@@ -114,7 +113,7 @@ func TestDynamoDBCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"DynamoDB", "Table", "", "test-table", "us-east-1", "arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
+		"DynamoDB", "Table", "test-table", "us-east-1", "arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
 		"id:S", "PAY_PER_REQUEST", "false", "false", "ENABLED",
 		"35", "2023-01-01T00:00:00Z", "2023-12-01T00:00:00Z", "ENABLED",
 		"ttl", "ENABLED", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "1000", "1048576", "ACTIVE", "2023-09-25T01:07:55Z",

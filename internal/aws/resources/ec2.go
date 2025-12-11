@@ -63,14 +63,8 @@ func (*EC2Collector) ShouldSort() bool {
 func (*EC2Collector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
-		{Header: "Name", Value: func(r Resource) string {
-			if r.Name == "" {
-				return "N/A"
-			}
-			return r.Name
-		}},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "InstanceID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceID") }},
 		{Header: "InstanceType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceType") }},
@@ -178,10 +172,10 @@ func (c *EC2Collector) Collect(ctx context.Context, region string) ([]Resource, 
 		}
 		// Create resource entry for this instance
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "ec2",
-			SubCategory: "Instance",
-			Name:        helpers.GetTagValue(instance.Tags, tagNameKey),
-			Region:      region,
+			Category:     "ec2",
+			SubCategory1: "Instance",
+			Name:         helpers.GetTagValue(instance.Tags, tagNameKey),
+			Region:       region,
 			RawData: map[string]any{
 				"InstanceID":    instance.InstanceId,
 				"InstanceType":  instance.InstanceType,

@@ -38,6 +38,6 @@ jobs:
       component: arc
       create_tag: ${{ inputs.create_tag }}
       draft: ${{ inputs.draft }}
-      go_path: "."
+      go_project_path: "."
       prerelease: ${{ inputs.prerelease == true && 'true' || 'auto' }}
       version: ${{ inputs.version }}

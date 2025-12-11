@@ -56,8 +56,7 @@ func (*SQSCollector) ShouldSort() bool {
 func (*SQSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -116,11 +115,11 @@ func (c *SQSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "sqs",
-				SubCategory: "Queue",
-				Name:        name,
-				Region:      region,
-				ARN:         attrs["QueueArn"], // ARN is in attributes
+				Category:     "sqs",
+				SubCategory1: "Queue",
+				Name:         name,
+				Region:       region,
+				ARN:          attrs["QueueArn"], // ARN is in attributes
 				RawData: map[string]any{
 					"DelaySeconds":                  attrs["DelaySeconds"],
 					"MaximumMessageSize":            attrs["MaximumMessageSize"],

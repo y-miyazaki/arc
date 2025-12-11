@@ -74,7 +74,7 @@ func TestCloudWatchAlarmsCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"MetricName", "Namespace", "Statistic", "Threshold", "ComparisonOperator", "EvaluationPeriods", "Period", "TreatMissingData",
 	}
 
@@ -85,12 +85,11 @@ func TestCloudWatchAlarmsCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "CloudWatch",
-		SubCategory:    "Alarms",
-		SubSubCategory: "Metric Alarm",
-		Name:           "test-alarm",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:cloudwatch:us-east-1:123456789012:alarm:test-alarm",
+		Category:     "CloudWatch",
+		SubCategory1: "Alarms",
+		Name:         "test-alarm",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:cloudwatch:us-east-1:123456789012:alarm:test-alarm",
 		RawData: map[string]interface{}{
 			"MetricName":         "CPUUtilization",
 			"Namespace":          "AWS/EC2",
@@ -104,7 +103,7 @@ func TestCloudWatchAlarmsCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"CloudWatch", "Metric Alarm", "Metric Alarm", "test-alarm", "us-east-1", "arn:aws:cloudwatch:us-east-1:123456789012:alarm:test-alarm",
+		"CloudWatch", "Alarms", "test-alarm", "us-east-1", "arn:aws:cloudwatch:us-east-1:123456789012:alarm:test-alarm",
 		"CPUUtilization", "AWS/EC2", "Average", "80.0", "GreaterThanThreshold", "2", "300", "missing",
 	}
 

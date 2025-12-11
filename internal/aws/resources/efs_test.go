@@ -61,7 +61,7 @@ func TestEFSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ID", "Type", "Performance", "Throughput", "Encrypted",
 		"KmsKey", "Size", "Subnet", "IPAddress", "SecurityGroup",
 		"Path", "UID", "GID", "State", "CreationTime",
@@ -74,12 +74,11 @@ func TestEFSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "EFS",
-		SubCategory:    "FileSystem",
-		SubSubCategory: "",
-		Name:           "test-filesystem",
-		Region:         "us-east-1",
-		ARN:            "fs-12345678", // ID column uses ARN field
+		Category:     "EFS",
+		SubCategory1: "FileSystem",
+		Name:         "test-filesystem",
+		Region:       "us-east-1",
+		ARN:          "fs-12345678", // ID column uses ARN field
 		RawData: map[string]interface{}{
 			"Type":          "REGIONAL",
 			"Performance":   "generalPurpose",
@@ -99,7 +98,7 @@ func TestEFSCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"EFS", "FileSystem", "", "test-filesystem", "us-east-1",
+		"EFS", "FileSystem", "test-filesystem", "us-east-1",
 		"fs-12345678", "REGIONAL", "generalPurpose", "bursting", "true",
 		"my-kms-key", "1073741824", "subnet-12345678 (my-subnet)", "10.0.1.100", "sg-12345678 (my-sg)",
 		"/mnt/efs", "1000", "1000", "available", "2023-09-25T01:07:55Z",

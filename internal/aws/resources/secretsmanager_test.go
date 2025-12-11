@@ -61,7 +61,7 @@ func TestSecretsManagerCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
 		"Description", "KmsKey", "RotationEnabled", "RotationLambdaARN", "LastAccessedDate", "LastRotatedDate", "LastChangedDate",
 	}
 
@@ -72,12 +72,11 @@ func TestSecretsManagerCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "SecretsManager",
-		SubSubCategory: "Secret",
-		Name:           "test-secret",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:secretsmanager:us-east-1:123456789012:secret:test-secret-AbCdEf",
+		Category:     "Security",
+		SubCategory1: "SecretsManager",
+		Name:         "test-secret",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:secretsmanager:us-east-1:123456789012:secret:test-secret-AbCdEf",
 		RawData: map[string]interface{}{
 			"Description":       "Test secret",
 			"KmsKey":            "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
@@ -90,7 +89,7 @@ func TestSecretsManagerCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "SecretsManager", "Secret", "test-secret", "us-east-1", "arn:aws:secretsmanager:us-east-1:123456789012:secret:test-secret-AbCdEf",
+		"Security", "SecretsManager", "test-secret", "us-east-1", "arn:aws:secretsmanager:us-east-1:123456789012:secret:test-secret-AbCdEf",
 		"Test secret", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "true", "arn:aws:lambda:us-east-1:123456789012:function:rotation-function", "2023-09-24T01:07:55Z", "2023-09-25T01:07:55Z", "2023-09-26T01:07:55Z",
 	}
 

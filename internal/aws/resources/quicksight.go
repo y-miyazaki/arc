@@ -62,8 +62,8 @@ func (*QuickSightCollector) ShouldSort() bool {
 func (*QuickSightCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
@@ -104,11 +104,11 @@ func (c *QuickSightCollector) Collect(ctx context.Context, region string) ([]Res
 		for i := range page.DataSources {
 			ds := &page.DataSources[i]
 			r := NewResource(&ResourceInput{
-				Category:    "quicksight",
-				SubCategory: "DataSource",
-				Name:        ds.Name,
-				Region:      region,
-				ARN:         ds.DataSourceId,
+				Category:     "quicksight",
+				SubCategory1: "DataSource",
+				Name:         ds.Name,
+				Region:       region,
+				ARN:          ds.DataSourceId,
 				RawData: map[string]any{
 					"Type":   ds.Type,
 					"Status": ds.Status,
@@ -131,11 +131,11 @@ func (c *QuickSightCollector) Collect(ctx context.Context, region string) ([]Res
 		for i := range page.AnalysisSummaryList {
 			an := &page.AnalysisSummaryList[i]
 			r := NewResource(&ResourceInput{
-				Category:    "quicksight",
-				SubCategory: "Analysis",
-				Name:        an.Name,
-				Region:      region,
-				ARN:         an.AnalysisId,
+				Category:     "quicksight",
+				SubCategory1: "Analysis",
+				Name:         an.Name,
+				Region:       region,
+				ARN:          an.AnalysisId,
 				RawData: map[string]any{
 					"Status":      an.Status,
 					"CreatedDate": an.CreatedTime,

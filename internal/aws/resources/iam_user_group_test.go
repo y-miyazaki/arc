@@ -59,7 +59,7 @@ func TestIAMUserGroupCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
 		"ARN", "Path", "PasswordLastUsed", "CreateDate", "AttachedUsers", "AttachedPolicies",
 	}
 
@@ -70,12 +70,12 @@ func TestIAMUserGroupCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "IAM",
-		SubSubCategory: "User",
-		Name:           "test-user",
-		Region:         "Global",
-		ARN:            "arn:aws:iam::123456789012:user/test-user",
+		Category:     "Security",
+		SubCategory1: "IAM",
+		SubCategory2: "User",
+		Name:         "test-user",
+		Region:       "Global",
+		ARN:          "arn:aws:iam::123456789012:user/test-user",
 		RawData: map[string]interface{}{
 			"Path":             "/",
 			"PasswordLastUsed": "2023-09-25T01:07:55Z",

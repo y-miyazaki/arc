@@ -60,8 +60,7 @@ func (*CloudFormationCollector) ShouldSort() bool {
 func (*CloudFormationCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -149,11 +148,11 @@ func (c *CloudFormationCollector) Collect(ctx context.Context, region string) ([
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "cloudformation",
-				SubCategory: "Stack",
-				Name:        stack.StackName,
-				Region:      region,
-				ARN:         stack.StackId,
+				Category:     "cloudformation",
+				SubCategory1: "Stack",
+				Name:         stack.StackName,
+				Region:       region,
+				ARN:          stack.StackId,
 				RawData: map[string]any{
 					"Description": stack.Description,
 					"Type":        "Stack",
@@ -200,11 +199,11 @@ func (c *CloudFormationCollector) Collect(ctx context.Context, region string) ([
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "cloudformation",
-				SubCategory: "StackSet",
-				Name:        ss.StackSetName,
-				Region:      region,
-				ARN:         ss.StackSetARN,
+				Category:     "cloudformation",
+				SubCategory1: "StackSet",
+				Name:         ss.StackSetName,
+				Region:       region,
+				ARN:          ss.StackSetARN,
 				RawData: map[string]any{
 					"Description": ss.Description,
 					"Type":        "StackSet",

@@ -59,8 +59,7 @@ func (*ACMCollector) ShouldSort() bool {
 func (*ACMCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -108,11 +107,11 @@ func (c *ACMCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			cert := details.Certificate
 
 			r := NewResource(&ResourceInput{
-				Category:    "acm",
-				SubCategory: "Certificate",
-				Name:        cert.DomainName,
-				Region:      region,
-				ARN:         cert.CertificateArn,
+				Category:     "acm",
+				SubCategory1: "Certificate",
+				Name:         cert.DomainName,
+				Region:       region,
+				ARN:          cert.CertificateArn,
 				RawData: map[string]any{
 					"Status":         cert.Status,
 					"Type":           cert.Type,

@@ -59,8 +59,7 @@ func (*RedshiftCollector) ShouldSort() bool {
 func (*RedshiftCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "RoleARN", Value: func(r Resource) string { return r.ARN }},
@@ -131,11 +130,11 @@ func (c *RedshiftCollector) Collect(ctx context.Context, region string) ([]Resou
 			}
 
 			r := NewResource(&ResourceInput{
-				Category:    "redshift",
-				SubCategory: "Cluster",
-				Name:        cluster.ClusterIdentifier,
-				Region:      region,
-				ARN:         roleARN,
+				Category:     "redshift",
+				SubCategory1: "Cluster",
+				Name:         cluster.ClusterIdentifier,
+				Region:       region,
+				ARN:          roleARN,
 				RawData: map[string]any{
 					"NodeType":               cluster.NodeType,
 					"NumberOfNodes":          cluster.NumberOfNodes,

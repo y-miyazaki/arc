@@ -61,7 +61,7 @@ func TestRDSCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
 		"ID", "Type", "Engine", "Version", "InstanceClass",
 		"AllocatedStorage", "MultiAZ", "DBClusterMembers", "EngineLifecycleSupport", "IAMDatabaseAuthenticationEnabled",
 		"KerberosAuth", "KmsKey", "AvailabilityZone", "BackupRetentionPeriod",
@@ -74,11 +74,11 @@ func TestRDSCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Database",
-		SubCategory:    "RDS",
-		SubSubCategory: "DBInstance",
-		Name:           "test-db",
-		Region:         "us-east-1",
+		Category:     "Database",
+		SubCategory1: "RDS",
+		SubCategory2: "DBInstance",
+		Name:         "test-db",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"ID":                               "test-db",
 			"Type":                             "DBInstance",

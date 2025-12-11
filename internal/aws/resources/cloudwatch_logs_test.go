@@ -74,8 +74,8 @@ func TestCloudWatchLogsCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
-		"RetentionInDays", "StoredBytes", "MetricFilterCount", "SubscriptionFilterCount", "KmsKey", "CreationTime",
+		"Category", "SubCategory1", "Name", "Region", "ARN",
+		"RetentionInDays", "StoredBytes", "MetricFilters", "SubscriptionFilters", "KmsKey", "CreationTime",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
@@ -85,25 +85,24 @@ func TestCloudWatchLogsCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "CloudWatch",
-		SubCategory:    "Logs",
-		SubSubCategory: "Log Group",
-		Name:           "test-log-group",
-		Region:         "us-east-1",
-		ARN:            "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
+		Category:     "CloudWatch",
+		SubCategory1: "Logs",
+		Name:         "test-log-group",
+		Region:       "us-east-1",
+		ARN:          "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
 		RawData: map[string]interface{}{
-			"RetentionInDays":         "30",
-			"StoredBytes":             "1024",
-			"MetricFilterCount":       "2",
-			"SubscriptionFilterCount": "1",
-			"KmsKey":                  "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
-			"CreationTime":            "1695600475",
+			"RetentionInDays":     "30",
+			"StoredBytes":         "1024",
+			"MetricFilters":       []string{"filter1", "filter2"},
+			"SubscriptionFilters": []string{"subscription1"},
+			"KmsKey":              "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"CreationTime":        "1695600475",
 		},
 	}
 
 	expectedValues := []string{
-		"CloudWatch", "Logs", "Log Group", "test-log-group", "us-east-1", "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
-		"30", "1024", "2", "1", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "1695600475",
+		"CloudWatch", "Logs", "test-log-group", "us-east-1", "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
+		"30", "1024", "filter1\nfilter2", "subscription1", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "1695600475",
 	}
 
 	for i, column := range columns {

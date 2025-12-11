@@ -10,6 +10,13 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
+const (
+	// statusDisabled represents a disabled status for S3 features.
+	statusDisabled = "Disabled"
+	// statusEnabled represents an enabled status for S3 features.
+	statusEnabled = "Enabled"
+)
+
 // S3Collector collects S3 buckets.
 // It uses dependency injection to manage S3 clients.
 // S3 is a global service - only processes from us-east-1 to avoid duplicates.
@@ -57,18 +64,24 @@ func (*S3Collector) ShouldSort() bool {
 func (*S3Collector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
 		{Header: "Versioning", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Versioning") }},
+		{Header: "BucketABAC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BucketABAC") }},
+		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
+		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
+		{Header: "AccessLogARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogARN") }},
+		{Header: "TransferAcceleration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TransferAcceleration") }},
+		{Header: "ObjectLock", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ObjectLock") }},
+		{Header: "RequesterPays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RequesterPays") }},
+		{Header: "StaticWebsiteHosting", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StaticWebsiteHosting") }},
 		{Header: "PABBlockPublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicACLs") }},
 		{Header: "PABIgnorePublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABIgnorePublicACLs") }},
 		{Header: "PABBlockPublicPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicPolicy") }},
 		{Header: "PABRestrictPublicBuckets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABRestrictPublicBuckets") }},
-		{Header: "AccessLogARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogARN") }},
+		{Header: "ACL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ACL") }},
 		{Header: "LifecycleRules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecycleRules") }},
 		{Header: "CreationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDate") }},
 	}
@@ -99,9 +112,10 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 		if client, ok := regionClients[r]; ok {
 			return client
 		}
-		client := s3.NewFromConfig(aws.Config{
-			Region: r,
-		})
+		// Create new client with same credentials but different region
+		cfg := c.client.Options().Copy()
+		cfg.Region = r
+		client := s3.New(cfg)
 		regionClients[r] = client
 		return client
 	}
@@ -127,6 +141,7 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 
 		// Get encryption configuration.
 		encryption := "None"
+		kmsKey := ""
 		encryptionOut, encErr := svc.GetBucketEncryption(ctx, &s3.GetBucketEncryptionInput{
 			Bucket: bucket.Name,
 		})
@@ -135,6 +150,9 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 			rule := encryptionOut.ServerSideEncryptionConfiguration.Rules[0]
 			if rule.ApplyServerSideEncryptionByDefault != nil {
 				encryption = string(rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+				if rule.ApplyServerSideEncryptionByDefault.KMSMasterKeyID != nil {
+					kmsKey = helpers.StringValue(rule.ApplyServerSideEncryptionByDefault.KMSMasterKeyID)
+				}
 			}
 		}
 
@@ -145,6 +163,17 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 		})
 		if verErr == nil && versioningOut.Status != "" {
 			versioning = string(versioningOut.Status)
+		}
+
+		// Get bucket tagging for ABAC.
+		var bucketABAC []string
+		taggingOut, taggingErr := svc.GetBucketTagging(ctx, &s3.GetBucketTaggingInput{
+			Bucket: bucket.Name,
+		})
+		if taggingErr == nil && taggingOut.TagSet != nil && len(taggingOut.TagSet) > 0 {
+			for _, tag := range taggingOut.TagSet {
+				bucketABAC = append(bucketABAC, fmt.Sprintf("%s=%s", helpers.StringValue(tag.Key), helpers.StringValue(tag.Value)))
+			}
 		}
 
 		// Public Access Block
@@ -163,6 +192,29 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 			pabRestrictPublicBuckets = pab.RestrictPublicBuckets
 		}
 
+		// Get bucket ACL.
+		var acl []string
+		aclOut, aclErr := svc.GetBucketAcl(ctx, &s3.GetBucketAclInput{
+			Bucket: bucket.Name,
+		})
+		if aclErr == nil && aclOut.Grants != nil && len(aclOut.Grants) > 0 {
+			for i := range aclOut.Grants {
+				grant := &aclOut.Grants[i]
+				granteeType := ""
+				granteeID := ""
+				if grant.Grantee != nil {
+					granteeType = string(grant.Grantee.Type)
+					if grant.Grantee.ID != nil {
+						granteeID = helpers.StringValue(grant.Grantee.ID)
+					} else if grant.Grantee.URI != nil {
+						granteeID = helpers.StringValue(grant.Grantee.URI)
+					}
+				}
+				permission := string(grant.Permission)
+				acl = append(acl, fmt.Sprintf("%s:%s=%s", granteeType, granteeID, permission))
+			}
+		}
+
 		// Get access logging configuration.
 		accessLogARN := ""
 		loggingOut, logErr := svc.GetBucketLogging(ctx, &s3.GetBucketLoggingInput{
@@ -173,6 +225,42 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 			if targetBucket != "" {
 				accessLogARN = fmt.Sprintf("arn:aws:s3:::%s", targetBucket)
 			}
+		}
+
+		// Get transfer acceleration configuration.
+		transferAcceleration := statusDisabled
+		accelOut, accelErr := svc.GetBucketAccelerateConfiguration(ctx, &s3.GetBucketAccelerateConfigurationInput{
+			Bucket: bucket.Name,
+		})
+		if accelErr == nil && accelOut.Status != "" {
+			transferAcceleration = string(accelOut.Status)
+		}
+
+		// Get object lock configuration.
+		objectLock := statusDisabled
+		objectLockOut, objectLockErr := svc.GetObjectLockConfiguration(ctx, &s3.GetObjectLockConfigurationInput{
+			Bucket: bucket.Name,
+		})
+		if objectLockErr == nil && objectLockOut.ObjectLockConfiguration != nil && objectLockOut.ObjectLockConfiguration.ObjectLockEnabled != "" {
+			objectLock = string(objectLockOut.ObjectLockConfiguration.ObjectLockEnabled)
+		}
+
+		// Get requester pays configuration.
+		requesterPays := statusDisabled
+		reqPayOut, reqPayErr := svc.GetBucketRequestPayment(ctx, &s3.GetBucketRequestPaymentInput{
+			Bucket: bucket.Name,
+		})
+		if reqPayErr == nil && reqPayOut.Payer != "" {
+			requesterPays = string(reqPayOut.Payer)
+		}
+
+		// Get static website hosting configuration.
+		staticWebsiteHosting := statusDisabled
+		websiteOut, websiteErr := svc.GetBucketWebsite(ctx, &s3.GetBucketWebsiteInput{
+			Bucket: bucket.Name,
+		})
+		if websiteErr == nil && websiteOut.IndexDocument != nil {
+			staticWebsiteHosting = statusEnabled
 		}
 
 		// Get lifecycle configuration.
@@ -192,19 +280,26 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 		}
 
 		r := NewResource(&ResourceInput{
-			Category:    "s3",
-			SubCategory: "Bucket",
-			Name:        bucket.Name,
-			Region:      bucketRegion,
-			ARN:         fmt.Sprintf("arn:aws:s3:::%s", helpers.StringValue(bucket.Name)),
+			Category:     "s3",
+			SubCategory1: "Bucket",
+			Name:         bucket.Name,
+			Region:       bucketRegion,
+			ARN:          fmt.Sprintf("arn:aws:s3:::%s", helpers.StringValue(bucket.Name)),
 			RawData: map[string]any{
-				"Encryption":               encryption,
 				"Versioning":               versioning,
+				"BucketABAC":               bucketABAC,
+				"Encryption":               encryption,
+				"KMSKey":                   kmsKey,
+				"AccessLogARN":             accessLogARN,
+				"TransferAcceleration":     transferAcceleration,
+				"ObjectLock":               objectLock,
+				"RequesterPays":            requesterPays,
+				"StaticWebsiteHosting":     staticWebsiteHosting,
 				"PABBlockPublicACLs":       pabBlockPublicACLs,
 				"PABIgnorePublicACLs":      pabIgnorePublicACLs,
 				"PABBlockPublicPolicy":     pabBlockPublicPolicy,
 				"PABRestrictPublicBuckets": pabRestrictPublicBuckets,
-				"AccessLogARN":             accessLogARN,
+				"ACL":                      acl,
 				"LifecycleRules":           ruleStrings,
 				"CreationDate":             bucket.CreationDate,
 			},

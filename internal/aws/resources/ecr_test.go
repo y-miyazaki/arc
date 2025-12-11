@@ -61,7 +61,7 @@ func TestECRCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"URI", "Mutability", "Encryption", "KMSKey", "ScanOnPush",
 		"LifecyclePolicy", "ImageCount", "CreatedAt",
 	}
@@ -73,11 +73,10 @@ func TestECRCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "ECR",
-		SubCategory:    "Repository",
-		SubSubCategory: "",
-		Name:           "test-repo",
-		Region:         "us-east-1",
+		Category:     "ECR",
+		SubCategory1: "Repository",
+		Name:         "test-repo",
+		Region:       "us-east-1",
 		RawData: map[string]interface{}{
 			"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo",
 			"Mutability":      "MUTABLE",
@@ -91,7 +90,7 @@ func TestECRCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"ECR", "Repository", "", "test-repo", "us-east-1",
+		"ECR", "Repository", "test-repo", "us-east-1",
 		"123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo", "MUTABLE", "KMS", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "true",
 		"Yes", "5", "2023-09-25T01:07:55Z",
 	}

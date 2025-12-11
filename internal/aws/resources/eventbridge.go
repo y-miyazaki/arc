@@ -77,8 +77,7 @@ func (*EventBridgeCollector) ShouldSort() bool {
 func (*EventBridgeCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -142,11 +141,11 @@ func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Re
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "eventbridge",
-				SubCategory: "Rule",
-				Name:        rule.Name,
-				Region:      region,
-				ARN:         rule.Arn,
+				Category:     "eventbridge",
+				SubCategory1: "Rule",
+				Name:         rule.Name,
+				Region:       region,
+				ARN:          rule.Arn,
 				RawData: map[string]any{
 					"Description":             rule.Description,
 					"RoleARN":                 roleARN,
@@ -199,11 +198,11 @@ func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Re
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "eventbridge",
-				SubCategory: "Scheduler",
-				Name:        sch.Name,
-				Region:      region,
-				ARN:         sch.Arn,
+				Category:     "eventbridge",
+				SubCategory1: "Scheduler",
+				Name:         sch.Name,
+				Region:       region,
+				ARN:          sch.Arn,
 				RawData: map[string]any{
 					"Description":             sch.Description,
 					"RoleARN":                 roleARN,

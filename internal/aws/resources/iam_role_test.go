@@ -59,7 +59,7 @@ func TestIAMRoleCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region",
+		"Category", "SubCategory1", "Name", "Region",
 		"ARN", "Path", "AttachedPolicies", "PermissionsBoundary", "CreateDate", "LastUsedDate",
 	}
 
@@ -70,12 +70,11 @@ func TestIAMRoleCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "Security",
-		SubCategory:    "IAM",
-		SubSubCategory: "Role",
-		Name:           "test-role",
-		Region:         "Global",
-		ARN:            "arn:aws:iam::123456789012:role/test-role",
+		Category:     "Security",
+		SubCategory1: "IAM",
+		Name:         "test-role",
+		Region:       "Global",
+		ARN:          "arn:aws:iam::123456789012:role/test-role",
 		RawData: map[string]interface{}{
 			"Path":                "/",
 			"AttachedPolicies":    "ReadOnlyAccess,PowerUserAccess",
@@ -86,7 +85,7 @@ func TestIAMRoleCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Security", "IAM", "Role", "test-role", "Global",
+		"Security", "IAM", "test-role", "Global",
 		"arn:aws:iam::123456789012:role/test-role", "/", "ReadOnlyAccess,PowerUserAccess", "arn:aws:iam::123456789012:policy/boundary", "2023-09-25T01:07:55Z", "2023-09-26T10:30:00Z",
 	}
 

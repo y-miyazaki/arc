@@ -59,8 +59,8 @@ func (*ElastiCacheCollector) ShouldSort() bool {
 func (*ElastiCacheCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -132,11 +132,11 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 			// Since we need to link Cache Clusters to RG, we can process RGs first.
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "elasticache",
-				SubCategory: "ReplicationGroup",
-				Name:        rg.ReplicationGroupId,
-				Region:      region,
-				ARN:         rg.ARN,
+				Category:     "elasticache",
+				SubCategory1: "ReplicationGroup",
+				Name:         rg.ReplicationGroupId,
+				Region:       region,
+				ARN:          rg.ARN,
 				RawData: map[string]any{
 					"Description":             rg.Description,
 					"ReplicationGroupID":      rg.ReplicationGroupId,
@@ -204,12 +204,12 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 					}
 
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:       "elasticache",
-						SubCategory:    "",
-						SubSubCategory: "CacheCluster",
-						Name:           cc.CacheClusterId,
-						Region:         region,
-						ARN:            cc.ARN,
+						Category:     "elasticache",
+						SubCategory1: "",
+						SubCategory2: "CacheCluster",
+						Name:         cc.CacheClusterId,
+						Region:       region,
+						ARN:          cc.ARN,
 						RawData: map[string]any{
 							"ClusterID":                  cc.CacheClusterId,
 							"ReplicationGroupID":         cc.ReplicationGroupId,
@@ -267,11 +267,11 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "elasticache",
-				SubCategory: "CacheCluster",
-				Name:        cc.CacheClusterId,
-				Region:      region,
-				ARN:         cc.ARN,
+				Category:     "elasticache",
+				SubCategory1: "CacheCluster",
+				Name:         cc.CacheClusterId,
+				Region:       region,
+				ARN:          cc.ARN,
 				RawData: map[string]any{
 					"ClusterID":                  cc.CacheClusterId,
 					"ReplicationGroupID":         cc.ReplicationGroupId,

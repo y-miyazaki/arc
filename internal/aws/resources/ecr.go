@@ -60,8 +60,7 @@ func (*ECRCollector) ShouldSort() bool {
 func (*ECRCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "URI", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "URI") }},
@@ -154,11 +153,11 @@ func (c *ECRCollector) Collect(ctx context.Context, region string) ([]Resource, 
 				}
 			}
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "ecr",
-				SubCategory: "Repository",
-				Name:        repo.RepositoryName,
-				Region:      region,
-				ARN:         repo.RepositoryArn,
+				Category:     "ecr",
+				SubCategory1: "Repository",
+				Name:         repo.RepositoryName,
+				Region:       region,
+				ARN:          repo.RepositoryArn,
 				RawData: map[string]any{
 					"URI":             repo.RepositoryUri,
 					"Mutability":      repo.ImageTagMutability,

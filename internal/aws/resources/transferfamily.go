@@ -59,8 +59,7 @@ func (*TransferFamilyCollector) ShouldSort() bool {
 func (*TransferFamilyCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ServerID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ServerID
@@ -98,11 +97,11 @@ func (c *TransferFamilyCollector) Collect(ctx context.Context, region string) ([
 			}
 
 			r := NewResource(&ResourceInput{
-				Category:    "transferfamily",
-				SubCategory: "Server",
-				Name:        server.ServerId,
-				Region:      region,
-				ARN:         server.ServerId, // Using ServerID as ARN
+				Category:     "transferfamily",
+				SubCategory1: "Server",
+				Name:         server.ServerId,
+				Region:       region,
+				ARN:          server.ServerId, // Using ServerID as ARN
 				RawData: map[string]any{
 					"Protocol": protocol,
 					"State":    server.State,

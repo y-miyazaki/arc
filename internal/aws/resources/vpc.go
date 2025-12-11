@@ -64,8 +64,8 @@ func (*VPCCollector) ShouldSort() bool {
 func (*VPCCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string {
 			if r.Name == "" {
 				return "N/A"
@@ -112,10 +112,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		// Add VPC resource
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "vpc",
-			SubCategory: "VPC",
-			Name:        helpers.GetTagValue(vpc.Tags, "Name"),
-			Region:      region,
+			Category:     "vpc",
+			SubCategory1: "VPC",
+			Name:         helpers.GetTagValue(vpc.Tags, "Name"),
+			Region:       region,
 			RawData: map[string]any{
 				"ID":    vpc.VpcId,
 				"CIDR":  vpc.CidrBlock,
@@ -193,10 +193,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			subnetResource := NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: subCategory,
-				Name:           helpers.GetTagValue(subnet.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: subCategory,
+				Name:         helpers.GetTagValue(subnet.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID":   subnet.SubnetId,
 					"CIDR": subnet.CidrBlock,
@@ -219,10 +219,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			rt := &rtOut.RouteTables[j]
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "RouteTable",
-				Name:           helpers.GetTagValue(rt.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "RouteTable",
+				Name:         helpers.GetTagValue(rt.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID": rt.RouteTableId,
 				},
@@ -241,10 +241,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			igw := &igwOut.InternetGateways[j]
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "InternetGateway",
-				Name:           helpers.GetTagValue(igw.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "InternetGateway",
+				Name:         helpers.GetTagValue(igw.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID":    igw.InternetGatewayId,
 					"State": "attached",
@@ -278,10 +278,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "NATGateway",
-				Name:           helpers.GetTagValue(nat.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "NATGateway",
+				Name:         helpers.GetTagValue(nat.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID":       nat.NatGatewayId,
 					"PublicIP": publicIPs,
@@ -320,10 +320,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "NetworkACL",
-				Name:           helpers.GetTagValue(nacl.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "NetworkACL",
+				Name:         helpers.GetTagValue(nacl.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID":       nacl.NetworkAclId,
 					"Settings": entries,
@@ -369,10 +369,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "SecurityGroup",
-				Name:           sg.GroupName,
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "SecurityGroup",
+				Name:         sg.GroupName,
+				Region:       region,
 				RawData: map[string]any{
 					"ID":          sg.GroupId,
 					"Description": sg.Description,
@@ -399,10 +399,10 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:       "vpc",
-				SubSubCategory: "Endpoint",
-				Name:           helpers.GetTagValue(ep.Tags, "Name"),
-				Region:         region,
+				Category:     "vpc",
+				SubCategory2: "Endpoint",
+				Name:         helpers.GetTagValue(ep.Tags, "Name"),
+				Region:       region,
 				RawData: map[string]any{
 					"ID":             ep.VpcEndpointId,
 					"Type":           ep.VpcEndpointType,

@@ -74,7 +74,7 @@ func TestSESCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ARN",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
 		"IdentityType", "VerificationStatus", "DkimStatus", "DkimTokens",
 		"MailFromDomain", "MailFromDomainStatus", "BehaviorOnMXFailure", "DefaultConfigurationSet",
 		"SendingEnabled", "ReputationMetricsEnabled", "TrackingOptions",
@@ -92,12 +92,12 @@ func TestSESCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "email",
-		SubCategory:    "SES",
-		SubSubCategory: "Identity",
-		Name:           "test@example.com",
-		Region:         "us-east-1",
-		ARN:            "",
+		Category:     "email",
+		SubCategory1: "SES",
+		SubCategory2: "Identity",
+		Name:         "test@example.com",
+		Region:       "us-east-1",
+		ARN:          "",
 		RawData: map[string]interface{}{
 			"IdentityType":            "EmailAddress",
 			"VerificationStatus":      "Verified",
@@ -118,8 +118,8 @@ func TestSESCollector_GetColumns(t *testing.T) {
 
 	expectedValues := map[string]string{
 		"Category":                "email",
-		"SubCategory":             "SES",
-		"SubSubCategory":          "Identity",
+		"SubCategory1":            "SES",
+		"SubCategory2":            "Identity",
 		"Name":                    "test@example.com",
 		"Region":                  "us-east-1",
 		"ARN":                     "",
@@ -139,12 +139,12 @@ func TestSESCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with ConfigurationSet sample resource
 	configSetResource := Resource{
-		Category:       "email",
-		SubCategory:    "SES",
-		SubSubCategory: "ConfigurationSet",
-		Name:           "test-config-set",
-		Region:         "us-east-1",
-		ARN:            "",
+		Category:     "email",
+		SubCategory1: "SES",
+		SubCategory2: "ConfigurationSet",
+		Name:         "test-config-set",
+		Region:       "us-east-1",
+		ARN:          "",
 		RawData: map[string]interface{}{
 			"SendingEnabled":           "true",
 			"ReputationMetricsEnabled": "true",
@@ -160,8 +160,8 @@ func TestSESCollector_GetColumns(t *testing.T) {
 
 	configSetExpected := map[string]string{
 		"Category":                 "email",
-		"SubCategory":              "SES",
-		"SubSubCategory":           "ConfigurationSet",
+		"SubCategory1":             "SES",
+		"SubCategory2":             "ConfigurationSet",
 		"Name":                     "test-config-set",
 		"Region":                   "us-east-1",
 		"ARN":                      "",

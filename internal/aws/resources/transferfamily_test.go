@@ -61,7 +61,7 @@ func TestTransferFamilyCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory", "SubSubCategory", "Name", "Region", "ServerID",
+		"Category", "SubCategory1", "Name", "Region", "ServerID",
 		"Protocol", "State",
 	}
 
@@ -72,12 +72,11 @@ func TestTransferFamilyCollector_GetColumns(t *testing.T) {
 
 	// Test Value functions with sample resource
 	sampleResource := Resource{
-		Category:       "transferfamily",
-		SubCategory:    "Server",
-		SubSubCategory: "",
-		Name:           "s-1234567890abcdef0",
-		Region:         "us-east-1",
-		ARN:            "s-1234567890abcdef0",
+		Category:     "transferfamily",
+		SubCategory1: "Server",
+		Name:         "s-1234567890abcdef0",
+		Region:       "us-east-1",
+		ARN:          "s-1234567890abcdef0",
 		RawData: map[string]interface{}{
 			"Protocol": "SFTP",
 			"State":    "ONLINE",
@@ -85,7 +84,7 @@ func TestTransferFamilyCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"transferfamily", "Server", "", "s-1234567890abcdef0", "us-east-1", "s-1234567890abcdef0",
+		"transferfamily", "Server", "s-1234567890abcdef0", "us-east-1", "s-1234567890abcdef0",
 		"SFTP", "ONLINE",
 	}
 

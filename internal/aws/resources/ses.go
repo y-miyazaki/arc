@@ -45,8 +45,8 @@ func (*SESCollector) ShouldSort() bool { return false }
 func (*SESCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -127,11 +127,11 @@ func (c *SESCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 			// Create identity resource
 			identityResource := NewResource(&ResourceInput{
-				Category:    "SES",
-				SubCategory: "Identity",
-				Name:        *identity.IdentityName,
-				Region:      region,
-				ARN:         "",
+				Category:     "SES",
+				SubCategory1: "Identity",
+				Name:         *identity.IdentityName,
+				Region:       region,
+				ARN:          "",
 				RawData: map[string]any{
 					"IdentityType":            identity.IdentityType,
 					"VerificationStatus":      verificationStatus,
@@ -173,12 +173,12 @@ func (c *SESCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 			// Add ConfigurationSet as a resource
 			configSetResource := NewResource(&ResourceInput{
-				Category:       "SES",
-				SubCategory:    "ConfigurationSet",
-				SubSubCategory: "",
-				Name:           configSetName,
-				Region:         region,
-				ARN:            "",
+				Category:     "SES",
+				SubCategory1: "ConfigurationSet",
+				SubCategory2: "",
+				Name:         configSetName,
+				Region:       region,
+				ARN:          "",
 				RawData: map[string]any{
 					"SendingEnabled":           sendingEnabled,
 					"ReputationMetricsEnabled": reputationMetricsEnabled,
@@ -210,12 +210,12 @@ func (c *SESCollector) Collect(ctx context.Context, region string) ([]Resource, 
 						}
 
 						eventDestResource := NewResource(&ResourceInput{
-							Category:       "SES",
-							SubCategory:    "",
-							SubSubCategory: "EventDestination",
-							Name:           dest.Name,
-							Region:         region,
-							ARN:            "",
+							Category:     "SES",
+							SubCategory1: "",
+							SubCategory2: "EventDestination",
+							Name:         dest.Name,
+							Region:       region,
+							ARN:          "",
 							RawData: map[string]any{
 								"ConfigurationSetName": configSetName,
 								"DestinationType":      destinationType,

@@ -60,15 +60,14 @@ func (*CloudWatchLogsCollector) ShouldSort() bool {
 func (*CloudWatchLogsCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
 		{Header: "RetentionInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionInDays") }},
 		{Header: "StoredBytes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StoredBytes") }},
-		{Header: "MetricFilterCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricFilterCount") }},
-		{Header: "SubscriptionFilterCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SubscriptionFilterCount") }},
+		{Header: "MetricFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricFilters") }},
+		{Header: "SubscriptionFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SubscriptionFilters") }},
 		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
 		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
 	}
@@ -105,19 +104,51 @@ func (c *CloudWatchLogsCollector) Collect(ctx context.Context, region string) ([
 				creationTime = t.Format(time.RFC3339)
 			}
 
+			// Get metric filters for this log group
+			var metricFilters []string
+			metricFiltersPaginator := cloudwatchlogs.NewDescribeMetricFiltersPaginator(svc, &cloudwatchlogs.DescribeMetricFiltersInput{
+				LogGroupName: lg.LogGroupName,
+			})
+			for metricFiltersPaginator.HasMorePages() {
+				mfPage, mfErr := metricFiltersPaginator.NextPage(ctx)
+				if mfErr == nil {
+					for j := range mfPage.MetricFilters {
+						if mfPage.MetricFilters[j].FilterName != nil {
+							metricFilters = append(metricFilters, *mfPage.MetricFilters[j].FilterName)
+						}
+					}
+				}
+			}
+
+			// Get subscription filters for this log group
+			var subscriptionFilters []string
+			subscriptionFiltersPaginator := cloudwatchlogs.NewDescribeSubscriptionFiltersPaginator(svc, &cloudwatchlogs.DescribeSubscriptionFiltersInput{
+				LogGroupName: lg.LogGroupName,
+			})
+			for subscriptionFiltersPaginator.HasMorePages() {
+				sfPage, sfErr := subscriptionFiltersPaginator.NextPage(ctx)
+				if sfErr == nil {
+					for j := range sfPage.SubscriptionFilters {
+						if sfPage.SubscriptionFilters[j].FilterName != nil {
+							subscriptionFilters = append(subscriptionFilters, *sfPage.SubscriptionFilters[j].FilterName)
+						}
+					}
+				}
+			}
+
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "cloudwatch",
-				SubCategory: "LogGroup",
-				Name:        lg.LogGroupName,
-				Region:      region,
-				ARN:         lg.Arn,
+				Category:     "cloudwatch",
+				SubCategory1: "LogGroup",
+				Name:         lg.LogGroupName,
+				Region:       region,
+				ARN:          lg.Arn,
 				RawData: map[string]any{
-					"RetentionInDays":   lg.RetentionInDays,
-					"StoredBytes":       lg.StoredBytes,
-					"MetricFilterCount": lg.MetricFilterCount,
-					// "SubscriptionFilterCount": 0, // Not available in v2 SDK LogGroup struct
-					"KmsKey":       helpers.ResolveNameFromMap(lg.KmsKeyId, kmsMap),
-					"CreationTime": creationTime,
+					"RetentionInDays":     lg.RetentionInDays,
+					"StoredBytes":         lg.StoredBytes,
+					"MetricFilters":       metricFilters,
+					"SubscriptionFilters": subscriptionFilters,
+					"KmsKey":              helpers.ResolveNameFromMap(lg.KmsKeyId, kmsMap),
+					"CreationTime":        creationTime,
 				},
 			}))
 		}

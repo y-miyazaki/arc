@@ -41,7 +41,7 @@ const (
 )
 
 var (
-	version = "dev"
+	version = "1.0.4"
 	commit  = "none"
 	date    = "unknown"
 
@@ -231,15 +231,18 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 		if collector.ShouldSort() {
 			sort.Slice(result.resources, func(i, j int) bool {
 				a, b := result.resources[i], result.resources[j]
-				// Sort by: Region, SubCategory, SubSubCategory, Name
+				// Sort by: Region, SubCategory1, SubCategory2, Name
 				if a.Region != b.Region {
 					return a.Region < b.Region
 				}
-				if a.SubCategory != b.SubCategory {
-					return a.SubCategory < b.SubCategory
+				if a.SubCategory1 != b.SubCategory1 {
+					return a.SubCategory1 < b.SubCategory1
 				}
-				if a.SubSubCategory != b.SubSubCategory {
-					return a.SubSubCategory < b.SubSubCategory
+				if a.SubCategory2 != b.SubCategory2 {
+					return a.SubCategory2 < b.SubCategory2
+				}
+				if a.SubCategory3 != b.SubCategory3 {
+					return a.SubCategory3 < b.SubCategory3
 				}
 				return a.Name < b.Name
 			})

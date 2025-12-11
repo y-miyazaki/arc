@@ -60,8 +60,7 @@ func (*EFSCollector) ShouldSort() bool {
 func (*EFSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
@@ -120,11 +119,11 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		for i := range page.FileSystems {
 			fs := &page.FileSystems[i]
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "efs",
-				SubCategory: "FileSystem",
-				Name:        fs.Name,
-				Region:      region,
-				ARN:         fs.FileSystemId,
+				Category:     "efs",
+				SubCategory1: "FileSystem",
+				Name:         fs.Name,
+				Region:       region,
+				ARN:          fs.FileSystemId,
 				RawData: map[string]any{
 					"Type":         "FileSystem",
 					"Performance":  fs.PerformanceMode,
@@ -159,11 +158,11 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 						}
 					}
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:    "efs",
-						SubCategory: "MountTarget",
-						Name:        mt.MountTargetId,
-						Region:      region,
-						ARN:         mt.MountTargetId,
+						Category:     "efs",
+						SubCategory1: "MountTarget",
+						Name:         mt.MountTargetId,
+						Region:       region,
+						ARN:          mt.MountTargetId,
 						RawData: map[string]any{
 							"Type":          "MountTarget",
 							"Subnet":        helpers.ResolveNameFromMap(mt.SubnetId, subnetMap),
@@ -197,11 +196,11 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 					}
 
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:    "efs",
-						SubCategory: "AccessPoint",
-						Name:        ap.Name,
-						Region:      region,
-						ARN:         ap.AccessPointId,
+						Category:     "efs",
+						SubCategory1: "AccessPoint",
+						Name:         ap.Name,
+						Region:       region,
+						ARN:          ap.AccessPointId,
 						RawData: map[string]any{
 							"Type":  "AccessPoint",
 							"Path":  path,

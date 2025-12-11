@@ -57,8 +57,7 @@ func (*BatchCollector) ShouldSort() bool {
 func (*BatchCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
@@ -104,11 +103,11 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "batch",
-				SubCategory: "JobQueue",
-				Name:        jq.JobQueueName,
-				Region:      region,
-				ARN:         jq.JobQueueArn,
+				Category:     "batch",
+				SubCategory1: "JobQueue",
+				Name:         jq.JobQueueName,
+				Region:       region,
+				ARN:          jq.JobQueueArn,
 				RawData: map[string]any{
 					"Priority": jq.Priority,
 					"Status":   jq.State,
@@ -136,11 +135,11 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 			}
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:    "batch",
-				SubCategory: "ComputeEnvironment",
-				Name:        ce.ComputeEnvironmentName,
-				Region:      region,
-				ARN:         ce.ComputeEnvironmentArn,
+				Category:     "batch",
+				SubCategory1: "ComputeEnvironment",
+				Name:         ce.ComputeEnvironmentName,
+				Region:       region,
+				ARN:          ce.ComputeEnvironmentArn,
 				RawData: map[string]any{
 					"Type":   ce.Type,
 					"Status": ce.State,
@@ -224,11 +223,11 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 
 		nameWithRev := fmt.Sprintf("%s:%d", aws.ToString(jd.JobDefinitionName), jd.Revision)
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "batch",
-			SubCategory: "JobDefinition",
-			Name:        nameWithRev,
-			Region:      region,
-			ARN:         jd.JobDefinitionArn,
+			Category:     "batch",
+			SubCategory1: "JobDefinition",
+			Name:         nameWithRev,
+			Region:       region,
+			ARN:          jd.JobDefinitionArn,
 			RawData: map[string]any{
 				"Type":                  jd.Type,
 				"JobRoleArn":            jd.ContainerProperties.JobRoleArn,

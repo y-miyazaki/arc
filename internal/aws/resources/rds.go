@@ -67,8 +67,8 @@ func (*RDSCollector) ShouldSort() bool {
 func (*RDSCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory", Value: func(r Resource) string { return r.SubCategory }},
-		{Header: "SubSubCategory", Value: func(r Resource) string { return r.SubSubCategory }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
@@ -144,10 +144,10 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 		// Add cluster resource
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "rds",
-			SubCategory: "DBCluster",
-			Name:        cluster.DBClusterIdentifier,
-			Region:      region,
+			Category:     "rds",
+			SubCategory1: "DBCluster",
+			Name:         cluster.DBClusterIdentifier,
+			Region:       region,
 			RawData: map[string]any{
 				"ID":                               cluster.DBClusterIdentifier,
 				"Type":                             "DBCluster",
@@ -192,11 +192,11 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 				}
 
 				resources = append(resources, NewResource(&ResourceInput{
-					Category:       "rds",
-					SubCategory:    "",
-					SubSubCategory: "DBInstance",
-					Name:           memberID,
-					Region:         region,
+					Category:     "rds",
+					SubCategory1: "",
+					SubCategory2: "DBInstance",
+					Name:         memberID,
+					Region:       region,
 					RawData: map[string]any{
 						"ID":                               memberID,
 						"Type":                             fmt.Sprintf("DBInstance (%s)", role),
@@ -237,10 +237,10 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		}
 
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:    "rds",
-			SubCategory: "DBInstance",
-			Name:        inst.DBInstanceIdentifier,
-			Region:      region,
+			Category:     "rds",
+			SubCategory1: "DBInstance",
+			Name:         inst.DBInstanceIdentifier,
+			Region:       region,
 			RawData: map[string]any{
 				"ID":                               inst.DBInstanceIdentifier,
 				"Type":                             "DBInstance",
