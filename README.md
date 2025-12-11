@@ -193,7 +193,8 @@ OPTIONS:
 | CloudFront        | `cloudfront`        | Content Delivery Network                                         |
 | CloudWatch Alarms | `cloudwatch_alarms` | Monitoring alarms                                                |
 | CloudWatch Logs   | `cloudwatch_logs`   | Log groups and streams                                           |
-| Cognito           | `cognito`           | User pools and identity pools                                    |
+| Cognito           | `cognito_identity`  | Identity pools                                                   |
+| Cognito           | `cognito_user_pool` | User pools                                                       |
 | DynamoDB          | `dynamodb`          | NoSQL database tables                                            |
 | EC2               | `ec2`               | Virtual machines and related resources                           |
 | ECR               | `ecr`               | Container registry                                               |

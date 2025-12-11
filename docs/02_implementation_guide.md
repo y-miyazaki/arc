@@ -446,7 +446,7 @@ Cognitoのような階層構造を持つリソースでは、以下のように�
 ```go
 // IdentityPool: 最上位リソース
 NewResource(&ResourceInput{
-    Category:     "cognito",
+    Category:     "cognito_identity",
     SubCategory1: "IdentityPool",  // リソースタイプ
     Name:         identityPoolId,   // 実際のID
     Region:       region,
@@ -459,7 +459,7 @@ NewResource(&ResourceInput{
 
 // UserPool: 最上位リソース
 NewResource(&ResourceInput{
-    Category:     "cognito",
+    Category:     "cognito_user_pool",
     SubCategory1: "UserPool",      // リソースタイプ
     Name:         userPoolId,       // 実際のID
     Region:       region,
@@ -473,7 +473,7 @@ NewResource(&ResourceInput{
 
 // Group: UserPoolの子リソース（親子関係の視覚的表現のためSubCategory1は空）
 NewResource(&ResourceInput{
-    Category:     "cognito",
+    Category:     "cognito_user_pool",
     SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
     SubCategory2: "Group",         // 自身のリソースタイプ
     Name:         groupName,        // 実際のグループ名
@@ -489,7 +489,7 @@ NewResource(&ResourceInput{
 
 // User with Group: Groupの子リソース（親子関係の視覚的表現のためSubCategory1は空）
 NewResource(&ResourceInput{
-    Category:     "cognito",
+    Category:     "cognito_user_pool",
     SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
     SubCategory2: "Group",         // 親のリソースタイプ
     SubCategory3: "User",          // 自身のリソースタイプ
@@ -506,7 +506,7 @@ NewResource(&ResourceInput{
 
 // User without Group: UserPoolの直接の子リソース（親子関係の視覚的表現のためSubCategory1は空）
 NewResource(&ResourceInput{
-    Category:     "cognito",
+    Category:     "cognito_user_pool",
     SubCategory1: "",              // 空 = 親リソースにネストしていることを視覚的に表現
     SubCategory2: "User",          // 自身のリソースタイプ
     Name:         username,         // 実際のユーザー名
