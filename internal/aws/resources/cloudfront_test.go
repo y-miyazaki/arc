@@ -54,7 +54,7 @@ func TestCloudFrontCollector_Basic(t *testing.T) {
 		clients: make(map[string]*cloudfront.Client),
 	}
 	assert.Equal(t, "cloudfront", collector.Name())
-	assert.True(t, collector.ShouldSort())
+	assert.False(t, collector.ShouldSort())
 }
 
 func TestCloudFrontCollector_Collect_NoClient(t *testing.T) {
@@ -74,8 +74,17 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ID",
-		"AlternateDomain", "Origin", "PriceClass", "WAF", "Status",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ID", "Description",
+		"AlternateDomain", "Origin",
+		"SSLCertificate", "SecurityPolicy", "SupportedHTTPVersions", "DefaultRootObject",
+		"PriceClass", "WAF", "AccessLogDestinations",
+		"OriginId", "DomainName", "OriginPath", "OriginType",
+		"OriginAccessControlId", "OriginShield", "ConnectionTimeout", "ResponseTimeout",
+		"Config",
+		"PathPattern", "TargetOriginId", "ViewerProtocolPolicy",
+		"CacheConfiguration",
+		"SmoothStreaming", "RealtimeLogConfig", "FunctionAssociations",
+		"Compress", "HTTPErrorCode", "ErrorCachingMinTTL", "CustomizeErrorResponse", "Status",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
@@ -83,29 +92,82 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 		assert.Equal(t, expectedHeaders[i], column.Header)
 	}
 
-	// Test Value functions with sample resource
-	sampleResource := Resource{
+	// Test Value functions with sample Distribution resource
+	sampleDistribution := Resource{
 		Category:     "CloudFront",
 		SubCategory1: "Distribution",
-		Name:         "test-distribution",
-		Region:       "us-east-1",
+		SubCategory2: "",
+		Name:         "test-distribution.cloudfront.net",
+		Region:       "Global",
 		ARN:          "",
 		RawData: map[string]interface{}{
-			"ID":              "E1A2B3C4D5F6G",
-			"AlternateDomain": "cdn.example.com",
-			"Origin":          "example.s3.amazonaws.com",
-			"PriceClass":      "PriceClass_100",
-			"WAF":             "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-waf/12345678-1234-1234-1234-123456789012",
-			"Status":          "Deployed",
+			"ID":                    "E1A2B3C4D5F6G",
+			"Description":           "Test Distribution",
+			"AlternateDomain":       "cdn.example.com",
+			"Origin":                "example.s3.amazonaws.com",
+			"SSLCertificate":        "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
+			"SecurityPolicy":        "TLSv1.2_2021",
+			"SupportedHTTPVersions": "http2and3",
+			"DefaultRootObject":     "index.html",
+			"PriceClass":            "PriceClass_100",
+			"WAF":                   "test-waf",
+			"AccessLogDestinations": "my-logs-bucket.s3.amazonaws.com/cloudfront",
+			"Status":                "Deployed",
 		},
 	}
 
-	expectedValues := []string{
-		"CloudFront", "Distribution", "test-distribution", "us-east-1", "E1A2B3C4D5F6G",
-		"cdn.example.com", "example.s3.amazonaws.com", "PriceClass_100", "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-waf/12345678-1234-1234-1234-123456789012", "Deployed",
+	expectedDistributionValues := []string{
+		"CloudFront", "Distribution", "", "test-distribution.cloudfront.net", "Global", "E1A2B3C4D5F6G", "Test Distribution",
+		"cdn.example.com", "example.s3.amazonaws.com",
+		"arn:aws:acm:us-east-1:123456789012:certificate/test-cert", "TLSv1.2_2021",
+		"http2and3", "index.html",
+		"PriceClass_100", "test-waf",
+		"my-logs-bucket.s3.amazonaws.com/cloudfront",
+		"", "", "", "",
+		"", "", "", "",
+		"",
+		"", "", "",
+		"",
+		"", "", "",
+		"", "", "", "", "Deployed",
 	}
 
 	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+		assert.Equal(t, expectedDistributionValues[i], column.Value(sampleDistribution), "Column %d (%s) value mismatch", i, column.Header)
 	}
+}
+
+func TestCloudFrontCollector_ErrorPageColumns(t *testing.T) {
+	collector := &CloudFrontCollector{}
+	columns := collector.GetColumns()
+
+	// Build a map of header -> index for easy lookup
+	idx := make(map[string]int)
+	for i, c := range columns {
+		idx[c.Header] = i
+	}
+
+	require.Contains(t, idx, "HTTPErrorCode")
+	require.Contains(t, idx, "ErrorCachingMinTTL")
+	require.Contains(t, idx, "CustomizeErrorResponse")
+
+	sampleErrorPage := Resource{
+		Category:     "CloudFront",
+		SubCategory1: "Distribution",
+		SubCategory2: "ErrorPage",
+		Name:         "test-distribution.cloudfront.net",
+		Region:       "Global",
+		RawData: map[string]interface{}{
+			"ID":                     "E1A2B3C4D5F6G",
+			"HTTPErrorCode":          int32(404),
+			"ErrorCachingMinTTL":     int64(60),
+			"CustomizeErrorResponse": "ResponseCode=200 ResponsePagePath=/error.html",
+			"Status":                 "Deployed",
+		},
+	}
+
+	// Verify each ErrorPage-specific column returns the expected string
+	assert.Equal(t, "404", columns[idx["HTTPErrorCode"]].Value(sampleErrorPage))
+	assert.Equal(t, "60", columns[idx["ErrorCachingMinTTL"]].Value(sampleErrorPage))
+	assert.Equal(t, "ResponseCode=200 ResponsePagePath=/error.html", columns[idx["CustomizeErrorResponse"]].Value(sampleErrorPage))
 }
