@@ -59,21 +59,22 @@ func (*CognitoUserPoolCollector) GetColumns() []Column {
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
 		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "SubCategory3", Value: func(r Resource) string { return r.SubCategory3 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
-		{Header: "Groups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Groups") }},
-		{Header: "GroupName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GroupName") }},
-		{Header: "Attributes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Attributes") }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
 		{Header: "MfaConfiguration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MfaConfiguration") }},
 		{Header: "AliasAttributes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AliasAttributes") }},
 		{Header: "UsernameAttributes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "UsernameAttributes") }},
 		{Header: "AutoVerifiedAttributes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AutoVerifiedAttributes") }},
 		{Header: "PasswordPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PasswordPolicy") }},
 		{Header: "LambdaConfig", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LambdaConfig") }},
+		{Header: "Precedence", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Precedence") }},
 		{Header: "RoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleArn") }},
 		{Header: "AttachedUsers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedUsers") }},
+		{Header: "Groups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Groups") }},
+		{Header: "Attributes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Attributes") }},
 		{Header: "CreationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDate") }},
 		{Header: "LastModifiedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModifiedDate") }},
 	}
@@ -117,6 +118,7 @@ func collectUserPools(ctx context.Context, region string, idpSvc *cognitoidentit
 				autoVerified   any
 				passwordPolicy []string
 				lambdaConfig   []string
+				poolARN        *string
 			)
 			if descOut, derr := idpSvc.DescribeUserPool(ctx, &cognitoidentityprovider.DescribeUserPoolInput{UserPoolId: pool.Id}); derr == nil && descOut != nil && descOut.UserPool != nil {
 				up := descOut.UserPool
@@ -124,61 +126,20 @@ func collectUserPools(ctx context.Context, region string, idpSvc *cognitoidentit
 				aliasAttrs = up.AliasAttributes
 				usernameAttrs = up.UsernameAttributes
 				autoVerified = up.AutoVerifiedAttributes
-
+				poolARN = up.Arn
 				if up.Policies != nil && up.Policies.PasswordPolicy != nil { // pragma: allowlist secret
-					pp := up.Policies.PasswordPolicy
-					if pp.MinimumLength != nil {
-						passwordPolicy = append(passwordPolicy, fmt.Sprintf("MinimumLength=%d", *pp.MinimumLength))
-					}
-					if pp.RequireUppercase {
-						passwordPolicy = append(passwordPolicy, "RequireUppercase=true")
-					}
-					if pp.RequireLowercase {
-						passwordPolicy = append(passwordPolicy, "RequireLowercase=true")
-					}
-					if pp.RequireNumbers {
-						passwordPolicy = append(passwordPolicy, "RequireNumbers=true")
-					}
-					if pp.RequireSymbols {
-						passwordPolicy = append(passwordPolicy, "RequireSymbols=true")
-					}
+					passwordPolicy = helpers.StructToKeyValue(up.Policies.PasswordPolicy)
 				}
-
-				if up.LambdaConfig != nil {
-					if up.LambdaConfig.PreSignUp != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("PreSignUp=%s", helpers.StringValue(up.LambdaConfig.PreSignUp)))
-					}
-					if up.LambdaConfig.PostConfirmation != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("PostConfirmation=%s", helpers.StringValue(up.LambdaConfig.PostConfirmation)))
-					}
-					if up.LambdaConfig.CustomMessage != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("CustomMessage=%s", helpers.StringValue(up.LambdaConfig.CustomMessage)))
-					}
-					if up.LambdaConfig.PreAuthentication != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("PreAuthentication=%s", helpers.StringValue(up.LambdaConfig.PreAuthentication)))
-					}
-					if up.LambdaConfig.PostAuthentication != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("PostAuthentication=%s", helpers.StringValue(up.LambdaConfig.PostAuthentication)))
-					}
-					if up.LambdaConfig.DefineAuthChallenge != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("DefineAuthChallenge=%s", helpers.StringValue(up.LambdaConfig.DefineAuthChallenge)))
-					}
-					if up.LambdaConfig.CreateAuthChallenge != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("CreateAuthChallenge=%s", helpers.StringValue(up.LambdaConfig.CreateAuthChallenge)))
-					}
-					if up.LambdaConfig.VerifyAuthChallengeResponse != nil {
-						lambdaConfig = append(lambdaConfig, fmt.Sprintf("VerifyAuthChallengeResponse=%s", helpers.StringValue(up.LambdaConfig.VerifyAuthChallengeResponse)))
-					}
-				}
+				lambdaConfig = helpers.StructToKeyValue(up.LambdaConfig)
 			}
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:     "cognito",
 				SubCategory1: "UserPool",
 				Name:         pool.Name,
 				Region:       region,
-				ARN:          pool.Id,
+				ARN:          poolARN,
 				RawData: map[string]any{
+					"ID":                     pool.Id,
 					"MfaConfiguration":       mfaConfig,
 					"AliasAttributes":        aliasAttrs,
 					"UsernameAttributes":     usernameAttrs,
@@ -235,13 +196,13 @@ func collectUserPools(ctx context.Context, region string, idpSvc *cognitoidentit
 						SubCategory2: "Group",
 						Name:         grp.GroupName,
 						Region:       region,
-						ARN:          grp.GroupName,
 						RawData: map[string]any{
 							"Description":      grp.Description,
 							"Precedence":       grp.Precedence,
 							"RoleArn":          grp.RoleArn,
-							"LastModifiedDate": grp.LastModifiedDate,
 							"AttachedUsers":    attachedUsers,
+							"CreationDate":     grp.CreationDate,
+							"LastModifiedDate": grp.LastModifiedDate,
 						},
 					}))
 				}
@@ -271,70 +232,30 @@ func collectUserPools(ctx context.Context, region string, idpSvc *cognitoidentit
 					for _, a := range u.Attributes {
 						attrPairs = append(attrPairs, fmt.Sprintf("%s=%s", *a.Name, *a.Value))
 					}
+					attrPairs = append(attrPairs, fmt.Sprintf("Enabled=%s", helpers.StringValue(u.Enabled)))
+					for i := range u.MFAOptions {
+						attrPairs = append(attrPairs, fmt.Sprintf("MFAOptions %s=%s", *u.MFAOptions[i].AttributeName, helpers.StringValue(u.MFAOptions[i].DeliveryMedium)))
+					}
+					attrPairs = append(attrPairs, fmt.Sprintf("UserStatus=%s", helpers.StringValue(u.UserStatus)))
+
 					var groupsSlice []string
 					if groups, exists := userGroups[username]; exists {
 						groupsSlice = groups
 					}
 
-					// Derive verification status from attributes
-					verifiedEmail := false
-					verifiedPhone := false
-					for _, a := range u.Attributes {
-						name := helpers.StringValue(a.Name)
-						val := helpers.StringValue(a.Value)
-						if name == "email_verified" && val == "true" {
-							verifiedEmail = true
-						}
-						if name == "phone_number_verified" && val == "true" {
-							verifiedPhone = true
-						}
-					}
-
-					// Include account status and verification flags in Attributes (combine appends)
-					attrPairs = append(attrPairs,
-						fmt.Sprintf("AccountEnabled=%t", u.Enabled),
-						fmt.Sprintf("UserStatus=%s", helpers.StringValue(u.UserStatus)),
-						fmt.Sprintf("VerifiedEmail=%t", verifiedEmail),
-						fmt.Sprintf("VerifiedPhone=%t", verifiedPhone),
-					)
-
-					// Emit a resource for the user for each group (SubCategory1="", SubCategory2="Group", SubCategory3="User")
-					if len(groupsSlice) > 0 {
-						for _, grp := range groupsSlice {
-							resources = append(resources, NewResource(&ResourceInput{
-								Category:     "cognito",
-								SubCategory1: "",
-								SubCategory2: "Group",
-								SubCategory3: "User",
-								Name:         username,
-								Region:       region,
-								ARN:          username,
-								RawData: map[string]any{
-									"Groups":           groupsSlice,
-									"GroupName":        grp,
-									"Attributes":       attrPairs,
-									"CreationDate":     u.UserCreateDate,
-									"LastModifiedDate": u.UserLastModifiedDate,
-								},
-							}))
-						}
-					} else {
-						// No group: SubCategory1="", SubCategory2="User"
-						resources = append(resources, NewResource(&ResourceInput{
-							Category:     "cognito",
-							SubCategory1: "",
-							SubCategory2: "User",
-							Name:         username,
-							Region:       region,
-							ARN:          username,
-							RawData: map[string]any{
-								"Groups":           groupsSlice,
-								"Attributes":       attrPairs,
-								"CreationDate":     u.UserCreateDate,
-								"LastModifiedDate": u.UserLastModifiedDate,
-							},
-						}))
-					}
+					resources = append(resources, NewResource(&ResourceInput{
+						Category:     "cognito",
+						SubCategory1: "",
+						SubCategory2: "User",
+						Name:         username,
+						Region:       region,
+						RawData: map[string]any{
+							"Groups":           groupsSlice,
+							"Attributes":       attrPairs,
+							"CreationDate":     u.UserCreateDate,
+							"LastModifiedDate": u.UserLastModifiedDate,
+						},
+					}))
 				}
 			}
 		}

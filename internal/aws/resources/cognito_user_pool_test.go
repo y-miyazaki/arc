@@ -74,9 +74,9 @@ func TestCognitoUserPoolCollector_GetColumns(t *testing.T) {
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{
-		"Category", "SubCategory1", "SubCategory2", "SubCategory3", "Name", "Region", "ID",
-		"Groups", "GroupName", "Attributes", "MfaConfiguration", "AliasAttributes", "UsernameAttributes", "AutoVerifiedAttributes",
-		"PasswordPolicy", "LambdaConfig", "RoleArn", "AttachedUsers",
+		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN", "ID", "Description",
+		"MfaConfiguration", "AliasAttributes", "UsernameAttributes", "AutoVerifiedAttributes",
+		"PasswordPolicy", "LambdaConfig", "Precedence", "RoleArn", "AttachedUsers", "Groups", "Attributes",
 		"CreationDate", "LastModifiedDate",
 	}
 
@@ -90,21 +90,22 @@ func TestCognitoUserPoolCollector_GetColumns(t *testing.T) {
 		Category:     "Cognito",
 		SubCategory1: "UserPool",
 		SubCategory2: "",
-		SubCategory3: "",
 		Name:         "test-user-pool",
 		Region:       "us-east-1",
-		ARN:          "us-east-1_123456789",
+		ARN:          "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_123456789",
 		RawData: map[string]interface{}{
+			"ID":                     "us-east-1_123456789",
 			"CreationDate":           "2023-09-25T01:07:55Z",
 			"LastModifiedDate":       "2023-09-25T01:07:55Z",
+			"Description":            "Test description",
 			"MfaConfiguration":       "OFF",
 			"AliasAttributes":        []string{"email"},
 			"UsernameAttributes":     []string{"email"},
 			"AutoVerifiedAttributes": []string{"email"},
 			"PasswordPolicy":         []string{"MinimumLength=8", "RequireNumbers=true"},
 			"LambdaConfig":           []string{"PreSignUp=arn:aws:lambda:..."},
+			"Precedence":             "10",
 			"Groups":                 []string{"group1"},
-			"GroupName":              "admin",
 			"Attributes":             []string{"email=test@example.com", "AccountEnabled=true", "UserStatus=CONFIRMED", "VerifiedEmail=true", "VerifiedPhone=false"},
 			"RoleArn":                "arn:aws:iam::123456789012:role/test",
 			"AttachedUsers":          []string{"user1"},
@@ -112,10 +113,12 @@ func TestCognitoUserPoolCollector_GetColumns(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"Cognito", "UserPool", "", "", "test-user-pool", "us-east-1", "us-east-1_123456789",
-		"group1", "admin", "AccountEnabled=true\nemail=test@example.com\nUserStatus=CONFIRMED\nVerifiedEmail=true\nVerifiedPhone=false",
+		"Cognito", "UserPool", "", "test-user-pool", "us-east-1",
+		"arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_123456789", "us-east-1_123456789", "Test description",
 		"OFF", "email", "email", "email", "MinimumLength=8\nRequireNumbers=true", "PreSignUp=arn:aws:lambda:...",
-		"arn:aws:iam::123456789012:role/test", "user1", "2023-09-25T01:07:55Z", "2023-09-25T01:07:55Z",
+		"10", "arn:aws:iam::123456789012:role/test", "user1", "group1",
+		"AccountEnabled=true\nemail=test@example.com\nUserStatus=CONFIRMED\nVerifiedEmail=true\nVerifiedPhone=false",
+		"2023-09-25T01:07:55Z", "2023-09-25T01:07:55Z",
 	}
 
 	for i, column := range columns {

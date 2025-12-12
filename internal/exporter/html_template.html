@@ -4,7 +4,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@@INDEX_TITLE@@ (Two-Pane)</title>
+    <link rel="icon"
+        href="data:image/svg+xml;utf8,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'><rect%20fill='%23ffffff'%20width='64'%20height='64'/><circle%20cx='32'%20cy='32'%20r='30'%20fill='%23FF9900'/><text%20x='32'%20y='42'%20font-family='Arial,Helvetica,sans-serif'%20font-size='36'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'>A</text></svg>" />
+    <title>@@INDEX_TITLE@@</title>
     <!-- DataTables (bundled with jQuery and FixedColumns) - use minified bundle -->
     <link href="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.3.5/fc-5.0.5/datatables.min.css" rel="stylesheet"
         integrity="sha384-z5g7UelsNVivfOmTyEVMYwcn21IjJM7emyaFvT3ZWjrtqpBQaqjU7ta6Z9hxToSq" crossorigin="anonymous">
@@ -542,6 +544,8 @@
                     // use DataTables v2+ `layout` option with feature names / arrays
                     layout: {
                         // put info + pagination on the top row
+                        top1Start: 'search',
+                        top1End: '',
                         topEnd: 'paging',
                         // put page-length selector and pagination at the bottom
                         bottomEnd: 'paging'

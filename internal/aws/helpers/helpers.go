@@ -85,6 +85,56 @@ func GetMapValue(data map[string]any, key string) string {
 	return StringValue(data[key], "")
 }
 
+// StructToKeyValue converts a struct to a slice of "key=value" strings.
+// It uses reflection to iterate through struct fields and formats them as key=value pairs.
+// Only exports public fields and handles *string, string, bool, *bool, int32, *int32, int64, *int64 types.
+func StructToKeyValue(s any) []string {
+	if s == nil {
+		return nil
+	}
+
+	var result []string
+	val := reflect.ValueOf(s)
+
+	// Dereference pointer if needed
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		// Skip unexported fields
+		if !fieldType.IsExported() {
+			continue
+		}
+
+		fieldName := fieldType.Name
+		fieldValue := field.Interface()
+
+		// Use StringValue to handle type conversion with empty string as default
+		valueStr := StringValue(fieldValue, "")
+
+		// Skip empty values and false booleans
+		if valueStr == "" || valueStr == DefaultFalseString {
+			continue
+		}
+
+		result = append(result, fmt.Sprintf("%s=%s", fieldName, valueStr))
+	}
+
+	return result
+}
+
 // NormalizeRawData processes the raw data map and replaces nil or empty string values with "N/A".
 // It uses StringValue to handle various types consistently.
 func NormalizeRawData(data map[string]any) map[string]any {
