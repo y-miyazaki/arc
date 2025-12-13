@@ -23,6 +23,8 @@ const (
 	ARNResourceIndex = 5
 	// ARNServiceIndex is the index of the service in ARN parts.
 	ARNServiceIndex = 2
+	// CloudFrontRegion is the AWS region for CloudFront global service.
+	CloudFrontRegion = "us-east-1"
 	// Colon is the colon character.
 	Colon = ":"
 	// ErrMsgClientRegionFmt is the error message format for missing region client.
@@ -65,11 +67,11 @@ type ARN struct {
 // It holds pre-initialized AWS clients for multiple regions and caches resolved names
 // to minimize API calls during resource collection.
 type NameResolver struct {
-	ec2Clients       map[string]*ec2.Client
-	kmsClients       map[string]*kms.Client
-	cloudfrontClient *cloudfront.Client
-	cache            map[string]map[string]map[string]string // cache[region][resourceType] = map[id]name
-	cloudfrontCache  map[string]string                       // cloudfrontCache[resourceType:id] = name
+	ec2Clients        map[string]*ec2.Client
+	kmsClients        map[string]*kms.Client
+	cloudfrontClients map[string]*cloudfront.Client
+	cache             map[string]map[string]map[string]string // cache[region][resourceType] = map[id]name
+	cloudfrontCache   map[string]string                       // cloudfrontCache[resourceType:id] = name
 }
 
 // NewNameResolver creates a new NameResolver with pre-initialized clients for all regions.
@@ -101,17 +103,23 @@ func NewNameResolver(cfg *aws.Config, regions []string) (*NameResolver, error) {
 		return nil, fmt.Errorf("failed to create KMS clients: %w", err)
 	}
 
-	// CloudFront is a global service, create a single client
-	cloudfrontClient := cloudfront.NewFromConfig(*cfg, func(o *cloudfront.Options) {
-		o.Region = "us-east-1" // CloudFront endpoints are in us-east-1
+	// CloudFront is a global service, create clients for all regions (endpoint is us-east-1)
+	//nolint:unused // region parameter unused as CloudFront is global (us-east-1 only)
+	cloudfrontClients, err := CreateRegionalClients(cfg, regions, func(c *aws.Config, _ string) *cloudfront.Client {
+		return cloudfront.NewFromConfig(*c, func(o *cloudfront.Options) {
+			o.Region = CloudFrontRegion // CloudFront endpoints are in us-east-1
+		})
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CloudFront clients: %w", err)
+	}
 
 	return &NameResolver{
-		ec2Clients:       ec2Clients,
-		kmsClients:       kmsClients,
-		cloudfrontClient: cloudfrontClient,
-		cache:            make(map[string]map[string]map[string]string),
-		cloudfrontCache:  make(map[string]string),
+		ec2Clients:        ec2Clients,
+		kmsClients:        kmsClients,
+		cloudfrontClients: cloudfrontClients,
+		cache:             make(map[string]map[string]map[string]string),
+		cloudfrontCache:   make(map[string]string),
 	}, nil
 }
 
@@ -704,11 +712,13 @@ func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID st
 		return name
 	}
 
-	if nr.cloudfrontClient == nil {
+	// CloudFront is a global service, use us-east-1 client
+	client, ok := nr.cloudfrontClients[CloudFrontRegion]
+	if !ok {
 		return ""
 	}
 
-	output, err := nr.cloudfrontClient.GetOriginAccessControl(ctx, &cloudfront.GetOriginAccessControlInput{
+	output, err := client.GetOriginAccessControl(ctx, &cloudfront.GetOriginAccessControlInput{
 		Id: aws.String(oacID),
 	})
 	if err != nil {
@@ -732,11 +742,13 @@ func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string)
 		return name
 	}
 
-	if nr.cloudfrontClient == nil {
+	// CloudFront is a global service, use us-east-1 client
+	client, ok := nr.cloudfrontClients[CloudFrontRegion]
+	if !ok {
 		return ""
 	}
 
-	output, err := nr.cloudfrontClient.GetCachePolicy(ctx, &cloudfront.GetCachePolicyInput{
+	output, err := client.GetCachePolicy(ctx, &cloudfront.GetCachePolicyInput{
 		Id: aws.String(policyID),
 	})
 	if err != nil {
@@ -760,11 +772,13 @@ func (nr *NameResolver) GetOriginRequestPolicyName(ctx context.Context, policyID
 		return name
 	}
 
-	if nr.cloudfrontClient == nil {
+	// CloudFront is a global service, use us-east-1 client
+	client, ok := nr.cloudfrontClients[CloudFrontRegion]
+	if !ok {
 		return ""
 	}
 
-	output, err := nr.cloudfrontClient.GetOriginRequestPolicy(ctx, &cloudfront.GetOriginRequestPolicyInput{
+	output, err := client.GetOriginRequestPolicy(ctx, &cloudfront.GetOriginRequestPolicyInput{
 		Id: aws.String(policyID),
 	})
 	if err != nil {
@@ -788,11 +802,13 @@ func (nr *NameResolver) GetResponseHeadersPolicyName(ctx context.Context, policy
 		return name
 	}
 
-	if nr.cloudfrontClient == nil {
+	// CloudFront is a global service, use us-east-1 client
+	client, ok := nr.cloudfrontClients[CloudFrontRegion]
+	if !ok {
 		return ""
 	}
 
-	output, err := nr.cloudfrontClient.GetResponseHeadersPolicy(ctx, &cloudfront.GetResponseHeadersPolicyInput{
+	output, err := client.GetResponseHeadersPolicy(ctx, &cloudfront.GetResponseHeadersPolicyInput{
 		Id: aws.String(policyID),
 	})
 	if err != nil {
