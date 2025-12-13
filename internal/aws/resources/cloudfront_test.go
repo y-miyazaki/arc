@@ -45,7 +45,11 @@ func TestNewCloudFrontCollector_EmptyRegions(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
+	// CloudFront is a global service; the collector ensures a client for
+	// the control-plane region (`helpers.CloudFrontRegion`) is present even
+	// when the caller passes an empty regions slice.
+	assert.NotEmpty(t, collector.clients)
+	assert.Contains(t, collector.clients, helpers.CloudFrontRegion)
 	assert.NotNil(t, collector.nameResolver)
 }
 

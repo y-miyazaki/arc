@@ -37,7 +37,28 @@ type CloudFrontCollector struct {
 //   - *CloudFrontCollector: Initialized collector with regional clients and name resolver
 //   - error: Error if client creation fails
 func NewCloudFrontCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*CloudFrontCollector, error) {
-	clients, err := helpers.CreateRegionalClients(cfg, regions, func(c *aws.Config, region string) *cloudfront.Client {
+	// CloudFront is a global service whose control plane endpoints are hosted
+	// in the `us-east-1` region. Ensure the clients map always contains an
+	// entry for the CloudFront control-plane region (`helpers.CloudFrontRegion`),
+	// even if caller did not request it. This guarantees Collect() can always
+	// look up a client for the global CloudFront operations.
+	// Build a de-duplicated regions list and append CloudFrontRegion if missing.
+	regionsForClients := make([]string, 0, len(regions)+1)
+	seen := make(map[string]bool, len(regions)+1)
+	for _, r := range regions {
+		if r == "" {
+			continue
+		}
+		if !seen[r] {
+			seen[r] = true
+			regionsForClients = append(regionsForClients, r)
+		}
+	}
+	if !seen[helpers.CloudFrontRegion] {
+		regionsForClients = append(regionsForClients, helpers.CloudFrontRegion)
+	}
+
+	clients, err := helpers.CreateRegionalClients(cfg, regionsForClients, func(c *aws.Config, region string) *cloudfront.Client {
 		return cloudfront.NewFromConfig(*c, func(o *cloudfront.Options) {
 			o.Region = region
 		})
@@ -204,6 +225,12 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					}
 				}
 
+				// Prepare SecurityPolicy value without using an anonymous function
+				var securityPolicy any
+				if config.ViewerCertificate != nil {
+					securityPolicy = config.ViewerCertificate.MinimumProtocolVersion
+				}
+
 				// Add Distribution resource
 				resources = append(resources, NewResource(&ResourceInput{
 					Category:     "cloudfront",
@@ -212,17 +239,12 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					Name:         dist.DomainName,
 					Region:       "Global",
 					RawData: map[string]any{
-						"ID":              dist.Id,
-						"Description":     config.Comment,
-						"AlternateDomain": aliases,
-						"Origin":          firstOrigin,
-						"SSLCertificate":  sslCert,
-						"SecurityPolicy": func() any {
-							if config.ViewerCertificate != nil {
-								return config.ViewerCertificate.MinimumProtocolVersion
-							}
-							return nil
-						}(),
+						"ID":                    dist.Id,
+						"Description":           config.Comment,
+						"AlternateDomain":       aliases,
+						"Origin":                firstOrigin,
+						"SSLCertificate":        sslCert,
+						"SecurityPolicy":        securityPolicy,
 						"SupportedHTTPVersions": config.HttpVersion,
 						"DefaultRootObject":     config.DefaultRootObject,
 						"PriceClass":            dist.PriceClass,
