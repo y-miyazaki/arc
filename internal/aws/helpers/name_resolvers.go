@@ -697,8 +697,8 @@ func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, e
 }
 
 // GetOriginAccessControlName returns the name for a CloudFront Origin Access Control ID.
-// Results are cached to minimize API calls.
-func (nr *NameResolver) GetOriginAccessControlName(oacID string) string {
+// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
+func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID string) string {
 	cacheKey := "oac:" + oacID
 	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
 		return name
@@ -708,7 +708,6 @@ func (nr *NameResolver) GetOriginAccessControlName(oacID string) string {
 		return ""
 	}
 
-	ctx := context.Background()
 	output, err := nr.cloudfrontClient.GetOriginAccessControl(ctx, &cloudfront.GetOriginAccessControlInput{
 		Id: aws.String(oacID),
 	})
@@ -726,8 +725,8 @@ func (nr *NameResolver) GetOriginAccessControlName(oacID string) string {
 }
 
 // GetCachePolicyName returns the name for a CloudFront Cache Policy ID.
-// Results are cached to minimize API calls.
-func (nr *NameResolver) GetCachePolicyName(policyID string) string {
+// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
+func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "cachepolicy:" + policyID
 	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
 		return name
@@ -737,7 +736,6 @@ func (nr *NameResolver) GetCachePolicyName(policyID string) string {
 		return ""
 	}
 
-	ctx := context.Background()
 	output, err := nr.cloudfrontClient.GetCachePolicy(ctx, &cloudfront.GetCachePolicyInput{
 		Id: aws.String(policyID),
 	})
@@ -755,8 +753,8 @@ func (nr *NameResolver) GetCachePolicyName(policyID string) string {
 }
 
 // GetOriginRequestPolicyName returns the name for a CloudFront Origin Request Policy ID.
-// Results are cached to minimize API calls.
-func (nr *NameResolver) GetOriginRequestPolicyName(policyID string) string {
+// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
+func (nr *NameResolver) GetOriginRequestPolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "originrequestpolicy:" + policyID
 	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
 		return name
@@ -766,7 +764,6 @@ func (nr *NameResolver) GetOriginRequestPolicyName(policyID string) string {
 		return ""
 	}
 
-	ctx := context.Background()
 	output, err := nr.cloudfrontClient.GetOriginRequestPolicy(ctx, &cloudfront.GetOriginRequestPolicyInput{
 		Id: aws.String(policyID),
 	})
@@ -784,8 +781,8 @@ func (nr *NameResolver) GetOriginRequestPolicyName(policyID string) string {
 }
 
 // GetResponseHeadersPolicyName returns the name for a CloudFront Response Headers Policy ID.
-// Results are cached to minimize API calls.
-func (nr *NameResolver) GetResponseHeadersPolicyName(policyID string) string {
+// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
+func (nr *NameResolver) GetResponseHeadersPolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "responseheaderspolicy:" + policyID
 	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
 		return name
@@ -795,7 +792,6 @@ func (nr *NameResolver) GetResponseHeadersPolicyName(policyID string) string {
 		return ""
 	}
 
-	ctx := context.Background()
 	output, err := nr.cloudfrontClient.GetResponseHeadersPolicy(ctx, &cloudfront.GetResponseHeadersPolicyInput{
 		Id: aws.String(policyID),
 	})

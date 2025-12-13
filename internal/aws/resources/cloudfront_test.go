@@ -171,3 +171,105 @@ func TestCloudFrontCollector_ErrorPageColumns(t *testing.T) {
 	assert.Equal(t, "60", columns[idx["ErrorCachingMinTTL"]].Value(sampleErrorPage))
 	assert.Equal(t, "ResponseCode=200 ResponsePagePath=/error.html", columns[idx["CustomizeErrorResponse"]].Value(sampleErrorPage))
 }
+
+func TestCloudFrontCollector_OriginColumns(t *testing.T) {
+	collector := &CloudFrontCollector{}
+	columns := collector.GetColumns()
+
+	// Build a map of header -> index for easy lookup
+	idx := make(map[string]int)
+	for i, c := range columns {
+		idx[c.Header] = i
+	}
+
+	require.Contains(t, idx, "OriginId")
+	require.Contains(t, idx, "DomainName")
+	require.Contains(t, idx, "OriginPath")
+	require.Contains(t, idx, "OriginType")
+	require.Contains(t, idx, "OriginAccessControlId")
+	require.Contains(t, idx, "ConnectionTimeout")
+	require.Contains(t, idx, "ResponseTimeout")
+	require.Contains(t, idx, "Config")
+
+	originType := "s3"
+	originConfig := "OAC=oac-123(oac-name) ConnectionTimeout=10s ResponseTimeout=20s"
+
+	sampleOrigin := Resource{
+		Category:     "CloudFront",
+		SubCategory1: "Distribution",
+		SubCategory2: "Origin",
+		Name:         "test-distribution.cloudfront.net",
+		Region:       "Global",
+		RawData: map[string]interface{}{
+			"ID":                    "E1A2B3C4D5F6G",
+			"OriginId":              "origin-1",
+			"DomainName":            "example.s3.amazonaws.com",
+			"OriginPath":            "/images",
+			"OriginType":            &originType,
+			"OriginAccessControlId": "oac-123 (oac-name)",
+			"ConnectionTimeout":     int32(10),
+			"ResponseTimeout":       int32(20),
+			"Config":                &originConfig,
+		},
+	}
+
+	assert.Equal(t, "origin-1", columns[idx["OriginId"]].Value(sampleOrigin))
+	assert.Equal(t, "example.s3.amazonaws.com", columns[idx["DomainName"]].Value(sampleOrigin))
+	assert.Equal(t, "/images", columns[idx["OriginPath"]].Value(sampleOrigin))
+	assert.Equal(t, "s3", columns[idx["OriginType"]].Value(sampleOrigin))
+	assert.Equal(t, "oac-123 (oac-name)", columns[idx["OriginAccessControlId"]].Value(sampleOrigin))
+	assert.Equal(t, "10", columns[idx["ConnectionTimeout"]].Value(sampleOrigin))
+	assert.Equal(t, "20", columns[idx["ResponseTimeout"]].Value(sampleOrigin))
+	assert.Equal(t, originConfig, columns[idx["Config"]].Value(sampleOrigin))
+}
+
+func TestCloudFrontCollector_BehaviorColumns(t *testing.T) {
+	collector := &CloudFrontCollector{}
+	columns := collector.GetColumns()
+
+	// Build a map of header -> index for easy lookup
+	idx := make(map[string]int)
+	for i, c := range columns {
+		idx[c.Header] = i
+	}
+
+	require.Contains(t, idx, "PathPattern")
+	require.Contains(t, idx, "TargetOriginId")
+	require.Contains(t, idx, "ViewerProtocolPolicy")
+	require.Contains(t, idx, "CacheConfiguration")
+	require.Contains(t, idx, "SmoothStreaming")
+	require.Contains(t, idx, "RealtimeLogConfig")
+	require.Contains(t, idx, "FunctionAssociations")
+	require.Contains(t, idx, "Compress")
+
+	realtimeArn := "arn:aws:logs:us-east-1:1234:realtime/log-config"
+
+	sampleBehavior := Resource{
+		Category:     "CloudFront",
+		SubCategory1: "Distribution",
+		SubCategory2: "Behavior",
+		Name:         "test-distribution.cloudfront.net",
+		Region:       "Global",
+		RawData: map[string]interface{}{
+			"ID":                   "E1A2B3C4D5F6G",
+			"PathPattern":          "/img/*",
+			"TargetOriginId":       "origin-1",
+			"ViewerProtocolPolicy": "redirect-to-https",
+			"CacheConfiguration":   []string{"CachePolicy=cp-1(cp-name)"},
+			"SmoothStreaming":      true,
+			"RealtimeLogConfig":    realtimeArn,
+			"FunctionAssociations": []string{"FuncA=arn:aws:lambda:us-east-1:123:function:fnA"},
+			"Compress":             true,
+		},
+	}
+
+	assert.Equal(t, "/img/*", columns[idx["PathPattern"]].Value(sampleBehavior))
+	assert.Equal(t, "origin-1", columns[idx["TargetOriginId"]].Value(sampleBehavior))
+	assert.Equal(t, "redirect-to-https", columns[idx["ViewerProtocolPolicy"]].Value(sampleBehavior))
+	// CacheConfiguration is a []string; Value will join it with newlines when converted
+	assert.Equal(t, "CachePolicy=cp-1(cp-name)", columns[idx["CacheConfiguration"]].Value(sampleBehavior))
+	assert.Equal(t, "true", columns[idx["SmoothStreaming"]].Value(sampleBehavior))
+	assert.Equal(t, realtimeArn, columns[idx["RealtimeLogConfig"]].Value(sampleBehavior))
+	assert.Equal(t, "FuncA=arn:aws:lambda:us-east-1:123:function:fnA", columns[idx["FunctionAssociations"]].Value(sampleBehavior))
+	assert.Equal(t, "true", columns[idx["Compress"]].Value(sampleBehavior))
+}

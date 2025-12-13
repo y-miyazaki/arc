@@ -258,7 +258,7 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 						if origin.OriginAccessControlId != nil && *origin.OriginAccessControlId != "" {
 							oacID := *origin.OriginAccessControlId
 							// Try to resolve OAC name
-							oacName := c.nameResolver.GetOriginAccessControlName(oacID)
+							oacName := c.nameResolver.GetOriginAccessControlName(ctx, oacID)
 							if oacName != "" {
 								oacDisplay := fmt.Sprintf("%s (%s)", oacID, oacName)
 								originAccessControlID = &oacDisplay
@@ -328,7 +328,7 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					// Cache policies (recommended)
 					if behavior.CachePolicyId != nil {
 						cachePolicyID := *behavior.CachePolicyId
-						if cachePolicyName := c.nameResolver.GetCachePolicyName(cachePolicyID); cachePolicyName != "" {
+						if cachePolicyName := c.nameResolver.GetCachePolicyName(ctx, cachePolicyID); cachePolicyName != "" {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("CachePolicy=%s", cachePolicyName))
 						} else {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("CachePolicy=%s", cachePolicyID))
@@ -336,7 +336,7 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					}
 					if behavior.OriginRequestPolicyId != nil {
 						originReqPolicyID := *behavior.OriginRequestPolicyId
-						if originReqPolicyName := c.nameResolver.GetOriginRequestPolicyName(originReqPolicyID); originReqPolicyName != "" {
+						if originReqPolicyName := c.nameResolver.GetOriginRequestPolicyName(ctx, originReqPolicyID); originReqPolicyName != "" {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("OriginRequestPolicy=%s", originReqPolicyName))
 						} else {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("OriginRequestPolicy=%s", originReqPolicyID))
@@ -344,15 +344,15 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					}
 					if behavior.ResponseHeadersPolicyId != nil {
 						respHeadersPolicyID := *behavior.ResponseHeadersPolicyId
-						if respHeadersPolicyName := c.nameResolver.GetResponseHeadersPolicyName(respHeadersPolicyID); respHeadersPolicyName != "" {
+						if respHeadersPolicyName := c.nameResolver.GetResponseHeadersPolicyName(ctx, respHeadersPolicyID); respHeadersPolicyName != "" {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("ResponseHeadersPolicy=%s", respHeadersPolicyName))
 						} else {
 							cacheConfig = append(cacheConfig, fmt.Sprintf("ResponseHeadersPolicy=%s", respHeadersPolicyID))
 						}
 					}
 
-					// Legacy cache settings (ForwardedValues is deprecated but still supported)
-					if behavior.ForwardedValues != nil { //nolint:staticcheck // ForwardedValues is deprecated but still used in legacy configurations
+					//nolint:staticcheck // Legacy cache settings (ForwardedValues is deprecated but still supported)
+					if behavior.ForwardedValues != nil {
 						// Headers
 						if behavior.ForwardedValues.Headers != nil && len(behavior.ForwardedValues.Headers.Items) > 0 {
 							headersList := strings.Join(behavior.ForwardedValues.Headers.Items, sepComma)
@@ -430,7 +430,7 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 						// Cache policies (recommended)
 						if behavior.CachePolicyId != nil {
 							cachePolicyID := *behavior.CachePolicyId
-							if cachePolicyName := c.nameResolver.GetCachePolicyName(cachePolicyID); cachePolicyName != "" {
+							if cachePolicyName := c.nameResolver.GetCachePolicyName(ctx, cachePolicyID); cachePolicyName != "" {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("CachePolicy=%s(%s)", cachePolicyID, cachePolicyName))
 							} else {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("CachePolicy=%s", cachePolicyID))
@@ -438,7 +438,7 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 						}
 						if behavior.OriginRequestPolicyId != nil {
 							originReqPolicyID := *behavior.OriginRequestPolicyId
-							if originReqPolicyName := c.nameResolver.GetOriginRequestPolicyName(originReqPolicyID); originReqPolicyName != "" {
+							if originReqPolicyName := c.nameResolver.GetOriginRequestPolicyName(ctx, originReqPolicyID); originReqPolicyName != "" {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("OriginRequestPolicy=%s(%s)", originReqPolicyID, originReqPolicyName))
 							} else {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("OriginRequestPolicy=%s", originReqPolicyID))
@@ -446,15 +446,15 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 						}
 						if behavior.ResponseHeadersPolicyId != nil {
 							respHeadersPolicyID := *behavior.ResponseHeadersPolicyId
-							if respHeadersPolicyName := c.nameResolver.GetResponseHeadersPolicyName(respHeadersPolicyID); respHeadersPolicyName != "" {
+							if respHeadersPolicyName := c.nameResolver.GetResponseHeadersPolicyName(ctx, respHeadersPolicyID); respHeadersPolicyName != "" {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("ResponseHeadersPolicy=%s(%s)", respHeadersPolicyID, respHeadersPolicyName))
 							} else {
 								cacheConfig = append(cacheConfig, fmt.Sprintf("ResponseHeadersPolicy=%s", respHeadersPolicyID))
 							}
 						}
 
-						// Legacy cache settings (ForwardedValues is deprecated but still supported)
-						if behavior.ForwardedValues != nil { //nolint:staticcheck // ForwardedValues is deprecated but still used in legacy configurations
+						//nolint:staticcheck // Legacy cache settings (ForwardedValues is deprecated but still supported)
+						if behavior.ForwardedValues != nil {
 							// Headers
 							if behavior.ForwardedValues.Headers != nil && len(behavior.ForwardedValues.Headers.Items) > 0 {
 								headersList := strings.Join(behavior.ForwardedValues.Headers.Items, sepComma)
