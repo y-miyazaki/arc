@@ -41,7 +41,7 @@ const (
 )
 
 var (
-	version = "1.0.4"
+	version = "v1.0.5"
 	commit  = "none"
 	date    = "unknown"
 
