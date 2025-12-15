@@ -29,7 +29,6 @@ on:
 jobs:
   release:
     name: Release ARC
-
     uses: ./.github/workflows/reusable-cd-go-release.yaml
     with:
       component: arc
