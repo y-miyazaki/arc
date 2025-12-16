@@ -12,7 +12,7 @@ on:
       - "feature/**"
     paths:
       - ".github/workflows/ci-push-go.yaml"
-      - ".github/workflows/reusable-ci-go-common.yaml"
+      - ".github/workflows/reusable-ci-go.yaml"
       - "cmd/**"
       - "internal/**"
       - "go.mod"
@@ -29,7 +29,7 @@ on:
       - "feature/**"
     paths:
       - ".github/workflows/ci-push-go.yaml"
-      - ".github/workflows/reusable-ci-go-common.yaml"
+      - ".github/workflows/reusable-ci-go.yaml"
       - "cmd/**"
       - "internal/**"
       - "go.mod"
@@ -39,7 +39,7 @@ on:
 
 jobs:
   go-ci:
-    uses: ./.github/workflows/reusable-ci-go-common.yaml
+    uses: ./.github/workflows/reusable-ci-go.yaml
     with:
       environment: "base"
       component: "arc"

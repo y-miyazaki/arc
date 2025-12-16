@@ -1,7 +1,7 @@
 # Manual workflow for releasing Go application
 # This workflow allows manual release creation by specifying a version.
-# It uses the reusable-cd-go-release workflow to build and publish releases.
-name: cd-release-go
+# It uses the reusable-cd-go-releaser workflow to build and publish releases.
+name: cd-wd-go-releaser
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ on:
 jobs:
   release:
     name: Release ARC
-    uses: ./.github/workflows/reusable-cd-go-release.yaml
+    uses: ./.github/workflows/reusable-cd-go-releaser.yaml
     with:
       component: arc
       create_tag: ${{ inputs.create_tag }}

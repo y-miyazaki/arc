@@ -115,9 +115,6 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 		for i := range page.ReplicationGroups {
 			rg := &page.ReplicationGroups[i]
 
-			// Node Groups - serialize to JSON
-			nodeGroupsJSON, _ := helpers.FormatJSONIndent(rg.NodeGroups)
-
 			// Determine Engine from first member or cache cluster if possible, but RG doesn't have Engine field directly in struct usually?
 			// Actually DescribeReplicationGroups output has Engine field? AWS SDK v2 docs say ReplicationGroup has no Engine field directly,
 			// but it might be inferred. Wait, the bash script extracts '.Engine'.
@@ -141,7 +138,7 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 					"Description":             rg.Description,
 					"ReplicationGroupID":      rg.ReplicationGroupId,
 					"NodeType":                rg.CacheNodeType,
-					"NodeGroups":              nodeGroupsJSON,
+					"NodeGroups":              helpers.FormatJSONIndentOrRaw(rg.NodeGroups),
 					"MultiAZ":                 rg.MultiAZ,
 					"AutomaticFailover":       rg.AutomaticFailover,
 					"AuthTokenEnabled":        rg.AuthTokenEnabled,

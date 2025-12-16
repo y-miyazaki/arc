@@ -110,14 +110,6 @@ func (c *SNSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 			attrs := attrOut.Attributes
 
-			// Format Policy as indented JSON
-			policy := attrs["Policy"]
-			if policyStr := attrs["Policy"]; policyStr != "" { // nolint: revive
-				if formatted, errFormat := helpers.FormatJSONIndent(policyStr); errFormat == nil {
-					policy = formatted
-				}
-			}
-
 			r := NewResource(&ResourceInput{
 				Category:     "sns",
 				SubCategory1: "Topic",
@@ -127,7 +119,7 @@ func (c *SNSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 				RawData: map[string]any{
 					"DisplayName": attrs["DisplayName"],
 					"Owner":       attrs["Owner"],
-					"Policy":      policy,
+					"Policy":      helpers.FormatJSONIndentOrRaw(attrs["Policy"]),
 				},
 			})
 			resources = append(resources, r)

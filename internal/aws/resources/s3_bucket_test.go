@@ -11,7 +11,7 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
-func TestNewS3Collector(t *testing.T) {
+func TestNewS3BucketCollector(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
@@ -21,7 +21,7 @@ func TestNewS3Collector(t *testing.T) {
 	nameResolver, err := helpers.NewNameResolver(cfg, regions)
 	require.NoError(t, err)
 
-	collector, err := NewS3Collector(cfg, regions, nameResolver)
+	collector, err := NewS3BucketCollector(cfg, regions, nameResolver)
 
 	require.NoError(t, err)
 	assert.NotNil(t, collector)
@@ -29,7 +29,7 @@ func TestNewS3Collector(t *testing.T) {
 	assert.NotNil(t, collector.nameResolver)
 }
 
-func TestNewS3Collector_EmptyRegions(t *testing.T) {
+func TestNewS3BucketCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
@@ -38,7 +38,7 @@ func TestNewS3Collector_EmptyRegions(t *testing.T) {
 	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
 	require.NoError(t, err)
 
-	collector, err := NewS3Collector(cfg, []string{}, nameResolver)
+	collector, err := NewS3BucketCollector(cfg, []string{}, nameResolver)
 
 	require.NoError(t, err)
 	assert.NotNil(t, collector)
@@ -46,16 +46,16 @@ func TestNewS3Collector_EmptyRegions(t *testing.T) {
 	assert.NotNil(t, collector.nameResolver)
 }
 
-func TestS3Collector_Basic(t *testing.T) {
-	collector := &S3Collector{
+func TestS3BucketCollector_Basic(t *testing.T) {
+	collector := &S3BucketCollector{
 		client: &s3.Client{},
 	}
-	assert.Equal(t, "s3", collector.Name())
+	assert.Equal(t, "s3_bucket", collector.Name())
 	assert.True(t, collector.ShouldSort())
 }
 
-func TestS3Collector_GetColumns(t *testing.T) {
-	collector := &S3Collector{}
+func TestS3BucketCollector_GetColumns(t *testing.T) {
+	collector := &S3BucketCollector{}
 	columns := collector.GetColumns()
 
 	expectedHeaders := []string{

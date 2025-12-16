@@ -96,12 +96,6 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 		for i := range page.JobQueues {
 			jq := &page.JobQueues[i]
 
-			// JSON representation
-			var jsonData string
-			if jsonDataFormatted, formatErr := helpers.FormatJSONIndent(jq); formatErr == nil {
-				jsonData = jsonDataFormatted
-			}
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:     "batch",
 				SubCategory1: "JobQueue",
@@ -111,7 +105,7 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 				RawData: map[string]any{
 					"Priority": jq.Priority,
 					"Status":   jq.State,
-					"JSON":     jsonData,
+					"JSON":     helpers.FormatJSONIndentOrRaw(jq),
 				},
 			}))
 		}
@@ -128,12 +122,6 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 		for i := range page.ComputeEnvironments {
 			ce := &page.ComputeEnvironments[i]
 
-			// JSON representation
-			var jsonData string
-			if jsonDataFormatted, formatErr := helpers.FormatJSONIndent(ce); formatErr == nil {
-				jsonData = jsonDataFormatted
-			}
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:     "batch",
 				SubCategory1: "ComputeEnvironment",
@@ -143,7 +131,7 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 				RawData: map[string]any{
 					"Type":   ce.Type,
 					"Status": ce.State,
-					"JSON":   jsonData,
+					"JSON":   helpers.FormatJSONIndentOrRaw(ce),
 				},
 			}))
 		}
@@ -177,7 +165,7 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 	}
 
 	for _, jd := range latestRevisions {
-		var image, vcpu, memory, cpuArch, osFamily, timeout, jsonData string
+		var image, vcpu, memory, cpuArch, osFamily, timeout string
 		if jd.ContainerProperties != nil {
 			image = aws.ToString(jd.ContainerProperties.Image)
 
@@ -217,9 +205,6 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 		}
 
 		// JSON representation
-		if jsonDataFormatted, err := helpers.FormatJSONIndent(jd); err == nil {
-			jsonData = jsonDataFormatted
-		}
 
 		nameWithRev := fmt.Sprintf("%s:%d", aws.ToString(jd.JobDefinitionName), jd.Revision)
 		resources = append(resources, NewResource(&ResourceInput{
@@ -238,7 +223,7 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 				"CpuArchitecture":       cpuArch,
 				"OperatingSystemFamily": osFamily,
 				"Timeout":               timeout,
-				"JSON":                  jsonData,
+				"JSON":                  helpers.FormatJSONIndentOrRaw(jd),
 				"Status":                jd.Status,
 			},
 		}))

@@ -285,7 +285,7 @@ ARC uses [GoReleaser](https://goreleaser.com/) with GitHub Actions for automated
    - Review and update CHANGELOG
 
 2. **Trigger the release workflow**
-   - Go to GitHub Actions → "cd-release" workflow
+   - Go to GitHub Actions → "cd-wd-go-releaser" workflow
    - Click "Run workflow"
    - Fill in the parameters:
      - **version**: Release version (e.g., `v1.0.0`, `v1.1.0-beta.1`)

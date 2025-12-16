@@ -17,15 +17,15 @@ const (
 	statusEnabled = "Enabled"
 )
 
-// S3Collector collects S3 buckets.
+// S3BucketCollector collects S3 buckets.
 // It uses dependency injection to manage S3 clients.
 // S3 is a global service - only processes from us-east-1 to avoid duplicates.
-type S3Collector struct {
+type S3BucketCollector struct {
 	client       *s3.Client
 	nameResolver *helpers.NameResolver //nolint:unused // Reserved for future resource name resolution
 }
 
-// NewS3Collector creates a new S3 collector with a global client.
+// NewS3BucketCollector creates a new S3 bucket collector with a global client.
 // This constructor follows the standard naming convention for dependency injection:
 // New<ServiceName>Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*<ServiceName>Collector, error)
 //
@@ -35,33 +35,33 @@ type S3Collector struct {
 //   - nameResolver: Shared NameResolver instance for resource name resolution
 //
 // Returns:
-//   - *S3Collector: Initialized collector with global client and name resolver
+//   - *S3BucketCollector: Initialized collector with global client and name resolver
 //   - error: Error if client creation fails
-func NewS3Collector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*S3Collector, error) {
+func NewS3BucketCollector(cfg *aws.Config, regions []string, nameResolver *helpers.NameResolver) (*S3BucketCollector, error) {
 	// S3 is a global service, create a single client for us-east-1
 	_ = regions // unused parameter
 	client := s3.NewFromConfig(*cfg, func(o *s3.Options) {
 		o.Region = "us-east-1"
 	})
 
-	return &S3Collector{
+	return &S3BucketCollector{
 		client:       client,
 		nameResolver: nameResolver,
 	}, nil
 }
 
 // Name returns the resource name of the collector.
-func (*S3Collector) Name() string {
-	return "s3"
+func (*S3BucketCollector) Name() string {
+	return "s3_bucket"
 }
 
 // ShouldSort returns whether the collected resources should be sorted.
-func (*S3Collector) ShouldSort() bool {
+func (*S3BucketCollector) ShouldSort() bool {
 	return true
 }
 
 // GetColumns returns the CSV columns for the collector.
-func (*S3Collector) GetColumns() []Column {
+func (*S3BucketCollector) GetColumns() []Column {
 	return []Column{
 		{Header: "Category", Value: func(r Resource) string { return r.Category }},
 		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
@@ -89,7 +89,7 @@ func (*S3Collector) GetColumns() []Column {
 
 // Collect collects S3 resources for the specified region.
 // S3 is a global service - only processes from us-east-1 to avoid duplicates.
-func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, error) {
+func (c *S3BucketCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// S3 bucket listing only works from us-east-1 (global service).
 	if region != "us-east-1" {
 		return nil, nil
@@ -272,15 +272,15 @@ func (c *S3Collector) Collect(ctx context.Context, region string) ([]Resource, e
 			// Convert each rule to formatted JSON string to match shell script behavior.
 			// Shell script uses jq '.[]' which outputs each rule as separate JSON object.
 			for i := range lifecycleOut.Rules {
-				ruleJSON, jsonErr := helpers.FormatJSONIndent(lifecycleOut.Rules[i])
-				if jsonErr == nil {
+				ruleJSON := helpers.FormatJSONIndentOrRaw(lifecycleOut.Rules[i])
+				if ruleJSON != "" {
 					ruleStrings = append(ruleStrings, ruleJSON)
 				}
 			}
 		}
 
 		r := NewResource(&ResourceInput{
-			Category:     "s3",
+			Category:     "s3_bucket",
 			SubCategory1: "Bucket",
 			Name:         bucket.Name,
 			Region:       bucketRegion,

@@ -108,12 +108,6 @@ func (c *SQSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 			}
 			attrs := attrOut.Attributes
 
-			// Format RedrivePolicy JSON if present
-			redrivePolicy := attrs["RedrivePolicy"]
-			if formatted, formatErr := helpers.FormatJSONIndent(redrivePolicy); formatErr == nil {
-				redrivePolicy = formatted
-			}
-
 			resources = append(resources, NewResource(&ResourceInput{
 				Category:     "sqs",
 				SubCategory1: "Queue",
@@ -126,7 +120,7 @@ func (c *SQSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 					"MessageRetentionPeriod":        attrs["MessageRetentionPeriod"],
 					"ReceiveMessageWaitTimeSeconds": attrs["ReceiveMessageWaitTimeSeconds"],
 					"VisibilityTimeout":             attrs["VisibilityTimeout"],
-					"RedrivePolicy":                 redrivePolicy,
+					"RedrivePolicy":                 helpers.FormatJSONIndentOrRaw(attrs["RedrivePolicy"]),
 					// Convert timestamps (usually epoch seconds) into *time.Time for readability.
 					// If parsing fails (non-numeric), attempt RFC3339 parse. If both fail, keep raw string.
 					"CreatedTimestamp":      helpers.ParseTimestamp(attrs["CreatedTimestamp"]),

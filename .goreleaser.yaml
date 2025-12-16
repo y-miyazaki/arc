@@ -8,6 +8,13 @@ version: 2
 # Project metadata
 project_name: arc
 
+# Report binary sizes in release notes
+report_sizes: true
+
+# Metadata for reproducible builds
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
 # Build configuration
 builds:
   - id: arc
@@ -44,7 +51,7 @@ builds:
 archives:
   - id: default
     # Archive name template
-    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
     # Formats: Use list format in v2 (tar.gz is the default)
     formats:
       - tar.gz
@@ -57,8 +64,12 @@ archives:
 
 # Checksum configuration
 checksum:
-  name_template: "{{ .ProjectName }}-{{ .Version }}-checksums.txt"
+  name_template: "checksums.txt"
   algorithm: sha256
+
+# SBOM (Software Bill of Materials) generation
+sboms:
+  - artifacts: archive
 
 # Snapshot configuration (for local builds)
 snapshot:
@@ -106,9 +117,13 @@ release:
   # Prerelease detection
   prerelease: auto
   # Release name template
-  name_template: "Release {{.Version}}"
+  name_template: "v{{.Version}}"
+  # Footer template for release notes
+  footer: |
+    **Full Changelog**: https://github.com/y-miyazaki/arc/compare/{{ .PreviousTag }}...{{ .Tag }}
   # Discussion category (optional)
   # discussion_category_name: General
+
 # Announce configuration (optional)
 # announce:
 #   slack:
