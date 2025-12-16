@@ -68,8 +68,8 @@ checksum:
   algorithm: sha256
 
 # SBOM (Software Bill of Materials) generation
-sboms:
-  - artifacts: archive
+# sboms:
+#   - artifacts: archive
 
 # Snapshot configuration (for local builds)
 snapshot:
