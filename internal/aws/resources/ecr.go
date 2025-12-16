@@ -142,14 +142,8 @@ func (c *ECRCollector) Collect(ctx context.Context, region string) ([]Resource, 
 				RepositoryName: repo.RepositoryName,
 			}); lifecycleErr == nil {
 				if lifecycleOut.LifecyclePolicyText != nil {
-					// Parse and format JSON for better readability
-					rawJSON := *lifecycleOut.LifecyclePolicyText
-					if formatted, formatErr := helpers.FormatJSONIndent(rawJSON); formatErr == nil {
-						lifecyclePolicy = formatted
-					} else {
-						// Fallback to raw JSON if formatting fails
-						lifecyclePolicy = rawJSON
-					}
+					// Format as indented JSON if valid, otherwise return raw string
+					lifecyclePolicy = helpers.FormatJSONIndentOrRaw(*lifecycleOut.LifecyclePolicyText)
 				}
 			}
 			resources = append(resources, NewResource(&ResourceInput{

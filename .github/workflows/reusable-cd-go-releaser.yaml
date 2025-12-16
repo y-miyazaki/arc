@@ -1,7 +1,7 @@
 # Reusable workflow for Go application release using GoReleaser
 # This workflow builds cross-platform binaries and creates GitHub releases with GoReleaser.
 # It can be called from other workflows to perform CD operations for Go applications.
-name: reusable-cd-go-release
+name: reusable-cd-go-releaser
 
 on:
   workflow_call:
@@ -11,40 +11,40 @@ on:
         required: true
         type: string
       create_tag:
+        default: true
         description: "Create a git tag if it doesn't exist (true/false)"
         required: false
         type: boolean
-        default: true
       draft:
+        default: false
         description: "Create a draft release (true/false)"
         required: false
         type: boolean
-        default: false
       go_project_path:
+        default: "."
         description: "Path (relative) to the Go project root (directory containing go.mod)"
         required: false
         type: string
-        default: "."
       go_version:
+        default: "1.25.4"
         description: "Go version to use for building"
         required: false
         type: string
-        default: "1.25.4"
       goreleaser_args:
+        default: ""
         description: "Additional GoReleaser arguments (e.g. --skip=validate)"
         required: false
         type: string
-        default: ""
       goreleaser_version:
+        default: "v2.6.1"
         description: "GoReleaser version to use"
         required: false
         type: string
-        default: "v2.6.1"
       prerelease:
+        default: "auto"
         description: "Mark as prerelease (true/false, or 'auto' for automatic detection)"
         required: false
         type: string
-        default: "auto"
       version:
         description: "Release version (e.g. v1.0.0). Must start with 'v'. If empty, uses the tag that triggered the workflow."
         required: false
@@ -66,20 +66,20 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     concurrency:
-      group: go-release-${{ inputs.component }}-${{ inputs.version }}
+      group: go-releaser-${{ inputs.component }}-${{ inputs.version }}
       cancel-in-progress: false
     permissions:
       contents: write # Required for creating releases and tags
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8cf # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0 # Required for GoReleaser to generate changelog
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Validate version format
-        if: inputs.version != ''
+        if: env.VERSION != ''
         run: |
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
             echo "❌ Error: Version must start with 'v' and follow semantic versioning (e.g. v1.0.0, v1.0.0-beta.1)"
@@ -108,10 +108,18 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Configure git auth
+        uses: ./.github/actions/git-auth
+        with:
+          operation: configure
+          token: ${{ github.token }}
+
       - name: Create tag
-        if: steps.check-tag.outputs.tag_exists == 'false' && inputs.create_tag == true
+        if: steps.check-tag.outputs.tag_exists == 'false' && env.CREATE_TAG == 'true'
+        env:
+          TAG_VERSION: ${{ steps.check-tag.outputs.version }}
         run: |
-          VERSION="${{ steps.check-tag.outputs.version }}"
+          VERSION="${TAG_VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$VERSION" -m "Release $VERSION"
@@ -119,16 +127,23 @@ jobs:
           echo "✅ Created and pushed tag: $VERSION"
 
       - name: Fetch tags after creation
-        if: steps.check-tag.outputs.tag_exists == 'false' && inputs.create_tag == true
+        if: steps.check-tag.outputs.tag_exists == 'false' && env.CREATE_TAG == 'true'
         run: |
           git fetch --tags --force
           echo "✅ Tags refreshed"
 
+      - name: Clear git auth
+        if: steps.check-tag.outputs.tag_exists == 'false' && env.CREATE_TAG == 'true'
+        uses: ./.github/actions/git-auth
+        with:
+          operation: clear
+          token: ${{ github.token }}
+
       - name: Setup Go
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
-          go-version: ${{ env.GO_VERSION }}
           cache: false
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Determine Go cache paths
         id: go-cache-paths
@@ -140,18 +155,18 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Go module cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
-          path: ${{ steps.go-cache-paths.outputs.gomodcache }}
           key: ${{ runner.os }}-gomodcache-${{ hashFiles(format('{0}/go.sum', env.GO_PROJECT_PATH)) }}
+          path: ${{ steps.go-cache-paths.outputs.gomodcache }}
           restore-keys: |
             ${{ runner.os }}-gomodcache-
 
       - name: Setup Go build cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
-          path: ${{ steps.go-cache-paths.outputs.gocache }}
           key: ${{ runner.os }}-gocache-${{ hashFiles(format('{0}/**/*.go', env.GO_PROJECT_PATH)) }}
+          path: ${{ steps.go-cache-paths.outputs.gocache }}
           restore-keys: |
             ${{ runner.os }}-gocache-
 
@@ -163,10 +178,12 @@ jobs:
 
       - name: Prepare GoReleaser arguments
         id: goreleaser-args
+        env:
+          TAG_EXISTS: ${{ steps.check-tag.outputs.tag_exists }}
         run: |
           ARGS="release --clean --parallelism 2"
           # Skip git validation if we just created the tag
-          if [ "${{ steps.check-tag.outputs.tag_exists }}" == "false" ] && [ "${{ inputs.create_tag }}" == "true" ]; then
+          if [ "${TAG_EXISTS}" == "false" ] && [ "${CREATE_TAG}" == "true" ]; then
             ARGS="$ARGS --skip=validate"
             echo "⚠️  Skipping git validation for newly created tag"
           fi
@@ -179,9 +196,9 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
+          args: ${{ steps.goreleaser-args.outputs.args }}
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
-          args: ${{ steps.goreleaser-args.outputs.args }}
           workdir: ${{ env.GO_PROJECT_PATH }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -189,33 +206,33 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: goreleaser-dist-${{ inputs.component }}-${{ steps.check-tag.outputs.version }}
+          if-no-files-found: warn
+          name: goreleaser-dist-${{ env.COMPONENT }}-${{ steps.check-tag.outputs.version }}
           path: |
             ${{ env.GO_PROJECT_PATH }}/dist/*.tar.gz
             ${{ env.GO_PROJECT_PATH }}/dist/*.zip
             ${{ env.GO_PROJECT_PATH }}/dist/*checksums.txt
           retention-days: 30
-          if-no-files-found: warn
 
       - name: Summary
         if: always()
         uses: ./.github/actions/summary
         with:
           artifacts: |
-            goreleaser-dist-${{ inputs.component }}-${{ steps.check-tag.outputs.version }}
+            goreleaser-dist-${{ env.COMPONENT }}-${{ steps.check-tag.outputs.version }}
           outputs: |
             version: ${{ steps.check-tag.outputs.version }}
             tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
           params: |
-            component: ${{ inputs.component }}
-            create_tag: ${{ inputs.create_tag }}
-            draft: ${{ inputs.draft }}
-            go_project_path: ${{ inputs.go_project_path }}
-            go_version: ${{ inputs.go_version }}
-            goreleaser_version: ${{ inputs.goreleaser_version }}
-            prerelease: ${{ inputs.prerelease }}
-            version: ${{ inputs.version }}
+            component: ${{ env.COMPONENT }}
+            create_tag: ${{ env.CREATE_TAG }}
+            draft: ${{ env.DRAFT }}
+            go_project_path: ${{ env.GO_PROJECT_PATH }}
+            go_version: ${{ env.GO_VERSION }}
+            goreleaser_version: ${{ env.GORELEASER_VERSION }}
+            prerelease: ${{ env.PRERELEASE }}
+            version: ${{ env.VERSION }}
           status: "${{ job.status }}"
-          title: "${{ format('Go Release: {0} {1}', inputs.component, steps.check-tag.outputs.version) }}"
+          title: "${{ format('Go Release: {0} {1}', env.COMPONENT, steps.check-tag.outputs.version) }}"

@@ -20,8 +20,11 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "04:00"
+    # Cooldown period for dependency updates (SemVer options ignored for github-actions)
+    cooldown:
+      default-days: 7
 
-  # Docker updates
+  # # Docker updates
   # - package-ecosystem: "docker"
   #   commit-message:
   #     prefix: "dependabot(docker)"
@@ -34,22 +37,28 @@ updates:
   #   open-pull-requests-limit: 10
   #   schedule:
   #     interval: "daily"
+  #   # Cooldown period for dependency updates (SemVer not supported for docker)
+  #   cooldown:
+  #     default-days: 7
 
-  # Go modules updates
-  - package-ecosystem: "gomod"
-    commit-message:
-      prefix: "dependabot(gomod)"
-      include: "scope"
-    directories:
-      - "/"
-    labels:
-      - "dependencies"
-      - "go"
-    open-pull-requests-limit: 10
-    schedule:
-      interval: "daily"
+  # # Go modules updates
+  # - package-ecosystem: "gomod"
+  #   commit-message:
+  #     prefix: "dependabot(gomod)"
+  #     include: "scope"
+  #   directories:
+  #     - "/"
+  #   labels:
+  #     - "dependencies"
+  #     - "gomod"
+  #   open-pull-requests-limit: 10
+  #   schedule:
+  #     interval: "daily"
+  #   # Cooldown period for dependency updates
+  #   cooldown:
+  #     default-days: 7
 
-  # Enable version updates for npm
+  # # Enable version updates for npm
   # - package-ecosystem: "npm"
   #   commit-message:
   #     prefix: "dependabot(npm)"
@@ -66,17 +75,23 @@ updates:
   #   open-pull-requests-limit: 10
   #   schedule:
   #     interval: "daily"
+  #   # Cooldown period for dependency updates
+  #   cooldown:
+  #     default-days: 7
 
   # Terraform updates
-  # - package-ecosystem: "terraform"
-  #   commit-message:
-  #     prefix: "dependabot(terraform)"
-  #     include: "scope"
-  #   directories:
-  #     - "/"
-  #   labels:
-  #     - "dependencies"
-  #     - "terraform"
-  #   open-pull-requests-limit: 10
-  #   schedule:
-  #     interval: "daily"
+  - package-ecosystem: "terraform"
+    commit-message:
+      prefix: "dependabot(terraform)"
+      include: "scope"
+    directories:
+      - "/terraform/application"
+    labels:
+      - "dependencies"
+      - "terraform"
+    open-pull-requests-limit: 10
+    schedule:
+      interval: "daily"
+    # Cooldown period for dependency updates (SemVer options ignored for terraform)
+    cooldown:
+      default-days: 7

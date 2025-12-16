@@ -67,6 +67,7 @@ func (*SecretsManagerCollector) GetColumns() []Column {
 		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
 		{Header: "RotationEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RotationEnabled") }},
 		{Header: "RotationLambdaARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RotationLambdaARN") }},
+		{Header: "SecretString", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecretString") }},
 		{Header: "LastAccessedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastAccessedDate") }},
 		{Header: "LastRotatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastRotatedDate") }},
 		{Header: "LastChangedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastChangedDate") }},
@@ -98,6 +99,19 @@ func (c *SecretsManagerCollector) Collect(ctx context.Context, region string) ([
 
 		for i := range page.SecretList {
 			secret := &page.SecretList[i]
+
+			// Get secret value to retrieve SecretString
+			var secretStringValue string
+			if secret.ARN != nil {
+				getValueOutput, getValueErr := svc.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+					SecretId: secret.ARN,
+				})
+				if getValueErr == nil && getValueOutput.SecretString != nil { // pragma: allowlist secret
+					// Format as indented JSON if valid, otherwise return raw string
+					secretStringValue = helpers.FormatJSONIndentOrRaw(*getValueOutput.SecretString)
+				}
+			}
+
 			r := NewResource(&ResourceInput{
 				Category:     "secretsmanager",
 				SubCategory1: "Secret",
@@ -109,6 +123,7 @@ func (c *SecretsManagerCollector) Collect(ctx context.Context, region string) ([
 					"KmsKey":            helpers.ResolveNameFromMap(secret.KmsKeyId, kmsMap),
 					"RotationEnabled":   secret.RotationEnabled,
 					"RotationLambdaARN": secret.RotationLambdaARN,
+					"SecretString":      secretStringValue,
 					"LastAccessedDate":  secret.LastAccessedDate,
 					"LastRotatedDate":   secret.LastRotatedDate,
 					"LastChangedDate":   secret.LastChangedDate,

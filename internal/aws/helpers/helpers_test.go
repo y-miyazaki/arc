@@ -203,6 +203,58 @@ func TestFormatJSONIndent(t *testing.T) {
 	assert.Contains(t, out2, "\"x\": \"y\"")
 }
 
+func TestFormatJSONIndentOrRaw(t *testing.T) {
+	// nil -> empty string
+	assert.Equal(t, "", FormatJSONIndentOrRaw(nil))
+
+	// String inputs
+	t.Run("string inputs", func(t *testing.T) {
+		// empty string -> empty string
+		assert.Equal(t, "", FormatJSONIndentOrRaw(""))
+
+		// valid JSON -> formatted
+		validJSON := `{"key":"value"}`
+		result := FormatJSONIndentOrRaw(validJSON)
+		assert.Contains(t, result, "\"key\": \"value\"")
+		assert.Contains(t, result, "\n") // should be indented
+
+		// invalid JSON (plain text) -> returns original
+		plainText := "just a plain text value"
+		assert.Equal(t, plainText, FormatJSONIndentOrRaw(plainText))
+
+		// another plain text example
+		apiToken := "73I=n=fRT9?aeAstq%TOY9DJsXvf"
+		assert.Equal(t, apiToken, FormatJSONIndentOrRaw(apiToken))
+	})
+
+	// Struct inputs
+	t.Run("struct inputs", func(t *testing.T) {
+		// struct -> formatted JSON
+		type testStruct struct {
+			Name  string `json:"name"`
+			Count int    `json:"count"`
+		}
+		s := testStruct{Name: "test", Count: 42}
+		result := FormatJSONIndentOrRaw(s)
+		assert.Contains(t, result, "\"name\": \"test\"")
+		assert.Contains(t, result, "\"count\": 42")
+		assert.Contains(t, result, "\n") // should be indented
+
+		// slice -> formatted JSON
+		slice := []string{"a", "b", "c"}
+		sliceResult := FormatJSONIndentOrRaw(slice)
+		assert.Contains(t, sliceResult, "\"a\"")
+		assert.Contains(t, sliceResult, "\"b\"")
+		assert.Contains(t, sliceResult, "\"c\"")
+
+		// map -> formatted JSON
+		m := map[string]int{"x": 1, "y": 2}
+		mapResult := FormatJSONIndentOrRaw(m)
+		assert.Contains(t, mapResult, "\"x\": 1")
+		assert.Contains(t, mapResult, "\"y\": 2")
+	})
+}
+
 func TestParseTimestamp_EpochAndRFC3339(t *testing.T) {
 	// epoch seconds -> *time.Time
 	v := ParseTimestamp("1695601655")

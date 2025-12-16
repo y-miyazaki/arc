@@ -3,7 +3,7 @@
 ![Go](https://custom-icon-badges.herokuapp.com/badge/Go-00ADD8.svg?logo=Go&logoColor=white)
 ![Apache-2.0](https://custom-icon-badges.herokuapp.com/badge/license-Apache%202.0-8BB80A.svg?logo=law&logoColor=white)
 [![GitHub release](https://img.shields.io/github/release/y-miyazaki/arc.svg)](https://github.com/y-miyazaki/arc/releases/latest)
-[![cd-release-go](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml/badge.svg?branch=main)](https://github.com/y-miyazaki/arc/actions/workflows/cd-release-go.yaml)
+[![cd-wd-go-releaser](https://github.com/y-miyazaki/arc/actions/workflows/cd-wd-go-releaser.yaml/badge.svg?branch=main)](https://github.com/y-miyazaki/arc/actions/workflows/cd-wd-go-releaser.yaml)
 
 ARC is a command-line tool for collecting AWS resource information across multiple services and regions, generating organized CSV files and an interactive HTML viewer for easy browsing.
 
@@ -56,7 +56,7 @@ go install github.com/y-miyazaki/arc/cmd/arc@latest
 
 ### Using Release tar.gz
 
-You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.5 release; replace `v1.0.5` with the version you need.
+You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.6 release; replace `v1.0.6` with the version you need.
 
 Available platforms:
 - Linux (amd64, arm64)
@@ -66,13 +66,13 @@ Available platforms:
 Linux (AMD64) example:
 
 ```bash
-VERSION=v1.0.5 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.6 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 macOS (ARM64) example:
 
 ```bash
-VERSION=v1.0.5 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.6 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 Notes:
@@ -150,7 +150,7 @@ arc
 arc --html
 
 # Collect specific categories
-arc -c ec2,s3,lambda
+arc -c ec2,s3_bucket,lambda
 
 # Collect from specific region
 arc -r us-east-1
@@ -210,7 +210,7 @@ OPTIONS:
 | Lambda            | `lambda`            | Serverless functions                                             |
 | RDS               | `rds`               | Relational databases                                             |
 | Redshift          | `redshift`          | Data warehouse                                                   |
-| S3                | `s3`                | Object storage                                                   |
+| S3 Bucket         | `s3_bucket`         | Object storage                                                   |
 | Secrets Manager   | `secretsmanager`    | Secrets storage                                                  |
 | SNS               | `sns`               | Simple Notification Service                                      |
 | SES               | `ses`               | Simple Email Service (identities, configuration sets, templates) |
@@ -231,14 +231,14 @@ output/
     └── resources/
         ├── all.csv         # Combined CSV of all resources
         ├── ec2.csv         # EC2-specific resources
-        ├── s3.csv          # S3-specific resources
+        ├── s3_bucket.csv   # S3 Bucket-specific resources
         └── ...             # Other service-specific CSVs
 ```
 
 ### CSV Format
 
 Each CSV file contains:
-- **Category** - Service category (e.g., ec2, s3)
+- **Category** - Service category (e.g., ec2, s3_bucket)
 - **SubCategory** - Resource type (e.g., Instance, Bucket)
 - **SubSubCategory** - Additional classification
 - **Name** - Resource name
@@ -330,7 +330,7 @@ The tool requires read-only permissions for the services you want to collect. Ex
 
 ```bash
 # Only EC2 instances and S3 buckets
-arc -c ec2,s3
+arc -c ec2,s3_bucket
 
 # Only Lambda functions with HTML output
 arc -c lambda --html

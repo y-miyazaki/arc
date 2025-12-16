@@ -205,7 +205,7 @@ func InitializeCollectors(cfg *aws.Config, regions []string) error {
 S3は複数リージョンで存在しますが、クライアントはバケットリージョンに基づいて動的に作成する必要があります。コンストラクタでは基本設定のみ保持:
 
 ```go
-type S3Collector struct {
+type S3BucketCollector struct {
     cfg *aws.Config  // 基本設定を保持、動的にクライアント作成
 }
 ```
@@ -502,7 +502,7 @@ func (_c *MyCollector) GetColumns() []Column {
 
 ```go
 // SubCategory2/3を使用しないコレクターの例
-func (*S3Collector) GetColumns() []Column {
+func (*S3BucketCollector) GetColumns() []Column {
     return []Column{
         {Header: "Category", Value: func(r Resource) string { return r.Category }},
         {Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},

@@ -150,7 +150,7 @@ func InitializeCollectors(cfg *aws.Config, regions []string) error {
 	RegisterConstructor("rds", NewRDSCollector)
 	RegisterConstructor("redshift", NewRedshiftCollector)
 	RegisterConstructor("route53", NewRoute53Collector)
-	RegisterConstructor("s3", NewS3Collector)
+	RegisterConstructor("s3_bucket", NewS3BucketCollector)
 	RegisterConstructor("secretsmanager", NewSecretsManagerCollector)
 	RegisterConstructor("ses", NewSESCollector)
 	RegisterConstructor("sns", NewSNSCollector)

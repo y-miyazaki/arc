@@ -30,6 +30,8 @@ on:
         default: "0.10.0"
 
 env:
+  FAIL_LEVEL: ${{ inputs.fail_level }}
+  FAIL_ON_WARNINGS: ${{ inputs.fail_on_warnings }}
   SCRIPT_PATH: ${{ inputs.script_path }}
 
 jobs:
@@ -45,7 +47,14 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
+
+      - name: Configure git auth
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/git-auth
+        with:
+          operation: configure
+          token: ${{ github.token }}
 
       - name: Setup Expand file list
         id: file-list
@@ -87,9 +96,9 @@ jobs:
         uses: reviewdog/action-shfmt@d8f080930b9be5847b4f97e9f4122b81a82aaeac # v1.0.4
         with:
           filter_mode: file
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           level: error
-          reviewdog_flags: "-fail-level=${{ inputs.fail_level }} -reporter=github-pr-review"
+          reviewdog_flags: "-fail-level=${{ env.FAIL_LEVEL }} -reporter=github-pr-review"
           shfmt_flags: "-l -i 4 -ci -bn -sr"
           workdir: "."
 
@@ -98,9 +107,9 @@ jobs:
         uses: reviewdog/action-shfmt@d8f080930b9be5847b4f97e9f4122b81a82aaeac # v1.0.4
         with:
           filter_mode: file
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           level: error
-          reviewdog_flags: "-fail-level=${{ inputs.fail_level }} -reporter=github-check"
+          reviewdog_flags: "-fail-level=${{ env.FAIL_LEVEL }} -reporter=github-check"
           shfmt_flags: "-l -s -i 4 -ci -bn -sr"
           workdir: "."
 
@@ -108,9 +117,9 @@ jobs:
         if: steps.file-list.outputs.no_files == 'false' && github.event_name == 'pull_request'
         uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1.32.0
         with:
-          fail_level: ${{ inputs.fail_level }}
+          fail_level: ${{ env.FAIL_LEVEL }}
           filter_mode: file
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           level: error
           path: ${{ steps.file-list.outputs.files_list }}
           reporter: github-pr-review
@@ -120,9 +129,9 @@ jobs:
         if: steps.file-list.outputs.no_files == 'false' && github.event_name != 'pull_request'
         uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1.32.0
         with:
-          fail_level: ${{ inputs.fail_level }}
+          fail_level: ${{ env.FAIL_LEVEL }}
           filter_mode: file
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           level: error
           path: ${{ steps.file-list.outputs.files_list }}
           reporter: github-check
@@ -153,8 +162,6 @@ jobs:
 
       - name: Exec Permissions check
         if: steps.file-list.outputs.no_files == 'false'
-        env:
-          FAIL_ON_WARNINGS: ${{ inputs.fail_on_warnings }}
         run: |
           # shellcheck disable=SC2086
           set -euo pipefail
@@ -176,6 +183,13 @@ jobs:
             fi
           fi
 
+      - name: Clear git auth
+        if: always() && github.event_name == 'pull_request'
+        uses: ./.github/actions/git-auth
+        with:
+          operation: clear
+          token: ${{ github.token }}
+
       - name: Summary
         if: always()
         uses: ./.github/actions/summary
@@ -185,7 +199,7 @@ jobs:
           outputs: |
             files_list: ${{ steps.file-list.outputs.files_list }}
           params: |
-            script_path: ${{ inputs.script_path }}
-            fail_level: ${{ inputs.fail_level }}
+            script_path: ${{ env.SCRIPT_PATH }}
+            fail_level: ${{ env.FAIL_LEVEL }}
           status: "${{ job.status }}"
           title: "Shell Script Lint"

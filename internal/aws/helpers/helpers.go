@@ -75,6 +75,33 @@ func FormatJSONIndent(val any) (string, error) {
 	return string(jsonBytes), nil
 }
 
+// FormatJSONIndentOrRaw attempts to format a value as indented JSON.
+// For string inputs: if the string is valid JSON, returns formatted JSON; otherwise returns original string.
+// For struct/slice inputs: marshals to indented JSON; if marshaling fails, returns empty string.
+// This is useful when you want to display JSON nicely but also handle plain text values.
+func FormatJSONIndentOrRaw(val any) string {
+	if val == nil {
+		return ""
+	}
+	// Handle string input specially - return original if not valid JSON
+	if str, ok := val.(string); ok {
+		if str == "" {
+			return ""
+		}
+		formatted, err := FormatJSONIndent(str)
+		if err != nil {
+			return str // Return original string if not valid JSON
+		}
+		return formatted
+	}
+	// For non-string types (structs, slices, etc.), marshal to JSON
+	formatted, err := FormatJSONIndent(val)
+	if err != nil {
+		return "" // Return empty string if marshaling fails
+	}
+	return formatted
+}
+
 // GetMapValue retrieves a string value for a key from a raw-data map.
 // It uses StringValue with an empty default so absent or nil values
 // return the empty string (preferred for CSV output).
