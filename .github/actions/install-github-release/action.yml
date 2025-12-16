@@ -38,11 +38,13 @@ runs:
     - name: Set up binary directory
       id: setup
       shell: bash
-      run: |
-        BIN_DIR="${{ runner.temp }}/bin"
+      env:
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: | # zizmor: ignore[github-env]
+        BIN_DIR="${RUNNER_TEMP}/bin"
         mkdir -p "${BIN_DIR}"
-        echo "${BIN_DIR}" >> $GITHUB_PATH
-        echo "bin_dir=${BIN_DIR}" >> $GITHUB_OUTPUT
+        echo "${BIN_DIR}" >> "$GITHUB_PATH"
+        echo "bin_dir=${BIN_DIR}" >> "$GITHUB_OUTPUT"
 
     - name: Cache binary
       id: cache
@@ -57,14 +59,13 @@ runs:
       env:
         ASSET_PATTERN: ${{ inputs.asset_pattern }}
         BINARY: ${{ inputs.binary }}
+        BIN_DIR: ${{ steps.setup.outputs.bin_dir }}
         CHECKSUM: ${{ inputs.checksum }}
         REPO: ${{ inputs.repo }}
         STRIP_V_PREFIX: ${{ inputs.strip_v_prefix }}
         VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
-
-        BIN_DIR="${{ steps.setup.outputs.bin_dir }}"
 
         # Prepare version for asset name (optionally strip 'v' prefix)
         ASSET_VERSION="${VERSION}"
@@ -125,7 +126,9 @@ runs:
 
     - name: Verify installation
       shell: bash
+      env:
+        BINARY: ${{ inputs.binary }}
       run: |
-        echo "Verifying ${{ inputs.binary }} is available..."
-        which ${{ inputs.binary }}
-        ${{ inputs.binary }} --version || true
+        echo "Verifying ${BINARY} is available..."
+        which "${BINARY}"
+        "${BINARY}" --version || true
