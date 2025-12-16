@@ -82,8 +82,8 @@ github.com/aws/aws-sdk-go-v2/service/redshift v1.61.4 h1:nufUF8qOf5sSKOBJsTu5sYJ
 github.com/aws/aws-sdk-go-v2/service/redshift v1.61.4/go.mod h1:QYBdUiwwcvJ6/RomRedCV4hEKkvI1GtJ35d9Qv2r2Zs=
 github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0 h1:80pDB3Tpmb2RCSZORrK9/3iQxsd+w6vSzVqpT1FGiwE=
 github.com/aws/aws-sdk-go-v2/service/route53 v1.62.0/go.mod h1:6EZUGGNLPLh5Unt30uEoA+KQcByERfXIkax9qrc80nA=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2 h1:U3ygWUhCpiSPYSHOrRhb3gOl9T5Y3kB8k5Vjs//57bE=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2/go.mod h1:79S2BdqCJpScXZA2y+cpZuocWsjGjJINyXnOsf5DTz8=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.94.0 h1:SWTxh/EcUCDVqi/0s26V6pVUq0BBG7kx0tDTmF/hCgA=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.94.0/go.mod h1:79S2BdqCJpScXZA2y+cpZuocWsjGjJINyXnOsf5DTz8=
 github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.17 h1:9LLSq5pa8qOpHUgNnc7xQUDekF4nEm1O6kjqM2Rg27k=
 github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.17/go.mod h1:FK2cImaVm+b8I3sEqrtsp2tA9AT8ZXTV96I3rMLSRfs=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.40.5 h1:DXmk1ozFqI9/UYWzFBQybTEkPvHEP5TR3ImMxzQ5tv0=
