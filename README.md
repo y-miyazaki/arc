@@ -66,13 +66,13 @@ Available platforms:
 Linux (AMD64) example:
 
 ```bash
-VERSION=v1.0.6 && ASSET=arc-${VERSION}-linux-amd64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.6 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-linux-amd64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 macOS (ARM64) example:
 
 ```bash
-VERSION=v1.0.6 && ASSET=arc-${VERSION}-darwin-arm64.tar.gz && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/${ASSET} | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.6 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-darwin-arm64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 Notes:
