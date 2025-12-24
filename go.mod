@@ -42,7 +42,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.68.4
-	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.70.4
+	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.70.5
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
 )
