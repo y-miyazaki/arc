@@ -13,6 +13,7 @@ import (
 	kmstypes "github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Test helpers/mocks for pagination tests follow.
@@ -675,9 +676,539 @@ func (m *MockKMSClientWithError) ListAliases(ctx context.Context, params *kms.Li
 	return &kms.ListAliasesOutput{}, nil
 }
 
-func TestGetAllKMSKeys_ListKeysError(t *testing.T) {
+func TestStructToKeyValue(t *testing.T) {
+	// Test struct with various field types
+	type testStruct struct {
+		Name       string
+		Count      int
+		Enabled    bool
+		PtrStr     *string
+		PtrInt     *int32
+		PtrBool    *bool
+		unexported string // should be ignored
+	}
+
+	// Test with populated values
+	name := "test-name"
+	count := int32(42)
+	enabled := true
+	s := testStruct{
+		Name:       "test-name",
+		Count:      100,
+		Enabled:    true,
+		PtrStr:     &name,
+		PtrInt:     &count,
+		PtrBool:    &enabled,
+		unexported: "ignored",
+	}
+
+	result := StructToKeyValue(s)
+	expected := []string{"Name=test-name", "Count=100", "Enabled=true", "PtrStr=test-name", "PtrInt=42", "PtrBool=true"}
+	assert.Equal(t, expected, result)
+
+	// Test with nil pointers and empty values
+	var nilStr *string
+	var nilInt *int32
+	var nilBool *bool
+	s2 := testStruct{
+		Name:    "",    // empty string should be skipped
+		Count:   0,     // zero value should be included
+		Enabled: false, // false boolean should be skipped
+		PtrStr:  nilStr,
+		PtrInt:  nilInt,
+		PtrBool: nilBool,
+	}
+
+	result2 := StructToKeyValue(s2)
+	expected2 := []string{"Count=0"}
+	assert.Equal(t, expected2, result2)
+
+	// Test with nil struct
+	var nilStruct *testStruct
+	result3 := StructToKeyValue(nilStruct)
+	assert.Nil(t, result3)
+
+	// Test with non-struct
+	result4 := StructToKeyValue("not a struct")
+	assert.Nil(t, result4)
+}
+
+func TestParseARN(t *testing.T) {
+	tests := []struct {
+		name        string
+		arnStr      string
+		expected    *ARN
+		expectError bool
+	}{
+		{
+			name:   "valid ARN with resource type",
+			arnStr: "arn:aws:s3:::my-bucket",
+			expected: &ARN{
+				Partition:    "aws",
+				Service:      "s3",
+				Region:       "",
+				AccountID:    "",
+				ResourceType: "",
+				Resource:     "my-bucket",
+			},
+			expectError: false,
+		},
+		{
+			name:   "valid ARN with resource type and name",
+			arnStr: "arn:aws:iam::123456789012:user/john",
+			expected: &ARN{
+				Partition:    "aws",
+				Service:      "iam",
+				Region:       "",
+				AccountID:    "123456789012",
+				ResourceType: "user",
+				Resource:     "john",
+			},
+			expectError: false,
+		},
+		{
+			name:   "valid ARN with colon separator",
+			arnStr: "arn:aws:rds:us-east-1:123456789012:db:mysql-instance",
+			expected: &ARN{
+				Partition:    "aws",
+				Service:      "rds",
+				Region:       "us-east-1",
+				AccountID:    "123456789012",
+				ResourceType: "db",
+				Resource:     "mysql-instance",
+			},
+			expectError: false,
+		},
+		{
+			name:        "invalid ARN - not starting with arn:",
+			arnStr:      "invalid-arn",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "invalid ARN - too few parts",
+			arnStr:      "arn:aws:s3",
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ParseARN(tt.arnStr)
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestGetResourceNameFromARN(t *testing.T) {
+	tests := []struct {
+		name     string
+		arnStr   string
+		expected string
+	}{
+		{
+			name:     "valid ARN",
+			arnStr:   "arn:aws:s3:::my-bucket",
+			expected: "my-bucket",
+		},
+		{
+			name:     "valid ARN with resource type",
+			arnStr:   "arn:aws:iam::123456789012:user/john",
+			expected: "john",
+		},
+		{
+			name:     "invalid ARN",
+			arnStr:   "invalid-arn",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetResourceNameFromARN(tt.arnStr)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetTagValue(t *testing.T) {
+	tags := []ec2types.Tag{
+		{Key: aws.String("Name"), Value: aws.String("my-instance")},
+		{Key: aws.String("Environment"), Value: aws.String("prod")},
+		{Key: aws.String("name"), Value: aws.String("lowercase-name")}, // case insensitive
+	}
+
+	tests := []struct {
+		name     string
+		key      string
+		expected string
+	}{
+		{
+			name:     "exact match",
+			key:      "Name",
+			expected: "my-instance",
+		},
+		{
+			name:     "case insensitive match",
+			key:      "NAME",
+			expected: "my-instance",
+		},
+		{
+			name:     "lowercase key",
+			key:      "name",
+			expected: "my-instance", // should match first occurrence
+		},
+		{
+			name:     "non-existent key",
+			key:      "Missing",
+			expected: "",
+		},
+		{
+			name:     "empty tags",
+			key:      "Name",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "empty tags" {
+				result := GetTagValue([]ec2types.Tag{}, tt.key)
+				assert.Equal(t, tt.expected, result)
+			} else {
+				result := GetTagValue(tags, tt.key)
+				assert.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestResolveNameFromMap(t *testing.T) {
+	nameMap := map[string]string{
+		"i-123": "web-server",
+		"i-456": "db-server",
+	}
+
+	tests := []struct {
+		name     string
+		id       *string
+		expected string
+	}{
+		{
+			name:     "found in map",
+			id:       aws.String("i-123"),
+			expected: "web-server",
+		},
+		{
+			name:     "not found in map",
+			id:       aws.String("i-999"),
+			expected: "i-999",
+		},
+		{
+			name:     "nil id",
+			id:       nil,
+			expected: "N/A",
+		},
+		{
+			name:     "empty id",
+			id:       aws.String(""),
+			expected: "N/A",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ResolveNameFromMap(tt.id, nameMap)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestResolveNamesFromMap(t *testing.T) {
+	nameMap := map[string]string{
+		"i-123": "web-server",
+		"i-456": "db-server",
+	}
+
+	tests := []struct {
+		name     string
+		ids      []*string
+		expected []string
+	}{
+		{
+			name:     "multiple ids",
+			ids:      []*string{aws.String("i-123"), aws.String("i-456")},
+			expected: []string{"web-server", "db-server"},
+		},
+		{
+			name:     "mixed found and not found",
+			ids:      []*string{aws.String("i-123"), aws.String("i-999")},
+			expected: []string{"web-server", "i-999"},
+		},
+		{
+			name:     "empty slice",
+			ids:      []*string{},
+			expected: []string{},
+		},
+		{
+			name:     "nil slice",
+			ids:      nil,
+			expected: []string{},
+		},
+		{
+			name:     "with nil elements",
+			ids:      []*string{aws.String("i-123"), nil, aws.String("i-456")},
+			expected: []string{"web-server", "N/A", "db-server"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ResolveNamesFromMap(tt.ids, nameMap)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestNewNameResolver(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1", "eu-west-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+
+	require.NoError(t, err)
+	assert.NotNil(t, resolver)
+	assert.Len(t, resolver.ec2Clients, 2)
+	assert.Contains(t, resolver.ec2Clients, "us-east-1")
+	assert.Contains(t, resolver.ec2Clients, "eu-west-1")
+	assert.Len(t, resolver.kmsClients, 2)
+	assert.Contains(t, resolver.kmsClients, "us-east-1")
+	assert.Contains(t, resolver.kmsClients, "eu-west-1")
+	assert.Len(t, resolver.cloudfrontClients, 2)
+	assert.Contains(t, resolver.cloudfrontClients, "us-east-1")
+	assert.Contains(t, resolver.cloudfrontClients, "eu-west-1")
+	assert.NotNil(t, resolver.cache)
+	assert.NotNil(t, resolver.cloudfrontCache)
+}
+
+func TestNewNameResolver_EmptyRegions(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+
+	resolver, err := NewNameResolver(cfg, []string{})
+
+	require.NoError(t, err)
+	assert.NotNil(t, resolver)
+	assert.Empty(t, resolver.ec2Clients)
+	assert.Empty(t, resolver.kmsClients)
+	assert.Empty(t, resolver.cloudfrontClients)
+	assert.NotNil(t, resolver.cache)
+	assert.NotNil(t, resolver.cloudfrontCache)
+}
+
+func TestGetAllKMSKeysWithClient(t *testing.T) {
+	mockClient := &ManualKMSClient{}
+
+	// Mock data
+	mockClient.keys = []*kms.ListKeysOutput{
+		{
+			Keys: []kmstypes.KeyListEntry{
+				{KeyId: aws.String("key-1"), KeyArn: aws.String("arn:aws:kms:us-east-1:123456789012:key/key-1")},
+				{KeyId: aws.String("key-2"), KeyArn: aws.String("arn:aws:kms:us-east-1:123456789012:key/key-2")},
+			},
+		},
+	}
+	mockClient.aliases = []*kms.ListAliasesOutput{
+		{
+			Aliases: []kmstypes.AliasListEntry{
+				{AliasName: aws.String("alias/test-key-1"), TargetKeyId: aws.String("key-1")},
+				{AliasName: aws.String("alias/test-key-2"), TargetKeyId: aws.String("key-2")},
+			},
+		},
+	}
+
 	ctx := context.Background()
-	mk := &MockKMSClientWithError{}
-	_, err := getAllKMSKeysWithClient(ctx, mk)
+	result, err := getAllKMSKeysWithClient(ctx, mockClient)
+
+	require.NoError(t, err)
+	assert.Contains(t, result, "key-1")
+	assert.Equal(t, "alias/test-key-1", result["key-1"])
+	assert.Contains(t, result, "arn:aws:kms:us-east-1:123456789012:key/key-1")
+	assert.Equal(t, "alias/test-key-1", result["arn:aws:kms:us-east-1:123456789012:key/key-1"])
+}
+
+func TestNameResolver_GetAllImages(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	// This will fail in test environment due to no AWS credentials, but we can test the error handling
+	_, err = resolver.GetAllImages(ctx, "us-east-1")
+	assert.Error(t, err) // Expected to fail without credentials
+}
+
+func TestNameResolver_GetAllNetworkInterfaces(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllNetworkInterfaces(ctx, "us-east-1")
 	assert.Error(t, err)
+}
+
+func TestNameResolver_GetAllSecurityGroups(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllSecurityGroups(ctx, "us-east-1")
+	assert.Error(t, err)
+}
+
+func TestNameResolver_GetAllSnapshots(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllSnapshots(ctx, "us-east-1")
+	assert.Error(t, err)
+}
+
+func TestNameResolver_GetAllSubnets(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllSubnets(ctx, "us-east-1")
+	assert.Error(t, err)
+}
+
+func TestNameResolver_GetAllVolumes(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllVolumes(ctx, "us-east-1")
+	assert.Error(t, err)
+}
+
+func TestNameResolver_GetAllVPCs(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	_, err = resolver.GetAllVPCs(ctx, "us-east-1")
+	assert.Error(t, err)
+}
+
+func TestNameResolver_GetOriginAccessControlName(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	name := resolver.GetOriginAccessControlName(ctx, "test-oac-id")
+	assert.Empty(t, name) // Should return empty string without CloudFront client
+}
+
+func TestNameResolver_GetCachePolicyName(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	name := resolver.GetCachePolicyName(ctx, "test-policy-id")
+	assert.Empty(t, name) // Should return empty string without CloudFront client
+}
+
+func TestNameResolver_GetOriginRequestPolicyName(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	name := resolver.GetOriginRequestPolicyName(ctx, "test-policy-id")
+	assert.Empty(t, name) // Should return empty string without CloudFront client
+}
+
+func TestNameResolver_GetResponseHeadersPolicyName(t *testing.T) {
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+	regions := []string{"us-east-1"}
+
+	resolver, err := NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+
+	name := resolver.GetResponseHeadersPolicyName(ctx, "test-policy-id")
+	assert.Empty(t, name) // Should return empty string without CloudFront client
 }

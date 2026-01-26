@@ -7,10 +7,26 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
+
+// MockACMClient is a testify/mock-based mock for ACM client.
+type MockACMClient struct {
+	mock.Mock
+}
+
+func (m *MockACMClient) ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*acm.ListCertificatesOutput), args.Error(1)
+}
+
+func (m *MockACMClient) DescribeCertificate(ctx context.Context, params *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
+	args := m.Called(ctx, params)
+	return args.Get(0).(*acm.DescribeCertificateOutput), args.Error(1)
+}
 
 func TestNewACMCollector(t *testing.T) {
 	cfg := &aws.Config{
