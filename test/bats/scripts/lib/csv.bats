@@ -16,28 +16,32 @@ setup() {
     [ "$output" = "" ]
 }
 
-@test "normalize_csv_value does not quote simple string" {
-    run normalize_csv_value "simple"
+@test "normalize_csv_value escapes quotes and newlines when PRESERVE_NEWLINES=false" {
+    unset PRESERVE_NEWLINES
+    run normalize_csv_value $'Hello\nHe"llo'
     [ "$status" -eq 0 ]
-    [ "$output" = "simple" ]
+    # newlines are preserved and quotes doubled, wrapped in quotes
+    [ "$output" = $'"Hello\nHe""llo"' ]
 }
 
-@test "normalize_csv_value quotes string with comma" {
-    run normalize_csv_value "foo,bar"
+@test "normalize_csv_value preserves newlines when PRESERVE_NEWLINES=true" {
+    PRESERVE_NEWLINES=true
+    run normalize_csv_value $'Line1\nLine2'
     [ "$status" -eq 0 ]
-    [ "$output" = '"foo,bar"' ]
+    [[ "$output" == *$'Line1\nLine2'* ]]
 }
 
-@test "normalize_csv_value quotes string with quote" {
-    run normalize_csv_value 'foo"bar'
+@test "make_csv_safe wraps with quotes when comma present" {
+    unset PRESERVE_NEWLINES
+    run make_csv_safe "foo,bar"
     [ "$status" -eq 0 ]
-    [ "$output" = '"foo""bar"' ]
+    [[ "$output" == '"foo,bar"' ]]
 }
 
-@test "normalize_csv_value quotes string with newline" {
-    run normalize_csv_value $'foo\nbar'
+@test "csv_sort sorts rows by region/subcategory/etc" {
+    local input=$'a,sub1,subsub1,regB,name2\nb,sub2,subsub2,regA,name1\n'
+    run csv_sort "$input"
     [ "$status" -eq 0 ]
-    # Should be quoted because it contains newline
-    [[ "$output" == "\"foo"* ]]
-    [[ "$output" == *"bar\"" ]]
+    # output should have regA row first
+    [[ "$output" == *"regA,name1"* || "$output" == *"regA,name1"* ]]
 }

@@ -77,6 +77,65 @@ func TestCollectResources_AggregatesErrors(t *testing.T) {
 	}
 }
 
+func TestCollectResources_MultipleRegions(t *testing.T) {
+	// Test that resources from multiple regions are merged correctly
+	collectors := map[string]resources.Collector{
+		"test": &fakeCollector{name: "test", shouldError: false},
+	}
+
+	l := logger.NewDefault()
+	l.SetOutput(io.Discard)
+
+	ctx := context.Background()
+	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 2})
+
+	if len(failed) != 0 {
+		t.Fatalf("expected no failures, got %v", failed)
+	}
+
+	result, ok := results["test"]
+	if !ok {
+		t.Fatalf("expected test results, got %v", results)
+	}
+
+	// Should have resources from both regions
+	if len(result.resources) != 2 {
+		t.Fatalf("expected 2 resources (one per region), got %d", len(result.resources))
+	}
+
+	// Check that both regions are represented
+	regions := make(map[string]bool)
+	for _, res := range result.resources {
+		regions[res.Region] = true
+	}
+
+	if !regions["r1"] || !regions["r2"] {
+		t.Errorf("expected resources from both r1 and r2, got regions %v", regions)
+	}
+}
+
+func TestCollectResources_ConcurrencyLimit(t *testing.T) {
+	// Test that concurrency limit is respected (hard to test directly, but we can verify it doesn't panic)
+	collectors := map[string]resources.Collector{
+		"test1": &fakeCollector{name: "test1", shouldError: false},
+		"test2": &fakeCollector{name: "test2", shouldError: false},
+	}
+
+	l := logger.NewDefault()
+	l.SetOutput(io.Discard)
+
+	ctx := context.Background()
+	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 1})
+
+	if len(failed) != 0 {
+		t.Fatalf("expected no failures, got %v", failed)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 successful results, got %d", len(results))
+	}
+}
+
 func TestConstants(t *testing.T) {
 	// Test that constants are defined and have expected values
 	if LogKeyCategory != "category" {
@@ -93,49 +152,61 @@ func TestConstants(t *testing.T) {
 	}
 }
 
-func TestErrInvalidOutputPath(t *testing.T) {
-	// Test that the error variable is defined
-	expectedMsg := "invalid output file path"
-	if ErrInvalidOutputPath == nil {
-		t.Errorf("ErrInvalidOutputPath should not be nil")
+func TestCollectionError_Error(t *testing.T) {
+	ce := CollectionError{
+		Details: map[string]error{
+			"category1": fmt.Errorf("error1"),
+			"category2": fmt.Errorf("error2"),
+		},
 	}
-	if ErrInvalidOutputPath.Error() != expectedMsg {
-		t.Errorf("Expected ErrInvalidOutputPath message to be %q, got %q", expectedMsg, ErrInvalidOutputPath.Error())
+
+	expected := "failed to collect one or more categories"
+	if ce.Error() != expected {
+		t.Errorf("CollectionError.Error() = %v, want %v", ce.Error(), expected)
 	}
 }
 
 func TestInitializeRegions(t *testing.T) {
 	tests := []struct {
-		name     string
-		region   string
-		expected []string
+		name        string
+		userRegions []string
+		expected    []string
 	}{
 		{
-			name:     "global service region",
-			region:   GlobalServiceRegion,
-			expected: []string{GlobalServiceRegion},
+			name:        "single region same as global",
+			userRegions: []string{"us-east-1"},
+			expected:    []string{"us-east-1"},
 		},
 		{
-			name:     "non-global region",
-			region:   "us-west-2",
-			expected: []string{"us-west-2", GlobalServiceRegion},
+			name:        "multiple regions including global",
+			userRegions: []string{"us-east-1", "us-west-2"},
+			expected:    []string{"us-east-1", "us-west-2"},
 		},
 		{
-			name:     "eu region",
-			region:   "eu-west-1",
-			expected: []string{"eu-west-1", GlobalServiceRegion},
+			name:        "global service region already included",
+			userRegions: []string{"us-east-1", GlobalServiceRegion},
+			expected:    []string{"us-east-1"},
 		},
 		{
-			name:     "empty region",
-			region:   "",
-			expected: []string{GlobalServiceRegion},
+			name:        "empty regions",
+			userRegions: []string{},
+			expected:    []string{GlobalServiceRegion},
+		},
+		{
+			name:        "empty string in regions",
+			userRegions: []string{"us-east-1", "", "us-west-2"},
+			expected:    []string{"us-east-1", "us-west-2"},
+		},
+		{
+			name:        "different region",
+			userRegions: []string{"eu-west-1"},
+			expected:    []string{"eu-west-1", GlobalServiceRegion},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// initializeRegions expects a slice of regions; pass single-element slice
-			result := initializeRegions([]string{tt.region})
+			result := initializeRegions(tt.userRegions)
 			if len(result) != len(tt.expected) {
 				t.Errorf("initializeRegions() length = %v, want %v", len(result), len(tt.expected))
 				return
@@ -143,6 +214,60 @@ func TestInitializeRegions(t *testing.T) {
 			for i, region := range result {
 				if region != tt.expected[i] {
 					t.Errorf("initializeRegions()[%d] = %v, want %v", i, region, tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParseCommaList(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: nil,
+		},
+		{
+			name:     "single value",
+			input:    "us-east-1",
+			expected: []string{"us-east-1"},
+		},
+		{
+			name:     "multiple values",
+			input:    "us-east-1,us-west-2,eu-west-1",
+			expected: []string{"us-east-1", "us-west-2", "eu-west-1"},
+		},
+		{
+			name:     "values with spaces",
+			input:    "us-east-1, us-west-2 , eu-west-1",
+			expected: []string{"us-east-1", "us-west-2", "eu-west-1"},
+		},
+		{
+			name:     "empty values",
+			input:    "us-east-1,,us-west-2,",
+			expected: []string{"us-east-1", "us-west-2"},
+		},
+		{
+			name:     "duplicates",
+			input:    "us-east-1,us-west-2,us-east-1",
+			expected: []string{"us-east-1", "us-west-2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseCommaList(tt.input)
+			if len(result) != len(tt.expected) {
+				t.Errorf("parseCommaList() length = %v, want %v", len(result), len(tt.expected))
+				return
+			}
+			for i, region := range result {
+				if region != tt.expected[i] {
+					t.Errorf("parseCommaList()[%d] = %v, want %v", i, region, tt.expected[i])
 				}
 			}
 		})

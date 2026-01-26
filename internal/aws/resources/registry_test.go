@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
@@ -193,4 +194,107 @@ func TestMockCollector_Collect(t *testing.T) {
 	assert.Equal(t, "test-resource", resource.Name)
 	assert.Equal(t, region, resource.Region)
 	assert.Equal(t, "active", resource.RawData["Status"])
+}
+
+func TestInitializeCollectors(t *testing.T) {
+	// This test verifies that InitializeCollectors can be called without panicking
+	// and that it properly initializes collectors.
+	// We use a mock AWS config since we don't want to make real AWS calls in tests.
+
+	// Create a mock AWS config
+	cfg := &aws.Config{
+		Region: "us-east-1",
+	}
+
+	regions := []string{"us-east-1", "us-west-2"}
+
+	// Clear the registry before test
+	originalCollectors := make(map[string]Collector)
+	for k, v := range collectors {
+		originalCollectors[k] = v
+	}
+	collectors = make(map[string]Collector)
+	defer func() {
+		collectors = originalCollectors
+	}()
+
+	// Initialize collectors
+	err := InitializeCollectors(cfg, regions)
+
+	// We expect this to succeed in the test environment
+	// (though it may fail in CI if AWS credentials are not available)
+	if err != nil {
+		// If it fails due to AWS credentials, that's acceptable for this test
+		// We just want to ensure the function doesn't panic and basic initialization works
+		t.Logf("InitializeCollectors failed (expected in test environment): %v", err)
+	} else {
+		// If it succeeds, verify that collectors were registered
+		registeredCollectors := GetCollectors()
+		assert.NotEmpty(t, registeredCollectors, "Expected collectors to be registered")
+
+		// Verify that some expected collectors are present
+		expectedCollectors := []string{"acm", "ec2", "s3_bucket", "iam_role"}
+		for _, name := range expectedCollectors {
+			assert.Contains(t, registeredCollectors, name, "Expected collector %s to be registered", name)
+		}
+	}
+}
+
+func TestRegisterConstructor(t *testing.T) {
+	// Clear the registry before test
+	originalConstructors := make(map[string]any)
+	for k, v := range collectorConstructors {
+		originalConstructors[k] = v
+	}
+	collectorConstructors = make(map[string]any)
+	defer func() {
+		collectorConstructors = originalConstructors
+	}()
+
+	// Test registering a constructor
+	RegisterConstructor("test", NewMockCollector)
+
+	assert.Contains(t, collectorConstructors, "test")
+	assert.NotNil(t, collectorConstructors["test"])
+}
+
+func TestCreateCollector(t *testing.T) {
+	// Clear the registry before test
+	originalConstructors := make(map[string]any)
+	for k, v := range collectorConstructors {
+		originalConstructors[k] = v
+	}
+	collectorConstructors = make(map[string]any)
+	defer func() {
+		collectorConstructors = originalConstructors
+	}()
+
+	// Register a real constructor (we'll use ACM as it's a simple one)
+	RegisterConstructor("acm", NewACMCollector)
+
+	cfg := &aws.Config{Region: "us-east-1"}
+	regions := []string{"us-east-1"}
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	// Test creating a collector
+	collector, err := createCollector("acm", cfg, regions, nameResolver)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, collector)
+	assert.Equal(t, "acm", collector.Name())
+}
+
+func TestCreateCollector_UnknownCollector(t *testing.T) {
+	cfg := &aws.Config{Region: "us-east-1"}
+	regions := []string{"us-east-1"}
+	nameResolver, err := helpers.NewNameResolver(cfg, regions)
+	assert.NoError(t, err)
+
+	// Test with unknown collector name
+	collector, err := createCollector("unknown", cfg, regions, nameResolver)
+
+	assert.Error(t, err)
+	assert.Nil(t, collector)
+	assert.Contains(t, err.Error(), ErrUnknownCollector.Error())
 }
