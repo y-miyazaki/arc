@@ -14,8 +14,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.19 h1:AWeJMk33GTBf6J20XJ
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.19/go.mod h1:+GWrYoaAsV7/4pNHpwh1kiNLXkKaSoppxQq9lbH8Ejw=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.5 h1:clHU5fm//kWS1C2HgtgWxfQbFbx4b6rx+5jzhgX9HrI=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.5/go.mod h1:O3h0IK87yXci+kg6flUKzJnWeziQUKciKrLjcatSNcY=
-github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.19 h1:3Y4oma5TiV7tT9wa8zRcdoXwZkGz9Q/wxbEUK7cMuAM=
-github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.19/go.mod h1:V1K+TeJVD5JOk3D9e5tsX2KUdL7BlB+FV6cBhdobN8c=
+github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.20 h1:qi3e/dmpdONhj1RyIZdi6DKKpDXS5Lb8ftr3p7cyHJc=
+github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.20/go.mod h1:V1K+TeJVD5JOk3D9e5tsX2KUdL7BlB+FV6cBhdobN8c=
 github.com/aws/aws-sdk-go-v2/service/acm v1.37.21 h1:AUceKJhgt+FOwImMUPbOHKLpe5O9a8N/RtC+tLQ+sxc=
 github.com/aws/aws-sdk-go-v2/service/acm v1.37.21/go.mod h1:kkbySLpdZk0UNdU23rBaef7IfuSRy0/jEM84BGCcvKM=
 github.com/aws/aws-sdk-go-v2/service/apigateway v1.38.6 h1:dzd86UudvxJ1c6z/o+hHh7ZhkoBrh81XYz/M11zwQYI=
@@ -88,8 +88,8 @@ github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.20 h1:26W5e36ZRz5Lxag1aVBxv
 github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.20/go.mod h1:AMTsHJXHLunksmCqfzhBLLyUQcxZ7d5zPbSIr839kbg=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.3 h1:9bb0dEq1WzA0ZxIGG2EmwEgxfMAJpHyusxwbVN7f6iM=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.3/go.mod h1:2z9eg35jfuRtdPE4Ci0ousrOU9PBhDBilXA1cwq9Ptk=
-github.com/aws/aws-sdk-go-v2/service/sesv2 v1.59.3 h1:qjwo32AyXM8yvYDMZOgdK+T83WJd7Oy1GJ/wwvTMFLk=
-github.com/aws/aws-sdk-go-v2/service/sesv2 v1.59.3/go.mod h1:w1p8y472txqta47pOYScQHQ3/O1jN7f7YKrvPetbCWQ=
+github.com/aws/aws-sdk-go-v2/service/sesv2 v1.59.4 h1:PEz6RPI6hG3GHiaMPmrh4iM684GOdIrEc9L30FaSC2k=
+github.com/aws/aws-sdk-go-v2/service/sesv2 v1.59.4/go.mod h1:4dOflh7HfqHcjF1OIlt9Tr1T0rDsh906Yc75lAa2CJI=
 github.com/aws/aws-sdk-go-v2/service/signin v1.0.7 h1:Y2cAXlClHsXkkOvWZFXATr34b0hxxloeQu/pAZz2row=
 github.com/aws/aws-sdk-go-v2/service/signin v1.0.7/go.mod h1:idzZ7gmDeqeNrSPkdbtMp9qWMgcBwykA7P7Rzh5DXVU=
 github.com/aws/aws-sdk-go-v2/service/sns v1.39.13 h1:8xP94tDzFpgwIOsusGiEFHPaqrpckDojoErk/ZFZTio=
