@@ -167,41 +167,41 @@ CSVフィールド値はnull/空値処理のルールに従う:
 
 ## 実装状況
 
-| リソースカテゴリ  | ステータス | 備考                                                          |
-| :---------------- | :--------- | :------------------------------------------------------------ |
-| ACM               | 実装済み   |                                                               |
-| APIGateway        | 実装済み   | REST (v1) と HTTP (v2) API対応                                |
-| Batch             | 実装済み   |                                                               |
-| CloudFormation    | 実装済み   |                                                               |
-| CloudFront        | 実装済み   |                                                               |
-| CloudWatch Alarms | 実装済み   |                                                               |
-| CloudWatch Logs   | 実装済み   |                                                               |
-| Cognito           | 実装済み   | User PoolsとIdentity Pools対応                                |
-| DynamoDB          | 実装済み   |                                                               |
-| EC2               | 実装済み   |                                                               |
-| ECR               | 実装済み   |                                                               |
-| ECS               | 実装済み   |                                                               |
-| EFS               | 実装済み   |                                                               |
-| ElastiCache       | 実装済み   |                                                               |
-| ELBv2             | 実装済み   |                                                               |
-| EventBridge       | 実装済み   | RulesとScheduler対応                                          |
-| Glue              | 実装済み   | DatabasesとJobs対応                                           |
-| IAM               | 実装済み   |                                                               |
-| Kinesis           | 実装済み   | StreamsとFirehose対応                                         |
-| KMS               | 実装済み   |                                                               |
-| Lambda            | 実装済み   |                                                               |
-| QuickSight        | 実装済み   | Data SourcesとAnalyses対応                                    |
-| RDS               | 実装済み   |                                                               |
-| Redshift          | 実装済み   |                                                               |
-| Route53           | 実装済み   |                                                               |
-| S3                | 実装済み   |                                                               |
-| SecretsManager    | 実装済み   |                                                               |
-| SNS               | 実装済み   |                                                               |
-| SQS               | 実装済み   |                                                               |
-| TransferFamily    | 実装済み   |                                                               |
-| SES               | `ses`      | Identities, configuration sets, templates, sending statistics |
-| StepFunctions     | `stepfunctions` | State MachinesとActivities対応                           |
-| WAF               | 実装済み   | WAFv2（Regional & Global）対応                                |
+| リソースカテゴリ  | ステータス      | 備考                                                          |
+| :---------------- | :-------------- | :------------------------------------------------------------ |
+| ACM               | 実装済み        |                                                               |
+| APIGateway        | 実装済み        | REST (v1) と HTTP (v2) API対応                                |
+| Batch             | 実装済み        |                                                               |
+| CloudFormation    | 実装済み        |                                                               |
+| CloudFront        | 実装済み        |                                                               |
+| CloudWatch Alarms | 実装済み        |                                                               |
+| CloudWatch Logs   | 実装済み        |                                                               |
+| Cognito           | 実装済み        | User PoolsとIdentity Pools対応                                |
+| DynamoDB          | 実装済み        |                                                               |
+| EC2               | 実装済み        |                                                               |
+| ECR               | 実装済み        |                                                               |
+| ECS               | 実装済み        |                                                               |
+| EFS               | 実装済み        |                                                               |
+| ElastiCache       | 実装済み        |                                                               |
+| ELBv2             | 実装済み        |                                                               |
+| EventBridge       | 実装済み        | RulesとScheduler対応                                          |
+| Glue              | 実装済み        | DatabasesとJobs対応                                           |
+| IAM               | 実装済み        |                                                               |
+| Kinesis           | 実装済み        | StreamsとFirehose対応                                         |
+| KMS               | 実装済み        |                                                               |
+| Lambda            | 実装済み        |                                                               |
+| QuickSight        | 実装済み        | Data SourcesとAnalyses対応                                    |
+| RDS               | 実装済み        |                                                               |
+| Redshift          | 実装済み        |                                                               |
+| Route53           | 実装済み        |                                                               |
+| S3                | 実装済み        |                                                               |
+| SecretsManager    | 実装済み        |                                                               |
+| SNS               | 実装済み        |                                                               |
+| SQS               | 実装済み        |                                                               |
+| TransferFamily    | 実装済み        |                                                               |
+| SES               | `ses`           | Identities, configuration sets, templates, sending statistics |
+| StepFunctions     | `stepfunctions` | State MachinesとActivities対応                                |
+| WAF               | 実装済み        | WAFv2（Regional & Global）対応                                |
 
 ### SES (Simple Email Service)
 
