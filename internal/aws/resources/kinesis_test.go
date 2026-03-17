@@ -68,8 +68,8 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 
 	expectedHeaders := []string{
 		"Category", "SubCategory1", "Name", "Region",
-		"ARN", "Status", "Shards", "DestinationId", "RetentionPeriodHours",
-		"EncryptionType", "CreatedDate", "LastUpdatedDate",
+		"ARN", "Shards", "DestinationId", "RetentionPeriodHours",
+		"EncryptionType", "Status", "CreatedDate", "LastUpdatedDate",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
@@ -97,8 +97,8 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 
 	expectedValues := []string{
 		"Analytics", "Kinesis", "test-stream", "us-east-1",
-		"arn:aws:kinesis:us-east-1:123456789012:stream/test-stream", "ACTIVE", "2", "", "24",
-		"KMS", "2023-09-25T01:07:55Z", "2023-09-26T10:30:00Z",
+		"arn:aws:kinesis:us-east-1:123456789012:stream/test-stream", "2", "", "24",
+		"KMS", "ACTIVE", "2023-09-25T01:07:55Z", "2023-09-26T10:30:00Z",
 	}
 
 	for i, column := range columns {

@@ -83,8 +83,8 @@ func (*ElastiCacheCollector) GetColumns() []Column {
 		{Header: "PreferredMaintenanceWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PreferredMaintenanceWindow") }},
 		{Header: "SnapshotRetentionLimit", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotRetentionLimit") }},
 		{Header: "SnapshotWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotWindow") }},
-		{Header: "CreateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateTime") }},
 		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateTime") }},
 	}
 }
 

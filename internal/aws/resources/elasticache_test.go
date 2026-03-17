@@ -66,7 +66,7 @@ func TestElastiCacheCollector_GetColumns(t *testing.T) {
 		"NodeType", "NodeGroups", "NumNodes", "CacheParameterGroup", "SecurityGroup",
 		"MultiAZ", "AutomaticFailover", "EncryptedAtRest", "EncryptedTransit",
 		"AuthTokenEnabled", "AutoMinorVersionUpgrade", "PreferredMaintenanceWindow",
-		"SnapshotRetentionLimit", "SnapshotWindow", "CreateTime", "Status",
+		"SnapshotRetentionLimit", "SnapshotWindow", "Status", "CreateTime",
 	}
 
 	assert.Len(t, columns, len(expectedHeaders))
@@ -113,7 +113,7 @@ func TestElastiCacheCollector_GetColumns(t *testing.T) {
 		"cache.t3.micro", "1", "2", "default.redis6.x", "sg-12345678 (my-sg)",
 		"enabled", "enabled", "true", "true",
 		"true", "true", "sun:05:00-sun:06:00",
-		"7", "03:00-04:00", "2023-09-25T01:07:55Z", "available",
+		"7", "03:00-04:00", "available", "2023-09-25T01:07:55Z",
 	}
 
 	for i, column := range columns {

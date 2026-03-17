@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -429,7 +429,7 @@ func (*ECSCollector) collectTaskDefinitions(ctx context.Context, ecsClient *ecs.
 	for f := range familyMap {
 		families = append(families, f)
 	}
-	sort.Strings(families)
+	slices.Sort(families)
 
 	// Pre-allocate resources slice with exact capacity
 	resources := make([]Resource, 0, len(families))

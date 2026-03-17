@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/y-miyazaki/arc/internal/aws/resources"
-	"github.com/y-miyazaki/arc/internal/logger"
+	"github.com/y-miyazaki/go-common/pkg/logger"
 )
 
 func TestCollectionOptions(t *testing.T) {
@@ -18,6 +20,7 @@ func TestCollectionOptions(t *testing.T) {
 		OutputDir:  "/tmp/output",
 		Categories: "ec2,s3",
 		HTML:       true,
+		Timeout:    5 * time.Minute,
 	}
 
 	if opts.Region != "us-east-1" {
@@ -35,12 +38,20 @@ func TestCollectionOptions(t *testing.T) {
 	if opts.HTML != true {
 		t.Errorf("Expected HTML to be true, got %t", opts.HTML)
 	}
+	if opts.Timeout != 5*time.Minute {
+		t.Errorf("Expected Timeout to be 5m, got %s", opts.Timeout)
+	}
 }
 
 // fakeCollector is a small test helper implementing Collector
 type fakeCollector struct {
 	name        string
 	shouldError bool
+}
+
+type blockingCollector struct {
+	calls atomic.Int32
+	name  string
 }
 
 func (f *fakeCollector) Name() string { return f.name }
@@ -55,6 +66,20 @@ func (f *fakeCollector) Collect(ctx context.Context, region string) ([]resources
 	return []resources.Resource{{Category: f.name, Name: f.name + "-r", Region: region}}, nil
 }
 
+func (b *blockingCollector) Name() string { return b.name }
+func (b *blockingCollector) GetColumns() []resources.Column {
+	return []resources.Column{{Header: "h", Value: func(r resources.Resource) string { return r.Name }}}
+}
+func (b *blockingCollector) ShouldSort() bool { return false }
+func (b *blockingCollector) Collect(ctx context.Context, region string) ([]resources.Resource, error) {
+	callNumber := b.calls.Add(1)
+	if callNumber == 1 {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	return []resources.Resource{{Category: b.name, Name: b.name + "-r", Region: region}}, nil
+}
+
 func TestCollectResources_AggregatesErrors(t *testing.T) {
 	// Create two collectors: one succeeds, one fails
 	collectors := map[string]resources.Collector{
@@ -63,8 +88,9 @@ func TestCollectResources_AggregatesErrors(t *testing.T) {
 	}
 
 	// Logger with discarded output
-	l := logger.NewDefault()
-	l.SetOutput(io.Discard)
+	l := logger.NewSlogLogger(&logger.SlogConfig{
+		Output: io.Discard,
+	})
 
 	ctx := context.Background()
 	results, failed := collectResources(ctx, l, collectors, []string{"r1"}, &CollectionOptions{MaxConcurrency: 2})
@@ -83,8 +109,9 @@ func TestCollectResources_MultipleRegions(t *testing.T) {
 		"test": &fakeCollector{name: "test", shouldError: false},
 	}
 
-	l := logger.NewDefault()
-	l.SetOutput(io.Discard)
+	l := logger.NewSlogLogger(&logger.SlogConfig{
+		Output: io.Discard,
+	})
 
 	ctx := context.Background()
 	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 2})
@@ -121,8 +148,9 @@ func TestCollectResources_ConcurrencyLimit(t *testing.T) {
 		"test2": &fakeCollector{name: "test2", shouldError: false},
 	}
 
-	l := logger.NewDefault()
-	l.SetOutput(io.Discard)
+	l := logger.NewSlogLogger(&logger.SlogConfig{
+		Output: io.Discard,
+	})
 
 	ctx := context.Background()
 	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 1})
@@ -133,6 +161,59 @@ func TestCollectResources_ConcurrencyLimit(t *testing.T) {
 
 	if len(results) != 2 {
 		t.Fatalf("expected 2 successful results, got %d", len(results))
+	}
+}
+
+func TestCollectResources_RespectsContextCancelWhileWaitingForSemaphore(t *testing.T) {
+	collector := &blockingCollector{name: "blocking"}
+	l := logger.NewSlogLogger(&logger.SlogConfig{
+		Output: io.Discard,
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		_, _ = collectResources(ctx, l, map[string]resources.Collector{"blocking": collector}, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 1})
+		close(done)
+	}()
+
+	deadline := time.After(2 * time.Second)
+	for collector.calls.Load() == 0 {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for first collection to start")
+		default:
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("collectResources did not stop after context cancellation")
+	}
+
+	if collector.calls.Load() != 1 {
+		t.Fatalf("expected only one collect call before cancellation, got %d", collector.calls.Load())
+	}
+}
+
+func TestCreateRunContext_Timeout(t *testing.T) {
+	ctx, cancel := createRunContext(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(1 * time.Second):
+		t.Fatal("context did not time out")
+	}
+
+	if ctx.Err() != context.DeadlineExceeded {
+		t.Fatalf("expected DeadlineExceeded, got %v", ctx.Err())
 	}
 }
 

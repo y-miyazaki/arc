@@ -155,6 +155,7 @@ func InitializeCollectors(cfg *aws.Config, regions []string) error {
 	RegisterConstructor("ses", NewSESCollector)
 	RegisterConstructor("sns", NewSNSCollector)
 	RegisterConstructor("sqs", NewSQSCollector)
+	RegisterConstructor("stepfunctions", NewStepFunctionsCollector)
 	RegisterConstructor("transferfamily", NewTransferFamilyCollector)
 	RegisterConstructor("vpc", NewVPCCollector)
 	RegisterConstructor("waf", NewWAFCollector)

@@ -11,7 +11,7 @@ ARC is a command-line tool for collecting AWS resource information across multip
 
 - 🚀 **Fast & Concurrent** - Parallel collection of resources with configurable concurrency
 - 📊 **Multiple Output Formats** - CSV files and interactive HTML viewer
-- 🔍 **Comprehensive Coverage** - Support for 20+ AWS services: ACM, API Gateway, Batch, CloudFormation, CloudFront, CloudWatch Alarms, CloudWatch Logs, Cognito, DynamoDB, EC2, ECR, ECS, EFS, ElastiCache, ELB, EventBridge, IAM Policy, IAM Role, IAM User/Group, KMS, Lambda, RDS, Redshift, S3, Secrets Manager, SNS, SQS, VPC, WAF.
+- 🔍 **Comprehensive Coverage** - Support for 30+ AWS services: ACM, API Gateway, Batch, CloudFormation, CloudFront, CloudWatch Alarms, CloudWatch Logs, Cognito, DynamoDB, EC2, ECR, ECS, EFS, ElastiCache, ELB, EventBridge, IAM Policy, IAM Role, IAM User/Group, KMS, Lambda, RDS, Redshift, S3, Secrets Manager, SES, SNS, SQS, Step Functions, VPC, WAF.
 - 🌏 **Multi-Region Support** - Collect resources from multiple AWS regions
 - 🎯 **Selective Collection** - Choose specific resource categories to collect
 - 📁 **Organized Output** - Automatically organized by AWS account ID and resource type
@@ -152,6 +152,9 @@ arc --html
 # Collect specific categories
 arc -c ec2,s3_bucket,lambda
 
+# Collect Step Functions with HTML output
+arc -c stepfunctions -H
+
 # Collect from specific region
 arc -r us-east-1
 
@@ -215,6 +218,7 @@ OPTIONS:
 | SNS               | `sns`               | Simple Notification Service                                      |
 | SES               | `ses`               | Simple Email Service (identities, configuration sets, templates) |
 | SQS               | `sqs`               | Simple Queue Service                                             |
+| Step Functions    | `stepfunctions`     | State machines and activities                                    |
 | VPC               | `vpc`               | Virtual Private Cloud and networking                             |
 | WAF               | `waf`               | Web Application Firewall                                         |
 
@@ -315,6 +319,8 @@ The tool requires read-only permissions for the services you want to collect. Ex
         "sns:Get*",
         "sqs:List*",
         "sqs:Get*",
+        "states:List*",
+        "states:Describe*",
         "wafv2:List*",
         "wafv2:Get*"
       ],
@@ -334,6 +340,9 @@ arc -c ec2,s3_bucket
 
 # Only Lambda functions with HTML output
 arc -c lambda --html
+
+# Only Step Functions state machines and activities
+arc -c stepfunctions -H
 
 # DynamoDB tables in multiple regions
 arc -c dynamodb -r ap-northeast-1,us-east-1
@@ -376,7 +385,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.4'
+          go-version: '1.25.8'
       
       - name: Install arc
         run: go install github.com/y-miyazaki/arc/cmd/arc@latest

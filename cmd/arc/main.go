@@ -2,16 +2,20 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -19,8 +23,8 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 	"github.com/y-miyazaki/arc/internal/aws/resources"
 	"github.com/y-miyazaki/arc/internal/exporter"
-	"github.com/y-miyazaki/arc/internal/logger"
-	"github.com/y-miyazaki/arc/internal/validation"
+	"github.com/y-miyazaki/go-common/pkg/logger"
+	"github.com/y-miyazaki/go-common/pkg/utils/aws/validation"
 )
 
 // Version information (set by GoReleaser during build)
@@ -36,6 +40,8 @@ const (
 	DefaultDirPerm = 0750
 	// GlobalServiceRegion is the region used for global services (IAM, S3, CloudFront, etc.)
 	GlobalServiceRegion = "us-east-1"
+	// DefaultExecutionTimeout is the default upper bound for a single arc run.
+	DefaultExecutionTimeout = 30 * time.Minute
 	// DefaultMaxConcurrency is the default maximum number of concurrent AWS API requests
 	DefaultMaxConcurrency = 5
 )
@@ -56,6 +62,7 @@ type CollectionOptions struct {
 	Categories     string
 	HTML           bool
 	MaxConcurrency int
+	Timeout        time.Duration
 }
 
 // collectionResult holds the result of collecting resources for a category
@@ -76,7 +83,6 @@ func (ce CollectionError) Error() string {
 	return "failed to collect one or more categories"
 }
 
-// collectResources collects resources from all specified collectors and regions
 // collectResources runs collectors across regions and returns a map of successful
 // results per category and a map of per-category errors for collectors that failed.
 // The caller can decide how to handle partial failures; this function will not
@@ -84,7 +90,7 @@ func (ce CollectionError) Error() string {
 // possible.
 //
 // Note: Collectors must be initialized with AWS clients before calling this function.
-func collectResources(ctx context.Context, l *logger.Logger, collectors map[string]resources.Collector, regionsToCheck []string, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
+func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[string]resources.Collector, regionsToCheck []string, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
 	// Collect resources in parallel using goroutines
 	// For each region and collector combination
 	var wg sync.WaitGroup
@@ -101,9 +107,20 @@ func collectResources(ctx context.Context, l *logger.Logger, collectors map[stri
 			wg.Add(1)
 			go func(name string, collector resources.Collector, reg string) {
 				defer wg.Done()
-				// Acquire semaphore
-				semaphore <- struct{}{}
-				defer func() { <-semaphore }() // Release semaphore
+
+				// Acquire semaphore, but stop waiting immediately when the parent context is canceled.
+				select {
+				case semaphore <- struct{}{}:
+					defer func() { <-semaphore }() // Release semaphore
+				case <-ctx.Done():
+					resultsChan <- collectionResult{category: name, err: ctx.Err()}
+					return
+				}
+
+				if err := ctx.Err(); err != nil {
+					resultsChan <- collectionResult{category: name, err: err}
+					return
+				}
 
 				l.Info("Collecting resources", LogKeyCategory, name, "region", reg)
 				res, collectErr := collector.Collect(ctx, reg)
@@ -145,7 +162,7 @@ func collectResources(ctx context.Context, l *logger.Logger, collectors map[stri
 }
 
 // runCollection executes the main resource collection logic
-func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOptions) error {
+func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOptions) error {
 	region := opts.Region
 	profile := opts.Profile
 	outputDir := opts.OutputDir
@@ -222,29 +239,28 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 	for category := range categoryResults {
 		categories = append(categories, category)
 	}
-	sort.Strings(categories)
+	slices.Sort(categories)
 
 	// Sort resources within each category if sorting is enabled
 	for category := range categoryResults {
 		result := categoryResults[category]
 		collector := collectors[category]
 		if collector.ShouldSort() {
-			sort.Slice(result.resources, func(i, j int) bool {
-				a, b := result.resources[i], result.resources[j]
+			slices.SortFunc(result.resources, func(a, b resources.Resource) int {
 				// Sort by: Region, SubCategory1, SubCategory2, Name
-				if a.Region != b.Region {
-					return a.Region < b.Region
+				if order := cmp.Compare(a.Region, b.Region); order != 0 {
+					return order
 				}
-				if a.SubCategory1 != b.SubCategory1 {
-					return a.SubCategory1 < b.SubCategory1
+				if order := cmp.Compare(a.SubCategory1, b.SubCategory1); order != 0 {
+					return order
 				}
-				if a.SubCategory2 != b.SubCategory2 {
-					return a.SubCategory2 < b.SubCategory2
+				if order := cmp.Compare(a.SubCategory2, b.SubCategory2); order != 0 {
+					return order
 				}
-				if a.SubCategory3 != b.SubCategory3 {
-					return a.SubCategory3 < b.SubCategory3
+				if order := cmp.Compare(a.SubCategory3, b.SubCategory3); order != 0 {
+					return order
 				}
-				return a.Name < b.Name
+				return cmp.Compare(a.Name, b.Name)
 			})
 			categoryResults[category] = result
 		}
@@ -345,7 +361,7 @@ func runCollection(ctx context.Context, l *logger.Logger, opts *CollectionOption
 		for k := range failedCategories {
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 		// details are available in the returned error (CollectionError.Details)
 		return fmt.Errorf("failed to collect categories: %w", CollectionError{Details: failedCategories})
 	}
@@ -399,6 +415,11 @@ func main() {
 				Usage:   "Maximum number of concurrent AWS API requests",
 				Value:   DefaultMaxConcurrency,
 			},
+			&cli.DurationFlag{
+				Name:  "timeout",
+				Usage: "Maximum total execution time (for example: 5m, 30m, 1h). Set 0 to disable",
+				Value: DefaultExecutionTimeout,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			// Set up logger based on verbose flag
@@ -406,16 +427,21 @@ func main() {
 			if c.Bool("verbose") {
 				logLevel = slog.LevelDebug
 			}
-			l := logger.NewText(logLevel)
+			l := logger.NewSlogLogger(&logger.SlogConfig{
+				Level:  logLevel,
+				Format: "text",
+			})
 
 			// Extract command-line arguments
-			ctx := c.Context
 			region := c.String("region")
 			profile := c.String("profile")
 			outputDir := c.String("output-dir")
 			categories := c.String("categories")
 			html := c.Bool("html")
 			concurrency := c.Int("concurrency")
+			timeout := c.Duration("timeout")
+			ctx, cancel := createRunContext(c.Context, timeout)
+			defer cancel()
 
 			// Create collection options
 			opts := &CollectionOptions{
@@ -425,6 +451,11 @@ func main() {
 				Categories:     categories,
 				HTML:           html,
 				MaxConcurrency: concurrency,
+				Timeout:        timeout,
+			}
+
+			if timeout > 0 {
+				l.Info("Execution timeout enabled", "timeout", timeout.String())
 			}
 
 			// Run the collection logic
@@ -435,7 +466,7 @@ func main() {
 	// Run the CLI app and handle any errors
 	if err := app.Run(os.Args); err != nil {
 		// Create a default logger for fatal errors
-		defaultLogger := logger.NewDefault()
+		defaultLogger := logger.NewSlogLogger(nil)
 		defaultLogger.Error("Application failed", "error", err)
 		os.Exit(1)
 	}
@@ -489,4 +520,18 @@ func initializeRegions(userRegions []string) []string {
 		out = append(out, GlobalServiceRegion)
 	}
 	return out
+}
+
+// createRunContext returns a context canceled by OS signals and, optionally, by timeout.
+func createRunContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	signalCtx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+	if timeout <= 0 {
+		return signalCtx, stop
+	}
+
+	timeoutCtx, cancel := context.WithTimeout(signalCtx, timeout)
+	return timeoutCtx, func() {
+		cancel()
+		stop()
+	}
 }

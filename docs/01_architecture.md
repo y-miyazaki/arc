@@ -27,6 +27,7 @@
 │   │       ├── registry.go  # コレクターレジストリ
 │   │       ├── acm.go       # ACMコレクター
 │   │       ├── ec2.go       # EC2コレクター
+│   │       ├── stepfunctions.go # Step Functionsコレクター
 │   │       └── ...          # その他コレクター
 │   ├── config
 │   │   └── config.go        # 設定構造体とパース
@@ -199,6 +200,7 @@ CSVフィールド値はnull/空値処理のルールに従う:
 | SQS               | 実装済み   |                                                               |
 | TransferFamily    | 実装済み   |                                                               |
 | SES               | `ses`      | Identities, configuration sets, templates, sending statistics |
+| StepFunctions     | `stepfunctions` | State MachinesとActivities対応                           |
 | WAF               | 実装済み   | WAFv2（Regional & Global）対応                                |
 
 ### SES (Simple Email Service)
