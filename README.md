@@ -56,7 +56,7 @@ go install github.com/y-miyazaki/arc/cmd/arc@latest
 
 ### Using Release tar.gz
 
-You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.6 release; replace `v1.0.6` with the version you need.
+You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.9 release; replace `v1.0.9` with the version you need.
 
 Available platforms:
 - Linux (amd64, arm64)
@@ -66,13 +66,13 @@ Available platforms:
 Linux (AMD64) example:
 
 ```bash
-VERSION=v1.0.6 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-linux-amd64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.9 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-linux-amd64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 macOS (ARM64) example:
 
 ```bash
-VERSION=v1.0.6 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-darwin-arm64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
+VERSION=v1.0.9 && curl -L https://github.com/y-miyazaki/arc/releases/download/${VERSION}/arc-darwin-arm64.tar.gz | tar -xzf - && sudo mv arc /usr/local/bin/ && sudo chmod +x /usr/local/bin/arc
 ```
 
 Notes:

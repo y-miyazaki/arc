@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/account"
 	"github.com/urfave/cli/v2"
 
 	"github.com/y-miyazaki/arc/internal/aws"
@@ -47,7 +48,7 @@ const (
 )
 
 var (
-	version = "v1.0.6"
+	version = "v1.0.9"
 	commit  = "none"
 	date    = "unknown"
 
@@ -346,8 +347,20 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 
 	l.Info("Collection completed successfully", "outputDir", resourcesDir)
 	if html {
+		accountDisplay := accountID
+		accountClient := account.NewFromConfig(cfg)
+		accountInfo, accountInfoErr := accountClient.GetAccountInformation(ctx, &account.GetAccountInformationInput{})
+		if accountInfoErr != nil {
+			l.Warn("Failed to resolve account name; fallback to account ID", LogKeyError, accountInfoErr, "accountID", accountID)
+		} else if accountInfo.AccountName != nil {
+			accountName := strings.TrimSpace(*accountInfo.AccountName)
+			if accountName != "" {
+				accountDisplay = fmt.Sprintf("%s(%s)", accountName, accountID)
+			}
+		}
+
 		l.Info("Generating HTML index...")
-		if htmlErr := exporter.GenerateHTML(outputDir, accountID, "all.csv", categories); htmlErr != nil {
+		if htmlErr := exporter.GenerateHTML(outputDir, accountID, accountDisplay, "all.csv", categories); htmlErr != nil {
 			return fmt.Errorf("failed to generate HTML: %w", htmlErr)
 		}
 		l.Info("HTML index generated successfully", "indexPath", filepath.Join(outputDir, accountID, "index.html"))

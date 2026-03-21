@@ -28,8 +28,8 @@ type FileManifestEntry struct {
 	DisplayName string `json:"display_name"` //nolint:tagliatelle // matches JavaScript naming convention
 }
 
-// GenerateHTML generates HTML index and manifest files for CSV outputs
-func GenerateHTML(outputDir, accountID, outputFile string, categories []string) error {
+// GenerateHTML generates HTML index and manifest files for CSV outputs.
+func GenerateHTML(outputDir, accountID, accountDisplay, outputFile string, categories []string) error {
 	// Generate files.json manifest
 	manifestPath := filepath.Join(outputDir, accountID, "files.json")
 	if err := generateManifest(manifestPath, outputDir, accountID, categories); err != nil {
@@ -45,7 +45,7 @@ func GenerateHTML(outputDir, accountID, outputFile string, categories []string) 
 
 	// Generate index.html
 	indexPath := filepath.Join(outputDir, accountID, "index.html")
-	if err := generateIndexHTML(indexPath, accountID, outputFile); err != nil {
+	if err := generateIndexHTML(indexPath, accountID, accountDisplay, outputFile); err != nil {
 		return fmt.Errorf("failed to generate index.html: %w", err)
 	}
 
@@ -184,9 +184,14 @@ func createResourcesZip(zipPath, resourcesDir string) error {
 	return nil
 }
 
-// generateIndexHTML creates index.html with embedded template
-func generateIndexHTML(indexPath, accountID, outputFile string) error {
-	title := fmt.Sprintf("AWS Resources (%s)", accountID)
+// generateIndexHTML creates index.html with embedded template.
+func generateIndexHTML(indexPath, accountID, accountDisplay, outputFile string) error {
+	displayAccount := accountID
+	if accountDisplay != "" {
+		displayAccount = accountDisplay
+	}
+
+	title := fmt.Sprintf("AWS Resources (%s)", displayAccount)
 	description := "AWS resource inventory collected by arc"
 
 	// Substitute placeholders in template
@@ -194,7 +199,7 @@ func generateIndexHTML(indexPath, accountID, outputFile string) error {
 	html = strings.ReplaceAll(html, "@@INDEX_TITLE@@", title)
 	html = strings.ReplaceAll(html, "@@INDEX_DESCRIPTION@@", description)
 	html = strings.ReplaceAll(html, "@@OUTPUT_FILE@@", outputFile)
-	html = strings.ReplaceAll(html, "@@ACCOUNT_ID@@", accountID)
+	html = strings.ReplaceAll(html, "@@ACCOUNT_ID@@", displayAccount)
 
 	// Write HTML file
 	f, err := os.Create(indexPath) //nolint:gosec // G304: Path is controlled and sanitized

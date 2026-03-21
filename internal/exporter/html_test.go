@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func TestGenerateHTML_CreatesFilesAndIndex(t *testing.T) {
 	outputFile := "files.json"
 	categories := []string{"ec2", "s3", "rds"}
 
-	err := GenerateHTML(base, accountID, outputFile, categories)
+	err := GenerateHTML(base, accountID, accountID, outputFile, categories)
 	if err != nil {
 		t.Fatalf("GenerateHTML returned error: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestGenerateHTML_FailsWhenAccountPathIsFile(t *testing.T) {
 	}
 
 	// call GenerateHTML (it should try to create files under base/accountID and fail)
-	err := GenerateHTML(base, accountID, "index.html", []string{"x"})
+	err := GenerateHTML(base, accountID, accountID, "index.html", []string{"x"})
 	assert.Error(t, err)
 }
 
@@ -92,7 +93,7 @@ func TestGenerateHTML_EmptyCategories(t *testing.T) {
 		t.Fatalf("failed to create account dir: %v", err)
 	}
 
-	err := GenerateHTML(base, accountID, "index.html", []string{})
+	err := GenerateHTML(base, accountID, accountID, "index.html", []string{})
 	if err != nil {
 		t.Fatalf("GenerateHTML returned error: %v", err)
 	}
@@ -113,4 +114,118 @@ func TestGenerateHTML_EmptyCategories(t *testing.T) {
 	indexPath := filepath.Join(base, accountID, "index.html")
 	_, err = os.Stat(indexPath)
 	assert.NoError(t, err)
+}
+
+// Custom account display should be rendered in index.html when provided.
+func TestGenerateHTML_UsesCustomAccountDisplay(t *testing.T) {
+	base := t.TempDir()
+	accountID := "123456789012"
+	accountDisplay := "my-account(123456789012)"
+	if err := os.MkdirAll(filepath.Join(base, accountID), 0o755); err != nil {
+		t.Fatalf("failed to create account dir: %v", err)
+	}
+
+	err := GenerateHTML(base, accountID, accountDisplay, "index.html", []string{})
+	if err != nil {
+		t.Fatalf("GenerateHTML returned error: %v", err)
+	}
+
+	indexPath := filepath.Join(base, accountID, "index.html")
+	ib, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("failed to read index.html: %v", err)
+	}
+
+	assert.Contains(t, string(ib), "AWS Resources (my-account(123456789012))")
+}
+
+func TestCreateResourcesZip_EmptyWhenResourcesDirMissing(t *testing.T) {
+	base := t.TempDir()
+	zipPath := filepath.Join(base, "resources.zip")
+	resourcesDir := filepath.Join(base, "resources")
+
+	err := createResourcesZip(zipPath, resourcesDir)
+	if err != nil {
+		t.Fatalf("createResourcesZip returned error: %v", err)
+	}
+
+	zr, err := zip.OpenReader(zipPath)
+	if err != nil {
+		t.Fatalf("failed to open zip: %v", err)
+	}
+	defer func() {
+		_ = zr.Close()
+	}()
+
+	assert.Len(t, zr.File, 0)
+}
+
+func TestCreateResourcesZip_IncludesOnlyCSVFiles(t *testing.T) {
+	base := t.TempDir()
+	resourcesDir := filepath.Join(base, "resources")
+	if err := os.MkdirAll(resourcesDir, 0o755); err != nil {
+		t.Fatalf("failed to create resources dir: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(resourcesDir, "ec2.csv"), []byte("a,b\n"), 0o644); err != nil {
+		t.Fatalf("failed to write csv file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(resourcesDir, "readme.txt"), []byte("ignore"), 0o644); err != nil {
+		t.Fatalf("failed to write txt file: %v", err)
+	}
+
+	zipPath := filepath.Join(base, "resources.zip")
+	err := createResourcesZip(zipPath, resourcesDir)
+	if err != nil {
+		t.Fatalf("createResourcesZip returned error: %v", err)
+	}
+
+	zr, err := zip.OpenReader(zipPath)
+	if err != nil {
+		t.Fatalf("failed to open zip: %v", err)
+	}
+	defer func() {
+		_ = zr.Close()
+	}()
+
+	if assert.Len(t, zr.File, 1) {
+		assert.Equal(t, "ec2.csv", zr.File[0].Name)
+	}
+}
+
+func TestGenerateIndexHTML_FallbackToAccountIDWhenDisplayEmpty(t *testing.T) {
+	base := t.TempDir()
+	indexPath := filepath.Join(base, "index.html")
+	accountID := "123456789012"
+
+	err := generateIndexHTML(indexPath, accountID, "", "all.csv")
+	if err != nil {
+		t.Fatalf("generateIndexHTML returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(indexPath)
+	if err != nil {
+		t.Fatalf("failed to read index.html: %v", err)
+	}
+
+	assert.Contains(t, string(b), "AWS Resources (123456789012)")
+}
+
+func TestCreateResourcesZip_ReturnsErrorWhenWalkFails(t *testing.T) {
+	base := t.TempDir()
+	resourcesDir := filepath.Join(base, "resources")
+	blockedDir := filepath.Join(resourcesDir, "blocked")
+	if err := os.MkdirAll(blockedDir, 0o755); err != nil {
+		t.Fatalf("failed to create blocked dir: %v", err)
+	}
+	if err := os.Chmod(blockedDir, 0o000); err != nil {
+		t.Fatalf("failed to chmod blocked dir: %v", err)
+	}
+	defer func() {
+		_ = os.Chmod(blockedDir, 0o755)
+	}()
+
+	zipPath := filepath.Join(base, "resources.zip")
+	err := createResourcesZip(zipPath, resourcesDir)
+	assert.Error(t, err)
 }
