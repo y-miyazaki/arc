@@ -11,7 +11,7 @@ ARC is a command-line tool for collecting AWS resource information across multip
 
 - 🚀 **Fast & Concurrent** - Parallel collection of resources with configurable concurrency
 - 📊 **Multiple Output Formats** - CSV files and interactive HTML viewer
-- 🔍 **Comprehensive Coverage** - Support for 30+ AWS services: ACM, API Gateway, Batch, CloudFormation, CloudFront, CloudWatch Alarms, CloudWatch Logs, Cognito, DynamoDB, EC2, ECR, ECS, EFS, ElastiCache, ELB, EventBridge, IAM Policy, IAM Role, IAM User/Group, KMS, Lambda, RDS, Redshift, S3, Secrets Manager, SES, SNS, SQS, Step Functions, VPC, WAF.
+- 🔍 **Comprehensive Coverage** - Support for 35+ AWS services and categories including ACM, API Gateway, Batch, CloudFormation, CloudFront, CloudWatch Alarms, CloudWatch Logs, Cognito Identity Pool, Cognito User Pool, DynamoDB, EC2, ECR, ECS, EFS, ElastiCache, ELB, EventBridge, Glue, IAM Policy/Role/User Group, Kinesis, KMS, Lambda, QuickSight, RDS, Redshift, Route 53, S3, Secrets Manager, SES, SNS, SQS, Step Functions, Transfer Family, VPC, and WAF.
 - 🌏 **Multi-Region Support** - Collect resources from multiple AWS regions
 - 🎯 **Selective Collection** - Choose specific resource categories to collect
 - 📁 **Organized Output** - Automatically organized by AWS account ID and resource type
@@ -182,6 +182,7 @@ OPTIONS:
    --categories, -c value     Comma-separated list of categories to collect
    --html, -H                 Generate HTML index (default: false)
    --concurrency, -C value    Maximum number of concurrent AWS API requests (default: 5)
+  --timeout value            Maximum total execution time (for example: 5m, 30m, 1h). Set 0 to disable (default: 30m0s)
    --help, -h                 show help
 ```
 
@@ -206,19 +207,24 @@ OPTIONS:
 | ElastiCache       | `elasticache`       | In-memory cache                                                  |
 | ELB               | `elb`               | Load balancers (ALB, NLB, CLB)                                   |
 | EventBridge       | `eventbridge`       | Event buses and rules                                            |
+| Glue              | `glue`              | Data integration jobs, crawlers, and databases                   |
 | IAM Policy        | `iam_policy`        | Customer-managed IAM Policies                                    |
 | IAM Role          | `iam_role`          | IAM Roles with attached policies and last used info              |
 | IAM User/Group    | `iam_user_group`    | IAM Users and Groups                                             |
+| Kinesis           | `kinesis`           | Data streams                                                     |
 | KMS               | `kms`               | Key Management Service                                           |
 | Lambda            | `lambda`            | Serverless functions                                             |
+| QuickSight        | `quicksight`        | BI dashboards, analyses, and data sets                           |
 | RDS               | `rds`               | Relational databases                                             |
 | Redshift          | `redshift`          | Data warehouse                                                   |
+| Route 53          | `route53`           | Hosted zones and DNS records                                     |
 | S3 Bucket         | `s3_bucket`         | Object storage                                                   |
 | Secrets Manager   | `secretsmanager`    | Secrets storage                                                  |
 | SNS               | `sns`               | Simple Notification Service                                      |
 | SES               | `ses`               | Simple Email Service (identities, configuration sets, templates) |
 | SQS               | `sqs`               | Simple Queue Service                                             |
 | Step Functions    | `stepfunctions`     | State machines and activities                                    |
+| Transfer Family   | `transferfamily`    | Managed file transfer endpoints and users                        |
 | VPC               | `vpc`               | Virtual Private Cloud and networking                             |
 | WAF               | `waf`               | Web Application Firewall                                         |
 
@@ -271,7 +277,11 @@ The interactive HTML viewer provides:
 
 ### AWS Permissions
 
-The tool requires read-only permissions for the services you want to collect. Example IAM policy:
+The tool requires read-only permissions for the services you want to collect.
+
+If you use HTML output, ARC also tries to call Account Management GetAccountInformation to show accountName(accountID) in the viewer header. If this permission is missing, ARC safely falls back to accountID only.
+
+Example IAM policy:
 
 ```json
 {
@@ -282,30 +292,48 @@ The tool requires read-only permissions for the services you want to collect. Ex
       "Action": [
         "acm:List*",
         "acm:Describe*",
+        "account:GetAccountInformation",
         "apigateway:GET",
+        "apigatewayv2:Get*",
         "cloudformation:List*",
         "cloudformation:Describe*",
         "cloudfront:List*",
         "cloudfront:Get*",
         "cloudwatch:Describe*",
+        "logs:Describe*",
+        "logs:List*",
+        "cognito-identity:List*",
+        "cognito-identity:Describe*",
+        "cognito-idp:List*",
+        "cognito-idp:Describe*",
         "dynamodb:List*",
         "dynamodb:Describe*",
         "ec2:Describe*",
         "ecr:Describe*",
         "ecs:List*",
         "ecs:Describe*",
+        "efs:Describe*",
         "elasticache:Describe*",
         "elasticloadbalancing:Describe*",
         "events:List*",
         "events:Describe*",
+        "glue:Get*",
+        "glue:List*",
         "iam:List*",
         "iam:Get*",
+        "kinesis:Describe*",
+        "kinesis:List*",
         "kms:List*",
         "kms:Describe*",
         "lambda:List*",
         "lambda:Get*",
+        "quicksight:Describe*",
+        "quicksight:List*",
+        "quicksight:Search*",
         "rds:Describe*",
         "redshift:Describe*",
+        "route53:Get*",
+        "route53:List*",
         "s3:List*",
         "s3:Get*",
         "secretsmanager:List*",
@@ -321,6 +349,9 @@ The tool requires read-only permissions for the services you want to collect. Ex
         "sqs:Get*",
         "states:List*",
         "states:Describe*",
+        "sts:GetCallerIdentity",
+        "transfer:Describe*",
+        "transfer:List*",
         "wafv2:List*",
         "wafv2:Get*"
       ],
@@ -432,4 +463,4 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 
 - 📖 [Documentation](docs/)
 - 🐛 [Issue Tracker](https://github.com/y-miyazaki/arc/issues)
-- 💬 [Discussions](https://github.com/y-miyazaki/arc/discussions)
+- 💬 [Repository](https://github.com/y-miyazaki/arc)
