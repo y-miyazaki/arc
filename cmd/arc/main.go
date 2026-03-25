@@ -30,30 +30,39 @@ import (
 
 // Version information (set by GoReleaser during build)
 const (
+	// DefaultDirPerm is the default directory permission
+	DefaultDirPerm = 0750
+	// DefaultExecutionTimeout is the default upper bound for a single arc run.
+	DefaultExecutionTimeout = 30 * time.Minute
+	// DefaultMaxConcurrency is the default maximum number of concurrent AWS API requests
+	DefaultMaxConcurrency = 5
+	// GlobalServiceRegion is the region used for global services (IAM, S3, CloudFront, etc.)
+	GlobalServiceRegion = "us-east-1"
 	// LogKeyCategory is the log key for category
 	LogKeyCategory = "category"
 	// LogKeyError is the log key for error
 	LogKeyError = "error"
 	// LogKeyFile is the log key for file
 	LogKeyFile = "file"
-
-	// DefaultDirPerm is the default directory permission
-	DefaultDirPerm = 0750
-	// GlobalServiceRegion is the region used for global services (IAM, S3, CloudFront, etc.)
-	GlobalServiceRegion = "us-east-1"
-	// DefaultExecutionTimeout is the default upper bound for a single arc run.
-	DefaultExecutionTimeout = 30 * time.Minute
-	// DefaultMaxConcurrency is the default maximum number of concurrent AWS API requests
-	DefaultMaxConcurrency = 5
 )
 
 var (
-	version = "v1.0.9"
-	commit  = "none"
-	date    = "unknown"
-
 	ErrInvalidOutputPath = errors.New("invalid output file path")
+
+	version = "v1.0.9"
 )
+
+// CollectionError wraps per-category errors so callers can inspect details while
+// keeping the top-level error message relatively static for better error handling.
+type CollectionError struct {
+	Details map[string][]CollectionFailure
+}
+
+// CollectionFailure holds a failed category collection attempt for one region.
+type CollectionFailure struct {
+	Err    error
+	Region string
+}
 
 // CollectionOptions holds the configuration for resource collection
 type CollectionOptions struct {
@@ -70,13 +79,111 @@ type CollectionOptions struct {
 type collectionResult struct {
 	err       error
 	category  string
+	region    string
 	resources []resources.Resource
 }
 
-// CollectionError wraps per-category errors so callers can inspect details while
-// keeping the top-level error message relatively static for better error handling.
-type CollectionError struct {
-	Details map[string]error
+// main initializes and runs the CLI application for collecting AWS resources.
+func main() {
+	// Create CLI app with basic configuration
+	app := &cli.App{
+		Name:    "arc",
+		Usage:   "Collect AWS resources and output to CSV",
+		Version: version,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "Enable verbose output",
+			},
+			&cli.StringFlag{
+				Name:    "region",
+				Aliases: []string{"r"},
+				Usage:   "AWS region(s) to use (comma-separated list accepted). The first region is used as the primary region for API client initialization",
+				EnvVars: []string{"AWS_DEFAULT_REGION"},
+				Value:   "ap-northeast-1",
+			},
+			&cli.StringFlag{
+				Name:    "profile",
+				Usage:   "AWS profile to use",
+				EnvVars: []string{"AWS_PROFILE"},
+			},
+			&cli.StringFlag{
+				Name:    "output-dir",
+				Aliases: []string{"D"},
+				Usage:   "Base output directory",
+				Value:   "./output",
+			},
+			&cli.StringFlag{
+				Name:    "categories",
+				Aliases: []string{"c"},
+				Usage:   "Comma-separated list of categories to collect (e.g. 'acm,ec2,cloudfront')",
+			},
+			&cli.BoolFlag{
+				Name:    "html",
+				Aliases: []string{"H"},
+				Usage:   "Generate HTML index",
+			},
+			&cli.IntFlag{
+				Name:    "concurrency",
+				Aliases: []string{"C"},
+				Usage:   "Maximum number of concurrent AWS API requests",
+				Value:   DefaultMaxConcurrency,
+			},
+			&cli.DurationFlag{
+				Name:  "timeout",
+				Usage: "Maximum total execution time (for example: 5m, 30m, 1h). Set 0 to disable",
+				Value: DefaultExecutionTimeout,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			// Set up logger based on verbose flag
+			logLevel := slog.LevelInfo
+			if c.Bool("verbose") {
+				logLevel = slog.LevelDebug
+			}
+			l := logger.NewSlogLogger(&logger.SlogConfig{
+				Level:  logLevel,
+				Format: "text",
+			})
+
+			// Extract command-line arguments
+			region := c.String("region")
+			profile := c.String("profile")
+			outputDir := c.String("output-dir")
+			categories := c.String("categories")
+			html := c.Bool("html")
+			concurrency := c.Int("concurrency")
+			timeout := c.Duration("timeout")
+			ctx, cancel := createRunContext(c.Context, timeout)
+			defer cancel()
+
+			// Create collection options
+			opts := &CollectionOptions{
+				Region:         region,
+				Profile:        profile,
+				OutputDir:      outputDir,
+				Categories:     categories,
+				HTML:           html,
+				MaxConcurrency: concurrency,
+				Timeout:        timeout,
+			}
+
+			if timeout > 0 {
+				l.Info("Execution timeout enabled", "timeout", timeout.String())
+			}
+
+			// Run the collection logic
+			return runCollection(ctx, l, opts)
+		},
+	}
+
+	// Run the CLI app and handle any errors
+	if err := app.Run(os.Args); err != nil {
+		// Create a default logger for fatal errors
+		defaultLogger := logger.NewSlogLogger(nil)
+		defaultLogger.Error("Application failed", "error", err)
+		os.Exit(1)
+	}
 }
 
 func (ce CollectionError) Error() string {
@@ -91,7 +198,7 @@ func (ce CollectionError) Error() string {
 // possible.
 //
 // Note: Collectors must be initialized with AWS clients before calling this function.
-func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[string]resources.Collector, regionsToCheck []string, opts *CollectionOptions) (map[string]collectionResult, map[string]error) {
+func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[string]resources.Collector, regionsToCheck []string, opts *CollectionOptions) (map[string]collectionResult, map[string][]CollectionFailure) {
 	// Collect resources in parallel using goroutines
 	// For each region and collector combination
 	var wg sync.WaitGroup
@@ -114,12 +221,12 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 				case semaphore <- struct{}{}:
 					defer func() { <-semaphore }() // Release semaphore
 				case <-ctx.Done():
-					resultsChan <- collectionResult{category: name, err: ctx.Err()}
+					resultsChan <- collectionResult{category: name, region: reg, err: ctx.Err()}
 					return
 				}
 
 				if err := ctx.Err(); err != nil {
-					resultsChan <- collectionResult{category: name, err: err}
+					resultsChan <- collectionResult{category: name, region: reg, err: err}
 					return
 				}
 
@@ -127,6 +234,7 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 				res, collectErr := collector.Collect(ctx, reg)
 				resultsChan <- collectionResult{
 					category:  name,
+					region:    reg,
 					resources: res,
 					err:       collectErr,
 				}
@@ -142,12 +250,15 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 
 	// Collect all results and merge resources from multiple regions
 	categoryResults := make(map[string]collectionResult)
-	failed := make(map[string]error)
+	failed := make(map[string][]CollectionFailure)
 	for result := range resultsChan {
 		if result.err != nil {
 			// track failures per category so caller can act on partial failures
-			l.Error("Error collecting resources", "category", result.category, "error", result.err)
-			failed[result.category] = result.err
+			l.Error("Error collecting resources", "category", result.category, "region", result.region, "error", result.err)
+			failed[result.category] = append(failed[result.category], CollectionFailure{
+				Err:    result.err,
+				Region: result.region,
+			})
 			continue
 		}
 		// Merge resources from multiple regions
@@ -160,6 +271,65 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 	}
 
 	return categoryResults, failed
+}
+
+// createRunContext returns a context canceled by OS signals and, optionally, by timeout.
+func createRunContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	signalCtx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+	if timeout <= 0 {
+		return signalCtx, stop
+	}
+
+	timeoutCtx, cancel := context.WithTimeout(signalCtx, timeout)
+	return timeoutCtx, func() {
+		cancel()
+		stop()
+	}
+}
+
+// initializeRegions returns the list of regions to check based on the
+// user-provided list. It preserves order, deduplicates and ensures the
+// GlobalServiceRegion is present.
+func initializeRegions(userRegions []string) []string {
+	seen := make(map[string]struct{})
+	var out []string
+	for _, r := range userRegions {
+		if r == "" {
+			continue
+		}
+		if _, ok := seen[r]; ok {
+			continue
+		}
+		seen[r] = struct{}{}
+		out = append(out, r)
+	}
+	if _, ok := seen[GlobalServiceRegion]; !ok {
+		out = append(out, GlobalServiceRegion)
+	}
+	return out
+}
+
+// parseCommaList splits a comma-separated string and trims spaces, returning
+// only non-empty elements in order.
+func parseCommaList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	var out []string
+	seen := make(map[string]struct{})
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		out = append(out, p)
+	}
+	return out
 }
 
 // runCollection executes the main resource collection logic
@@ -380,171 +550,4 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 	}
 
 	return nil
-}
-
-// main initializes and runs the CLI application for collecting AWS resources.
-func main() {
-	// Create CLI app with basic configuration
-	app := &cli.App{
-		Name:    "arc",
-		Usage:   "Collect AWS resources and output to CSV",
-		Version: fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date),
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:  "verbose",
-				Usage: "Enable verbose output",
-			},
-			&cli.StringFlag{
-				Name:    "region",
-				Aliases: []string{"r"},
-				Usage:   "AWS region(s) to use (comma-separated list accepted). The first region is used as the primary region for API client initialization",
-				EnvVars: []string{"AWS_DEFAULT_REGION"},
-				Value:   "ap-northeast-1",
-			},
-			&cli.StringFlag{
-				Name:    "profile",
-				Usage:   "AWS profile to use",
-				EnvVars: []string{"AWS_PROFILE"},
-			},
-			&cli.StringFlag{
-				Name:    "output-dir",
-				Aliases: []string{"D"},
-				Usage:   "Base output directory",
-				Value:   "./output",
-			},
-			&cli.StringFlag{
-				Name:    "categories",
-				Aliases: []string{"c"},
-				Usage:   "Comma-separated list of categories to collect (e.g. 'acm,ec2,cloudfront')",
-			},
-			&cli.BoolFlag{
-				Name:    "html",
-				Aliases: []string{"H"},
-				Usage:   "Generate HTML index",
-			},
-			&cli.IntFlag{
-				Name:    "concurrency",
-				Aliases: []string{"C"},
-				Usage:   "Maximum number of concurrent AWS API requests",
-				Value:   DefaultMaxConcurrency,
-			},
-			&cli.DurationFlag{
-				Name:  "timeout",
-				Usage: "Maximum total execution time (for example: 5m, 30m, 1h). Set 0 to disable",
-				Value: DefaultExecutionTimeout,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			// Set up logger based on verbose flag
-			logLevel := slog.LevelInfo
-			if c.Bool("verbose") {
-				logLevel = slog.LevelDebug
-			}
-			l := logger.NewSlogLogger(&logger.SlogConfig{
-				Level:  logLevel,
-				Format: "text",
-			})
-
-			// Extract command-line arguments
-			region := c.String("region")
-			profile := c.String("profile")
-			outputDir := c.String("output-dir")
-			categories := c.String("categories")
-			html := c.Bool("html")
-			concurrency := c.Int("concurrency")
-			timeout := c.Duration("timeout")
-			ctx, cancel := createRunContext(c.Context, timeout)
-			defer cancel()
-
-			// Create collection options
-			opts := &CollectionOptions{
-				Region:         region,
-				Profile:        profile,
-				OutputDir:      outputDir,
-				Categories:     categories,
-				HTML:           html,
-				MaxConcurrency: concurrency,
-				Timeout:        timeout,
-			}
-
-			if timeout > 0 {
-				l.Info("Execution timeout enabled", "timeout", timeout.String())
-			}
-
-			// Run the collection logic
-			return runCollection(ctx, l, opts)
-		},
-	}
-
-	// Run the CLI app and handle any errors
-	if err := app.Run(os.Args); err != nil {
-		// Create a default logger for fatal errors
-		defaultLogger := logger.NewSlogLogger(nil)
-		defaultLogger.Error("Application failed", "error", err)
-		os.Exit(1)
-	}
-}
-
-// initializeRegions returns the list of regions to check based on the
-// user-provided list. It preserves order, deduplicates and ensures the
-// GlobalServiceRegion is present.
-// Similar to shell script's initialize_regions function but accepts multiple regions.
-
-// parseCommaList splits a comma-separated string and trims spaces, returning
-// only non-empty elements in order.
-func parseCommaList(s string) []string {
-	if s == "" {
-		return nil
-	}
-	parts := strings.Split(s, ",")
-	var out []string
-	seen := make(map[string]struct{})
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		if _, ok := seen[p]; ok {
-			continue
-		}
-		seen[p] = struct{}{}
-		out = append(out, p)
-	}
-	return out
-}
-
-// initializeRegionsFromList returns the list of regions to check based on the
-// user-provided list. It preserves order, deduplicates and ensures the
-// GlobalServiceRegion is present.
-func initializeRegions(userRegions []string) []string {
-	seen := make(map[string]struct{})
-	var out []string
-	for _, r := range userRegions {
-		if r == "" {
-			continue
-		}
-		if _, ok := seen[r]; ok {
-			continue
-		}
-		seen[r] = struct{}{}
-		out = append(out, r)
-	}
-	if _, ok := seen[GlobalServiceRegion]; !ok {
-		out = append(out, GlobalServiceRegion)
-	}
-	return out
-}
-
-// createRunContext returns a context canceled by OS signals and, optionally, by timeout.
-func createRunContext(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	signalCtx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
-	if timeout <= 0 {
-		return signalCtx, stop
-	}
-
-	timeoutCtx, cancel := context.WithTimeout(signalCtx, timeout)
-	return timeoutCtx, func() {
-		cancel()
-		stop()
-	}
 }

@@ -101,6 +101,45 @@ func TestCollectResources_AggregatesErrors(t *testing.T) {
 	if _, ok := failed["bad"]; !ok {
 		t.Fatalf("expected bad in failed map, got %v", failed)
 	}
+	if len(failed["bad"]) != 1 {
+		t.Fatalf("expected one bad failure, got %v", failed["bad"])
+	}
+	if failed["bad"][0].Region != "r1" {
+		t.Fatalf("expected failure region r1, got %q", failed["bad"][0].Region)
+	}
+}
+
+func TestCollectResources_PreservesFailuresPerRegion(t *testing.T) {
+	collectors := map[string]resources.Collector{
+		"bad": &fakeCollector{name: "bad", shouldError: true},
+	}
+
+	l := logger.NewSlogLogger(&logger.SlogConfig{
+		Output: io.Discard,
+	})
+
+	ctx := context.Background()
+	_, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 2})
+
+	regionFailures, ok := failed["bad"]
+	if !ok {
+		t.Fatalf("expected bad in failed map, got %v", failed)
+	}
+	if len(regionFailures) != 2 {
+		t.Fatalf("expected two bad failures, got %v", regionFailures)
+	}
+
+	seen := make(map[string]bool, len(regionFailures))
+	for _, failure := range regionFailures {
+		seen[failure.Region] = true
+		if failure.Err == nil {
+			t.Fatal("expected region failure error to be set")
+		}
+	}
+
+	if !seen["r1"] || !seen["r2"] {
+		t.Fatalf("expected failures from both regions, got %v", regionFailures)
+	}
 }
 
 func TestCollectResources_MultipleRegions(t *testing.T) {
@@ -235,9 +274,9 @@ func TestConstants(t *testing.T) {
 
 func TestCollectionError_Error(t *testing.T) {
 	ce := CollectionError{
-		Details: map[string]error{
-			"category1": fmt.Errorf("error1"),
-			"category2": fmt.Errorf("error2"),
+		Details: map[string][]CollectionFailure{
+			"category1": {{Err: fmt.Errorf("error1"), Region: "r1"}},
+			"category2": {{Err: fmt.Errorf("error2"), Region: "r2"}},
 		},
 	}
 
