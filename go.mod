@@ -38,7 +38,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.22
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.6
-	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.2
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.3
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.40.10
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.15
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.25
@@ -47,7 +47,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.71.3
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/y-miyazaki/go-common v0.9.0
+	github.com/y-miyazaki/go-common v0.9.1
 )
 
 require (
