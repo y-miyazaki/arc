@@ -56,8 +56,8 @@ github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.23 h1:wlOL7DYRnqjyTN1GJlD
 github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.23/go.mod h1:bm3xSJdUbbsHQZAtyfYyDXtijYduolXRWfrPUmWQfbM=
 github.com/aws/aws-sdk-go-v2/service/firehose v1.42.13 h1:rOosgStX42LlvitMWGhC4yOYEqoFZF6V7PRAn/hl79o=
 github.com/aws/aws-sdk-go-v2/service/firehose v1.42.13/go.mod h1:kfRbjeQaqxty335wWOz+CMHYqthd4f+4jA+w8WoIEBY=
-github.com/aws/aws-sdk-go-v2/service/glue v1.139.1 h1:2FiGBr6B+Y9nJPEvaRgo5Mxau8uAboLcgFwrwFy1hhM=
-github.com/aws/aws-sdk-go-v2/service/glue v1.139.1/go.mod h1:1l+jalOvmNPKJkvEIgkJN4brHKcbmZSCdP+nDRKw+5g=
+github.com/aws/aws-sdk-go-v2/service/glue v1.139.3 h1:2awAOXxGrBdC53fTI7P40kkDVz0mCIU1+3beKypTrIo=
+github.com/aws/aws-sdk-go-v2/service/glue v1.139.3/go.mod h1:mDg5wTmo9ElbuHNOerghTunsyjUS8PUtdIFVAFMON88=
 github.com/aws/aws-sdk-go-v2/service/iam v1.53.7 h1:n9YLiWtX3+6pTLZWvRJmtq5JIB9NA/KFelyCg5fOlTU=
 github.com/aws/aws-sdk-go-v2/service/iam v1.53.7/go.mod h1:sP46Vo6MeJcM4s0ZXcG2PFmfiSyixhIuC/74W52yKuk=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.8 h1:HtOTYcbVcGABLOVuPYaIihj6IlkqubBwFj10K5fxRek=
