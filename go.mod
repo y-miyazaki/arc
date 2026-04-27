@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.9
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.61.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.56.0
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.68.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.69.1
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.22
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.59.3
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1
@@ -51,7 +51,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.9 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.22 // indirect
