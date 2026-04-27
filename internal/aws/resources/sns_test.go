@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -92,4 +93,30 @@ func TestSNSCollector_GetColumns(t *testing.T) {
 	for i, column := range columns {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
+}
+
+func TestSNSCollector_Collect_NoClient(t *testing.T) {
+	collector := &SNSCollector{clients: map[string]*sns.Client{}}
+
+	_, err := collector.Collect(context.Background(), "us-west-2")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "no client found for region")
+}
+
+func TestSNSCollector_Collect_ListTopicsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	collector := &SNSCollector{
+		clients: map[string]*sns.Client{
+			"us-east-1": sns.NewFromConfig(cfg),
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to list SNS topics")
 }

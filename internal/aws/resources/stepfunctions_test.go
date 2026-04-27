@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
+	sfntypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -118,4 +119,90 @@ func TestStepFunctionsCollector_GetColumns(t *testing.T) {
 	for i, column := range columns {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
+}
+
+func TestStepFunctionsCollector_Collect_ListStateMachinesError(t *testing.T) {
+	cfg := aws.Config{
+		Region:      "us-east-1",
+		Credentials: aws.AnonymousCredentials{},
+	}
+	collector := &StepFunctionsCollector{
+		clients: map[string]*sfn.Client{
+			"us-east-1": sfn.NewFromConfig(cfg),
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to list state machines")
+}
+
+func TestGetDefinitionComment(t *testing.T) {
+	valid := `{"Comment":"workflow comment"}`
+	invalid := "not-json"
+	missing := `{"Name":"workflow"}`
+
+	tests := []struct {
+		name     string
+		input    *string
+		expected string
+	}{
+		{name: "nil definition", input: nil, expected: ""},
+		{name: "invalid json", input: aws.String(invalid), expected: ""},
+		{name: "missing comment", input: aws.String(missing), expected: ""},
+		{name: "valid comment", input: aws.String(valid), expected: "workflow comment"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, getDefinitionComment(tt.input))
+		})
+	}
+}
+
+func TestStepFunctionsConfigHelpers(t *testing.T) {
+	period := int32(300)
+	encryption := &sfntypes.EncryptionConfiguration{
+		KmsKeyId:                     aws.String("key-arn"),
+		KmsDataKeyReusePeriodSeconds: &period,
+		Type:                         sfntypes.EncryptionTypeCustomerManagedKmsKey,
+	}
+
+	logConfig := &sfntypes.LoggingConfiguration{
+		Destinations: []sfntypes.LogDestination{{
+			CloudWatchLogsLogGroup: &sfntypes.CloudWatchLogsLogGroup{LogGroupArn: aws.String("log-arn")},
+		}},
+		IncludeExecutionData: true,
+		Level:                sfntypes.LogLevelAll,
+	}
+
+	tracing := &sfntypes.TracingConfiguration{Enabled: true}
+
+	assert.Equal(t, "", getEncryptionKeyID(nil))
+	assert.Equal(t, "key-arn", getEncryptionKeyID(encryption))
+
+	assert.Equal(t, "", getEncryptionKeyReusePeriod(nil))
+	assert.Equal(t, "", getEncryptionKeyReusePeriod(&sfntypes.EncryptionConfiguration{}))
+	assert.Equal(t, int32(300), getEncryptionKeyReusePeriod(encryption))
+
+	assert.Equal(t, "", getEncryptionType(nil))
+	assert.Equal(t, string(sfntypes.EncryptionTypeCustomerManagedKmsKey), getEncryptionType(encryption))
+
+	assert.Equal(t, "", getLogDestination(nil))
+	assert.Equal(t, "", getLogDestination(&sfntypes.LoggingConfiguration{}))
+	assert.Equal(t, "", getLogDestination(&sfntypes.LoggingConfiguration{Destinations: []sfntypes.LogDestination{{}}}))
+	assert.Equal(t, "log-arn", getLogDestination(logConfig))
+
+	assert.Equal(t, "", getLoggingIncludeExecutionData(nil))
+	assert.Equal(t, true, getLoggingIncludeExecutionData(logConfig))
+
+	assert.Equal(t, "", getLoggingLevel(nil))
+	assert.Equal(t, string(sfntypes.LogLevelAll), getLoggingLevel(logConfig))
+
+	assert.Equal(t, "", getTracingEnabled(nil))
+	assert.Equal(t, true, getTracingEnabled(tracing))
 }

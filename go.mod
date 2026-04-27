@@ -1,7 +1,7 @@
 // TODO: Upgrade to Go 1.25.5 to fix vulnerabilities GO-2025-4175 and GO-2025-4155 in crypto/x509
 module github.com/y-miyazaki/arc
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.6
@@ -14,19 +14,19 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.9
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.61.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.56.0
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.68.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.70.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.22
-	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.59.3
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.297.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.57.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.77.0
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.79.0
 	github.com/aws/aws-sdk-go-v2/service/efs v1.41.14
 	github.com/aws/aws-sdk-go-v2/service/elasticache v1.52.0
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.10
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.23
 	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.13
-	github.com/aws/aws-sdk-go-v2/service/glue v1.139.1
+	github.com/aws/aws-sdk-go-v2/service/glue v1.139.3
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.7
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.43.5
 	github.com/aws/aws-sdk-go-v2/service/kms v1.50.4
@@ -35,9 +35,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.118.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.62.5
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.5
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.22
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.5
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.6
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.2
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.40.10
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.15
@@ -47,7 +47,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.71.3
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/y-miyazaki/go-common v0.8.2
+	github.com/y-miyazaki/go-common v0.9.0
 )
 
 require (

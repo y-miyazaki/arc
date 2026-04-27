@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
@@ -1047,6 +1048,61 @@ func TestGetAllKMSKeysWithClient(t *testing.T) {
 	assert.Equal(t, "alias/test-key-1", result["arn:aws:kms:us-east-1:123456789012:key/key-1"])
 }
 
+func TestNameResolver_GetAllKMSKeys_CacheHit(t *testing.T) {
+	region := "ap-northeast-1"
+	cached := map[string]string{
+		"key-1": "alias/test-key-1",
+	}
+
+	resolver := &NameResolver{
+		kmsClients: map[string]*kms.Client{},
+		cache: map[string]map[string]map[string]string{
+			region: {
+				"kms": cached,
+			},
+		},
+	}
+
+	result, err := resolver.GetAllKMSKeys(context.Background(), region)
+
+	require.NoError(t, err)
+	assert.Equal(t, cached, result)
+}
+
+func TestNameResolver_GetAllKMSKeys_NoClientForRegion(t *testing.T) {
+	resolver := &NameResolver{
+		kmsClients: map[string]*kms.Client{},
+		cache:      make(map[string]map[string]map[string]string),
+	}
+
+	_, err := resolver.GetAllKMSKeys(context.Background(), "ap-northeast-1")
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrNoKMSClientForRegion)
+	assert.ErrorContains(t, err, "ap-northeast-1")
+}
+
+func TestNameResolver_GetAllKMSKeys_GetAllKMSKeysWithClientError(t *testing.T) {
+	cfg := aws.Config{
+		Region:      "us-east-1",
+		Credentials: aws.AnonymousCredentials{},
+	}
+	resolver := &NameResolver{
+		kmsClients: map[string]*kms.Client{
+			"us-east-1": kms.NewFromConfig(cfg),
+		},
+		cache: make(map[string]map[string]map[string]string),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := resolver.GetAllKMSKeys(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "getAllKMSKeysWithClient")
+}
+
 func TestNameResolver_GetAllImages(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
@@ -1211,4 +1267,159 @@ func TestNameResolver_GetResponseHeadersPolicyName(t *testing.T) {
 
 	name := resolver.GetResponseHeadersPolicyName(ctx, "test-policy-id")
 	assert.Empty(t, name) // Should return empty string without CloudFront client
+}
+
+func TestNameResolver_GetAllEC2Resources_CacheHit(t *testing.T) {
+	region := "ap-northeast-1"
+	cached := map[string]string{"id-1": "name-1"}
+
+	tests := []struct {
+		name     string
+		cacheKey string
+		call     func(*NameResolver) (map[string]string, error)
+	}{
+		{name: "images", cacheKey: "images", call: func(r *NameResolver) (map[string]string, error) { return r.GetAllImages(context.Background(), region) }},
+		{name: "enis", cacheKey: "enis", call: func(r *NameResolver) (map[string]string, error) {
+			return r.GetAllNetworkInterfaces(context.Background(), region)
+		}},
+		{name: "sgs", cacheKey: "sgs", call: func(r *NameResolver) (map[string]string, error) {
+			return r.GetAllSecurityGroups(context.Background(), region)
+		}},
+		{name: "snapshots", cacheKey: "snapshots", call: func(r *NameResolver) (map[string]string, error) {
+			return r.GetAllSnapshots(context.Background(), region)
+		}},
+		{name: "subnets", cacheKey: "subnets", call: func(r *NameResolver) (map[string]string, error) { return r.GetAllSubnets(context.Background(), region) }},
+		{name: "volumes", cacheKey: "volumes", call: func(r *NameResolver) (map[string]string, error) { return r.GetAllVolumes(context.Background(), region) }},
+		{name: "vpcs", cacheKey: "vpcs", call: func(r *NameResolver) (map[string]string, error) { return r.GetAllVPCs(context.Background(), region) }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := &NameResolver{
+				ec2Clients: map[string]*ec2.Client{},
+				cache: map[string]map[string]map[string]string{
+					region: {
+						tt.cacheKey: cached,
+					},
+				},
+			}
+
+			result, err := tt.call(resolver)
+
+			require.NoError(t, err)
+			assert.Equal(t, cached, result)
+		})
+	}
+}
+
+func TestNameResolver_GetAllEC2Resources_NoClientForRegion(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*NameResolver) error
+	}{
+		{name: "images", call: func(r *NameResolver) error {
+			_, err := r.GetAllImages(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "enis", call: func(r *NameResolver) error {
+			_, err := r.GetAllNetworkInterfaces(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "sgs", call: func(r *NameResolver) error {
+			_, err := r.GetAllSecurityGroups(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "snapshots", call: func(r *NameResolver) error {
+			_, err := r.GetAllSnapshots(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "subnets", call: func(r *NameResolver) error {
+			_, err := r.GetAllSubnets(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "volumes", call: func(r *NameResolver) error {
+			_, err := r.GetAllVolumes(context.Background(), "ap-northeast-1")
+			return err
+		}},
+		{name: "vpcs", call: func(r *NameResolver) error {
+			_, err := r.GetAllVPCs(context.Background(), "ap-northeast-1")
+			return err
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := &NameResolver{
+				ec2Clients: map[string]*ec2.Client{},
+				cache:      make(map[string]map[string]map[string]string),
+			}
+
+			err := tt.call(resolver)
+
+			require.Error(t, err)
+			assert.ErrorIs(t, err, ErrNoEC2ClientForRegion)
+			assert.ErrorContains(t, err, "ap-northeast-1")
+		})
+	}
+}
+
+func TestNameResolver_GetCloudFrontPolicies_CacheHit(t *testing.T) {
+	tests := []struct {
+		name     string
+		cacheKey string
+		call     func(*NameResolver) string
+	}{
+		{name: "origin access control", cacheKey: "oac:test-oac-id", call: func(r *NameResolver) string { return r.GetOriginAccessControlName(context.Background(), "test-oac-id") }},
+		{name: "cache policy", cacheKey: "cachepolicy:test-policy-id", call: func(r *NameResolver) string { return r.GetCachePolicyName(context.Background(), "test-policy-id") }},
+		{name: "origin request policy", cacheKey: "originrequestpolicy:test-policy-id", call: func(r *NameResolver) string {
+			return r.GetOriginRequestPolicyName(context.Background(), "test-policy-id")
+		}},
+		{name: "response headers policy", cacheKey: "responseheaderspolicy:test-policy-id", call: func(r *NameResolver) string {
+			return r.GetResponseHeadersPolicyName(context.Background(), "test-policy-id")
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := &NameResolver{
+				cloudfrontClients: map[string]*cloudfront.Client{},
+				cloudfrontCache: map[string]string{
+					tt.cacheKey: "cached-name",
+				},
+			}
+
+			result := tt.call(resolver)
+
+			assert.Equal(t, "cached-name", result)
+		})
+	}
+}
+
+func TestNameResolver_GetCloudFrontPolicies_NoClient(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*NameResolver) string
+	}{
+		{name: "origin access control", call: func(r *NameResolver) string { return r.GetOriginAccessControlName(context.Background(), "test-oac-id") }},
+		{name: "cache policy", call: func(r *NameResolver) string { return r.GetCachePolicyName(context.Background(), "test-policy-id") }},
+		{name: "origin request policy", call: func(r *NameResolver) string {
+			return r.GetOriginRequestPolicyName(context.Background(), "test-policy-id")
+		}},
+		{name: "response headers policy", call: func(r *NameResolver) string {
+			return r.GetResponseHeadersPolicyName(context.Background(), "test-policy-id")
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := &NameResolver{
+				cloudfrontClients: map[string]*cloudfront.Client{},
+				cloudfrontCache:   make(map[string]string),
+			}
+
+			result := tt.call(resolver)
+
+			assert.Empty(t, result)
+		})
+	}
 }

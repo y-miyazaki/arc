@@ -412,22 +412,22 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.25.8'
-      
+          go-version: '1.25.9'
+
       - name: Install arc
         run: go install github.com/y-miyazaki/arc/cmd/arc@latest
-      
+
       # Recommended: Configure AWS credentials with IAM role (OIDC)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsRole
           aws-region: ap-northeast-1
-      
+
       # Alternative (NOT RECOMMENDED): Using access keys
       # Only use this if IAM roles are not available
       # - name: Configure AWS credentials
@@ -436,10 +436,10 @@ jobs:
       #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
       #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     aws-region: ap-northeast-1
-      
+
       - name: Collect resources
         run: arc --html
-      
+
       - name: Upload results
         uses: actions/upload-artifact@v3
         with:

@@ -1,10 +1,13 @@
 package resources
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
+	waftypes "github.com/aws/aws-sdk-go-v2/service/wafv2/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -96,4 +99,47 @@ func TestWAFCollector_GetColumns(t *testing.T) {
 	for i, column := range columns {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
+}
+
+func TestWAFCollector_Collect_NoClient(t *testing.T) {
+	collector := &WAFCollector{wafClient: make(map[string]*wafv2.Client)}
+
+	_, err := collector.Collect(context.Background(), "us-west-2")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no client found for region")
+}
+
+func TestWAFCollector_Collect_RegionalCollectScopeError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	collector := &WAFCollector{
+		wafClient: map[string]*wafv2.Client{
+			"us-east-1": wafv2.NewFromConfig(cfg),
+		},
+		cfClient: cloudfront.NewFromConfig(cfg),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to collect regional WAFs")
+}
+
+func TestWAFCollector_collectScope_ListWebACLsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	client := wafv2.NewFromConfig(cfg)
+	collector := &WAFCollector{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	resources := make([]Resource, 0)
+	err := collector.collectScope(ctx, client, nil, "us-east-1", waftypes.ScopeRegional, &resources)
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to list web ACLs")
+	assert.Empty(t, resources)
 }

@@ -112,3 +112,34 @@ func TestCognitoIdentityPoolCollector_GetColumns(t *testing.T) {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
 }
+
+func TestCognitoIdentityPoolCollector_Collect_ListIdentityPoolsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	collector := &CognitoIdentityPoolCollector{
+		clients: map[string]*cognitoidentity.Client{
+			"us-east-1": cognitoidentity.NewFromConfig(cfg),
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to collect identity pools")
+	assert.ErrorContains(t, err, "failed to list identity pools")
+}
+
+func TestCollectIdentityPools_ListIdentityPoolsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	client := cognitoidentity.NewFromConfig(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collectIdentityPools(ctx, "us-east-1", client)
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to list identity pools")
+}

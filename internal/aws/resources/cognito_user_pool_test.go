@@ -125,3 +125,34 @@ func TestCognitoUserPoolCollector_GetColumns(t *testing.T) {
 		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
 	}
 }
+
+func TestCognitoUserPoolCollector_Collect_ListUserPoolsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	collector := &CognitoUserPoolCollector{
+		clients: map[string]*cognitoidentityprovider.Client{
+			"us-east-1": cognitoidentityprovider.NewFromConfig(cfg),
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collector.Collect(ctx, "us-east-1")
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to collect user pools")
+	assert.ErrorContains(t, err, "failed to list user pools")
+}
+
+func TestCollectUserPools_ListUserPoolsError(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1", Credentials: aws.AnonymousCredentials{}}
+	client := cognitoidentityprovider.NewFromConfig(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := collectUserPools(ctx, "us-east-1", client)
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to list user pools")
+}
