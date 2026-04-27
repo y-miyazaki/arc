@@ -6,7 +6,7 @@ go 1.25.9
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/config v1.32.16
-	github.com/aws/aws-sdk-go-v2/service/account v1.30.5
+	github.com/aws/aws-sdk-go-v2/service/account v1.30.6
 	github.com/aws/aws-sdk-go-v2/service/acm v1.38.2
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.39.1
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.34.1
