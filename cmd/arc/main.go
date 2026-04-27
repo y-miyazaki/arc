@@ -49,7 +49,7 @@ const (
 var (
 	ErrInvalidOutputPath = errors.New("invalid output file path")
 
-	version = "v1.0.9"
+	version = "v1.0.11"
 )
 
 // CollectionError wraps per-category errors so callers can inspect details while
