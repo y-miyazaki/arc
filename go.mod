@@ -32,7 +32,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.90.0
 	github.com/aws/aws-sdk-go-v2/service/quicksight v1.107.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.118.0
-	github.com/aws/aws-sdk-go-v2/service/redshift v1.62.5
+	github.com/aws/aws-sdk-go-v2/service/redshift v1.62.6
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.17.22
