@@ -1,4 +1,3 @@
-// TODO: Upgrade to Go 1.25.5 to fix vulnerabilities GO-2025-4175 and GO-2025-4155 in crypto/x509
 module github.com/y-miyazaki/arc
 
 go 1.25.9
