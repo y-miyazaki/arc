@@ -2,34 +2,61 @@
 
 ## S-01: Structural Completeness
 
-Check: Does SKILL.md have all 9 required sections at ## heading level in the correct order?
-Why: Complete structure ensures all required information exists for quality evaluation. Missing sections or incorrect order make skill incomplete and non-reviewable.
+Check: Does SKILL.md have all 7 required sections at ## heading level?
+Why: Complete structure ensures all required information exists for quality evaluation. Missing sections make skill incomplete and non-reviewable.
 
-Required sections in order:
-1. Purpose
-2. When to Use This Skill
-3. Input Specification
-4. Output Specification
-5. Execution Scope
-6. Constraints
-7. Failure Behavior
-8. Reference Files Guide
-9. Workflow
+Required sections:
+1. Input
+2. Output Specification
+3. Execution Scope
+4. Reference Files Guide
+5. Workflow
+6. Output Format
+7. Best Practices
+
+Sections removed by design (redundant with frontmatter description or self-evident to Claude):
+- Purpose (duplicates description field)
+- When to Use This Skill (duplicates description "Use when..." trigger)
+- Constraints (self-evident prerequisites)
+- Failure Behavior (standard tool behavior)
 
 Examples:
-- ✅ All 9 sections present in correct order
-- ❌ Missing "Workflow" → only 8/9 sections → FAIL
-- ❌ "Reference Files Guide" appears before "Constraints" → incorrect order → FAIL
+- ✅ All 7 sections present
+- ❌ Missing "Workflow" → only 6/7 sections → FAIL
 
 ---
 
 ## S-02: YAML Frontmatter Fields
 
-Check: Does SKILL.md YAML frontmatter have all 3 required fields (name, description, license)?
-Why: Machine-readable frontmatter enables skill discovery, cataloging, and CI/CD integration. Missing fields cause parsing errors and skill registration failures.
+Check: Does SKILL.md YAML frontmatter have all required fields (name, description, license) and recommended metadata (author, version)?
+Why: Machine-readable frontmatter enables skill discovery, cataloging, and CI/CD integration. Missing fields cause parsing errors and skill registration failures. Metadata enables version tracking and ownership.
 Examples:
-- ✅ `name: agent-skills-review`, `description: "Review..."`, `license: MIT`
+- ✅ `name: go-review`, `description: "Reviews..."`, `license: Apache-2.0`, `metadata: {author: y-miyazaki, version: "1.0.0"}`
 - ❌ Missing `license` field → parsing fails
+- ⚠️ Missing `metadata.version` → version tracking unavailable
+
+---
+
+## BP-01: Description Quality
+
+Check: Does the description field follow best practices for skill discovery (third person, "Use when..." trigger, no implementation instructions)?
+Why: The description is the primary signal for skill activation. Poor descriptions cause incorrect skill selection or missed activation. Claude's official best practice: "Always write in third person" and "include specific keywords that help agents identify relevant tasks."
+Examples:
+- ✅ "Reviews Go source code for correctness and security. Use when reviewing Go pull requests or assessing security." (third person + trigger)
+- ❌ "Use for manual review of Go code" (imperative, not third person)
+- ❌ "Always use validate.sh script. For troubleshooting, see references/." (implementation instructions in description)
+- ❌ "Helps with Go code" (too vague, no trigger keywords)
+
+---
+
+## BP-02: Reference Trigger Conditions
+
+Check: Does Reference Files Guide specify when to load each reference file (not just what it contains)?
+Why: Without trigger conditions, the agent may load all reference files upfront (wasting context) or miss relevant files. Explicit triggers enable on-demand loading per progressive disclosure.
+Examples:
+- ✅ `[category-security.md](references/category-security.md) - Read when reviewing input validation, crypto usage, or SQL injection`
+- ✅ `[common-checklist.md](references/common-checklist.md)` with `(always read)` annotation
+- ❌ `**category-security.md** - Security patterns detailed guide` (no trigger, bold instead of link)
 
 ---
 
