@@ -1,7 +1,13 @@
 ---
 name: shell-script-review
-description: Shell Script code review for correctness, security, maintainability, and best practices. Use for manual review of shell scripts checking design decisions and security patterns requiring human judgment. For detailed category-specific checks, see reference/.
-license: MIT
+description: >-
+  Reviews shell scripts for correctness, security, maintainability, and best practices.
+  Checks error handling, input validation, common library usage, and function design requiring human judgment.
+  Use when reviewing shell script pull requests, evaluating script security, or assessing bash code quality.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -43,17 +49,17 @@ Format:
 - ## Checks Summary section: Total/Passed/Failed/Deferred counts
 - ## Checks (Failed/Deferred Only) section: Show only ❌ and ⊘ items in checklist order
 - ## Issues section: Numbered list with full details for each failed or deferred item
-- Keep full evaluation data for all checks internally using fixed ItemIDs from reference/common-checklist.md
+- Keep full evaluation data for all checks internally using fixed ItemIDs from references/common-checklist.md
 - If there are no failed or deferred checks: output "No failed or deferred checks" in Checks and "No issues found" in Issues
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
 **How to use this skill**:
 
 - This skill provides manual review guidance requiring human/AI judgment
-- Reviewer reads shell scripts and systematically applies review checklist items from [reference/common-checklist.md](reference/common-checklist.md)
+- Reviewer reads shell scripts and systematically applies review checklist items from [references/common-checklist.md](references/common-checklist.md)
 - **Boundary**:
   - Focus only on checks that require human/AI judgment
   - Treat syntax/static-analysis automation as out of scope for this review skill
@@ -119,23 +125,23 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Shell script review checklist
-- **common-output-format.md** - Review report format specification
+- [common-checklist.md](references/common-checklist.md) - Complete review checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
 
-**Category Details**:
+**Category Details** (read when reviewing related code):
 
-- **category-code-standards.md** - Code standards guide
-- **category-dependencies.md** - Dependency management guide
-- **category-documentation.md** - Documentation standards
-- **category-error-handling.md** - Error handling patterns detailed guide
-- **category-function-design.md** - Function design guide
-- **category-global.md** - Overall design patterns
-- **category-logging.md** - Logging standards guide
-- **category-performance.md** - Performance optimization guide
-- **category-security.md** - Security patterns detailed guide
-- **category-testing.md** - Test design guide
+- [category-code-standards.md](references/category-code-standards.md) - Read when reviewing naming, quoting, or script template compliance
+- [category-dependencies.md](references/category-dependencies.md) - Read when reviewing external commands, version requirements, or aqua
+- [category-documentation.md](references/category-documentation.md) - Read when reviewing function docstrings, usage examples, or comments
+- [category-error-handling.md](references/category-error-handling.md) - Read when reviewing error_exit, cleanup trap, or error checking patterns
+- [category-function-design.md](references/category-function-design.md) - Read when reviewing function structure, parameters, or return values
+- [category-global.md](references/category-global.md) - Read when reviewing SCRIPT_DIR, lib/all.sh source, or basic structure
+- [category-logging.md](references/category-logging.md) - Read when reviewing log_info, log_warn, or log_error usage
+- [category-performance.md](references/category-performance.md) - Read when reviewing command efficiency, unnecessary forks, or pipelines
+- [category-security.md](references/category-security.md) - Read when reviewing input validation, path traversal, or privilege escalation
+- [category-testing.md](references/category-testing.md) - Read when reviewing unit tests, mock functions, or bats usage
 
 ## Workflow
 
@@ -227,16 +233,16 @@ Review results must be output in structured format:
 
 Review categories are organized by domain. Claude will read the relevant category file(s) based on the code being reviewed.
 
-**Global & Base**: SCRIPT_DIR, lib/all.sh source, basic structure → [reference/category-global.md](reference/category-global.md)
-**Code Standards**: Naming, quoting, script template compliance → [reference/category-code-standards.md](reference/category-code-standards.md)
-**Function Design**: Function structure, parameters, return values → [reference/category-function-design.md](reference/category-function-design.md)
-**Error Handling**: error_exit, cleanup trap, error checking → [reference/category-error-handling.md](reference/category-error-handling.md)
-**Security**: Input validation, path traversal, privilege escalation → [reference/category-security.md](reference/category-security.md)
-**Performance**: Command efficiency, unnecessary forks, pipelines → [reference/category-performance.md](reference/category-performance.md)
-**Testing**: Unit tests, mock functions, bats usage → [reference/category-testing.md](reference/category-testing.md)
-**Documentation**: Function docstrings, usage examples, comments → [reference/category-documentation.md](reference/category-documentation.md)
-**Dependencies**: External commands, version requirements, aqua → [reference/category-dependencies.md](reference/category-dependencies.md)
-**Logging**: log_info, log_warn, log_error usage → [reference/category-logging.md](reference/category-logging.md)
+**Global & Base**: SCRIPT_DIR, lib/all.sh source, basic structure → [references/category-global.md](references/category-global.md)
+**Code Standards**: Naming, quoting, script template compliance → [references/category-code-standards.md](references/category-code-standards.md)
+**Function Design**: Function structure, parameters, return values → [references/category-function-design.md](references/category-function-design.md)
+**Error Handling**: error_exit, cleanup trap, error checking → [references/category-error-handling.md](references/category-error-handling.md)
+**Security**: Input validation, path traversal, privilege escalation → [references/category-security.md](references/category-security.md)
+**Performance**: Command efficiency, unnecessary forks, pipelines → [references/category-performance.md](references/category-performance.md)
+**Testing**: Unit tests, mock functions, bats usage → [references/category-testing.md](references/category-testing.md)
+**Documentation**: Function docstrings, usage examples, comments → [references/category-documentation.md](references/category-documentation.md)
+**Dependencies**: External commands, version requirements, aqua → [references/category-dependencies.md](references/category-dependencies.md)
+**Logging**: log_info, log_warn, log_error usage → [references/category-logging.md](references/category-logging.md)
 
 ## Best Practices
 

@@ -1,7 +1,13 @@
 ---
 name: markdown-validation
-description: Markdown validation using markdownlint and markdown-link-check. Use for syntax checking, link validation, and formatting verification. Always use the 2-step validation workflow. Individual commands are for debugging only.
-license: MIT
+description: >-
+  Validates Markdown files for syntax correctness, formatting standards, and broken links using
+  markdownlint and markdown-link-check. Use when committing documentation changes, checking for
+  broken links, or validating Markdown formatting in pull requests.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -61,7 +67,7 @@ Error output format:
 Exit code: 1
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -69,7 +75,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes markdownlint and markdown-link-check in recommended order with proper configuration
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -132,10 +138,10 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Markdown validation checklist
-- **common-output-format.md** - Validation result report format specification
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
 
 ## Validation Script Usage
 
@@ -180,4 +186,4 @@ Before committing Markdown changes:
 4. **Re-run validation** - Confirm all checks pass
 5. **Commit** - Only when validation passes
 
-Detailed command options for troubleshooting are in [reference/common-individual-commands.md](reference/common-individual-commands.md).
+Detailed command options for troubleshooting are in [references/common-individual-commands.md](references/common-individual-commands.md).

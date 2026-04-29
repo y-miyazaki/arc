@@ -1,7 +1,13 @@
 ---
 name: instructions-review
-description: Instructions file review for structure, completeness, and consistency. Use for manual review of .instructions.md files checking content quality and standards compliance.
-license: MIT
+description: >-
+  Reviews .instructions.md files for structure, completeness, consistency, and practical usability.
+  Checks 4-chapter structure, validation commands, and cross-file consistency requiring human judgment.
+  Use when reviewing instructions file pull requests, standardizing instructions, or auditing documentation quality.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -43,17 +49,17 @@ Format:
 - ## Checks Summary section: Total/Passed/Failed/Deferred counts
 - ## Checks (Failed/Deferred Only) section: Show only ❌ and ⊘ items in checklist order
 - ## Issues section: Numbered list with full details for each failed or deferred item
-- Keep full evaluation data for all checks internally using fixed ItemIDs from reference/common-checklist.md
+- Keep full evaluation data for all checks internally using fixed ItemIDs from references/common-checklist.md
 - If there are no failed or deferred checks: output "No failed or deferred checks" in Checks and "No issues found" in Issues
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
 **How to use this skill**:
 
 - This skill provides manual review guidance requiring human/AI judgment
-- Reviewer reads .instructions.md files and systematically applies review checklist items from reference/checklist.md
+- Reviewer reads .instructions.md files and systematically applies review checklist items from references/checklist.md
 - **Boundary**: Focus on quality, structure, consistency, and practical usability checks that require human/AI judgment
 - **Out-of-scope boundary**: Do not execute validation tools from this review skill
 - **When to use**: Review .github/instructions/\*.instructions.md files for structure, completeness, consistency, and practical usability
@@ -125,20 +131,20 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Instructions file review checklist
-- **common-output-format.md** - Review report format specification
-- **common-troubleshooting.md** - Frequent issues and recommended fixes
+- [common-checklist.md](references/common-checklist.md) - Complete review checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when encountering frequent review issues
 
-**Category Details**:
+**Category Details** (read when reviewing related aspects):
 
-- **category-global.md** - General and Structure checks (G-01 to G-03, STRUCT-01 to STRUCT-03)
-- **category-standards.md** - Standards Chapter checks (STD-01 to STD-03)
-- **category-guidelines.md** - Guidelines Chapter checks (GUIDE-01 to GUIDE-08)
-- **category-testing.md** - Testing and Validation checks (TEST-01 to TEST-06)
-- **category-security.md** - Security Guidelines checks (SEC-01 to SEC-04)
-- **category-quality.md** - Quality, Consistency, and Completeness checks (QUAL-01 to QUAL-04, CONS-01 to CONS-04, COMP-01 to COMP-04)
+- [category-global.md](references/category-global.md) - Read when reviewing front matter or chapter hierarchy
+- [category-standards.md](references/category-standards.md) - Read when reviewing naming conventions or tool standards
+- [category-guidelines.md](references/category-guidelines.md) - Read when reviewing documentation or modification procedures
+- [category-testing.md](references/category-testing.md) - Read when reviewing validation commands or tool coverage
+- [category-security.md](references/category-security.md) - Read when reviewing security guidelines or secrets management
+- [category-quality.md](references/category-quality.md) - Read when reviewing content quality, cross-file consistency, or completeness
 
 ## Workflow
 
@@ -223,16 +229,16 @@ Document failed or deferred items with full details:
 
 Review categories are organized by domain. Claude will read the relevant category file(s) based on the instructions file being reviewed.
 
-**Checklist**: Complete review checklist → [reference/common-checklist.md](reference/common-checklist.md)
-**Output Format Reference**: Canonical report template → [reference/common-output-format.md](reference/common-output-format.md)
-**Troubleshooting**: Frequent issues and fixes → [reference/common-troubleshooting.md](reference/common-troubleshooting.md)
+**Checklist**: Complete review checklist → [references/common-checklist.md](references/common-checklist.md)
+**Output Format Reference**: Canonical report template → [references/common-output-format.md](references/common-output-format.md)
+**Troubleshooting**: Frequent issues and fixes → [references/common-troubleshooting.md](references/common-troubleshooting.md)
 
-**General & Structure**: Front Matter and chapter hierarchy → [reference/category-global.md](reference/category-global.md)
-**Standards Chapter**: Naming conventions and tool standards → [reference/category-standards.md](reference/category-standards.md)
-**Guidelines Chapter**: Documentation and modification procedures → [reference/category-guidelines.md](reference/category-guidelines.md)
-**Testing & Validation**: Validation commands and tool coverage → [reference/category-testing.md](reference/category-testing.md)
-**Security Guidelines**: Security items and secrets management → [reference/category-security.md](reference/category-security.md)
-**Quality, Consistency & Completeness**: Content quality and cross-file consistency → [reference/category-quality.md](reference/category-quality.md)
+**General & Structure**: Front Matter and chapter hierarchy → [references/category-global.md](references/category-global.md)
+**Standards Chapter**: Naming conventions and tool standards → [references/category-standards.md](references/category-standards.md)
+**Guidelines Chapter**: Documentation and modification procedures → [references/category-guidelines.md](references/category-guidelines.md)
+**Testing & Validation**: Validation commands and tool coverage → [references/category-testing.md](references/category-testing.md)
+**Security Guidelines**: Security items and secrets management → [references/category-security.md](references/category-security.md)
+**Quality, Consistency & Completeness**: Content quality and cross-file consistency → [references/category-quality.md](references/category-quality.md)
 
 ## Best Practices
 
@@ -240,4 +246,4 @@ Review categories are organized by domain. Claude will read the relevant categor
 - **Minimum Standards**: 70+ lines, 3+ validation commands, 4 chapters required
 - **Consistency Priority**: Prioritize consistency with existing files over new additions
 - **Practical Focus**: Emphasize executable and practical content
-- **Troubleshooting**: Refer to [reference/common-troubleshooting.md](reference/common-troubleshooting.md) for frequent issues
+- **Troubleshooting**: Refer to [references/common-troubleshooting.md](references/common-troubleshooting.md) for frequent issues

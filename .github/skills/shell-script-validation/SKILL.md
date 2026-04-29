@@ -1,7 +1,13 @@
 ---
 name: shell-script-validation
-description: Shell script validation covering syntax and static analysis. Always use validate.sh script. For troubleshooting, see reference/.
-license: MIT
+description: >-
+  Validates shell scripts for syntax correctness and static analysis issues using bash -n and
+  shellcheck. Use when committing shell script changes, running CI validation, or debugging
+  shellcheck warnings in bash scripts.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -62,7 +68,7 @@ Error output format:
 Exit code: 1
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -70,7 +76,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes bash -n and shellcheck in recommended order with proper configuration
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -121,22 +127,22 @@ Error reporting format:
 - Standard error output with specific error messages
 - Exit code: 0=success, 1=error
 - File paths and line numbers included for all issues
-- Error details available in reference/troubleshooting.md
+- Error details available in references/troubleshooting.md
 
 ## Reference Files Guide
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Overall validation workflow checklist
-- **common-output-format.md** - Validation result output format definition
-- **common-troubleshooting.md** - Common errors and solutions
-- **common-individual-commands.md** - Detailed individual command usage
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when validation fails with unexpected errors
+- [common-individual-commands.md](references/common-individual-commands.md) - Read when debugging a specific tool (bash -n/shellcheck)
 
-**Category Details**:
+**Category Details** (read when investigating specific failures):
 
-- **category-standards.md** - Project templates and coding conventions
+- [category-standards.md](references/category-standards.md) - Read when project template or coding convention violations are reported
 
 ## Validation Script Usage
 

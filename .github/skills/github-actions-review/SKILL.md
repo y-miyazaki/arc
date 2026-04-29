@@ -1,7 +1,13 @@
 ---
 name: github-actions-review
-description: GitHub Actions Workflow code review for correctness, security, and best practices. Use for manual review of workflow files checking design decisions and security patterns requiring human judgment. For detailed category-specific checks, see reference/.
-license: MIT
+description: >-
+  Reviews GitHub Actions workflow files for correctness, security, and best practices.
+  Checks trigger design, secrets handling, permission scoping, and caching patterns requiring human judgment.
+  Use when reviewing workflow pull requests, evaluating CI/CD security, or assessing GitHub Actions architecture.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -38,17 +44,17 @@ Format:
 - ## Checks Summary section: Total/Passed/Failed/Deferred counts
 - ## Checks (Failed/Deferred Only) section: Show only ❌ and ⊘ items in checklist order
 - ## Issues section: Numbered list with full details for each failed or deferred item
-- Keep full evaluation data for all checks internally using fixed ItemIDs from reference/common-checklist.md
+- Keep full evaluation data for all checks internally using fixed ItemIDs from references/common-checklist.md
 - If there are no failed or deferred checks: output "No failed or deferred checks" in Checks and "No issues found" in Issues
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
 **How to use this skill**:
 
 - This skill provides manual review guidance requiring human/AI judgment
-- Reviewer reads workflow files and systematically applies review checklist items from [reference/common-checklist.md](reference/common-checklist.md)
+- Reviewer reads workflow files and systematically applies review checklist items from [references/common-checklist.md](references/common-checklist.md)
 - **Boundary**:
   - Focus only on checks that require human/AI judgment
   - Treat YAML/lint/security automation as out of scope for this review skill
@@ -110,19 +116,19 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - GitHub Actions review checklist
-- **common-output-format.md** - Review report format specification
+- [common-checklist.md](references/common-checklist.md) - Complete review checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
 
-**Category Details**:
+**Category Details** (read when reviewing related code):
 
-- **category-best-practices.md** - Best practices detailed guide
-- **category-error-handling.md** - Error handling patterns detailed guide
-- **category-global.md** - Workflow-level configuration patterns detailed guide
-- **category-performance.md** - Performance optimization guide
-- **category-security.md** - Security checks detailed guide (SEC-01 through SEC-07)
-- **category-tool-integration.md** - GitHub Actions tool integration patterns detailed guide
+- [category-best-practices.md](references/category-best-practices.md) - Read when reviewing reusability, maintainability, or workflow structure
+- [category-error-handling.md](references/category-error-handling.md) - Read when reviewing continue-on-error or failure handling patterns
+- [category-global.md](references/category-global.md) - Read when reviewing workflow names, triggers, or permissions
+- [category-performance.md](references/category-performance.md) - Read when reviewing caching, parallelization, or execution time
+- [category-security.md](references/category-security.md) - Read when reviewing pull_request_target, secrets handling, or permission scoping
+- [category-tool-integration.md](references/category-tool-integration.md) - Read when reviewing third-party actions or composite action patterns
 
 ## Workflow
 
@@ -214,15 +220,15 @@ Review results must be output in structured format:
 
 Review categories are organized by domain. Claude will read the relevant category file(s) based on the workflow being reviewed.
 
-**Checklist**: Complete review checklist → [reference/common-checklist.md](reference/common-checklist.md)
-**Output Format Reference**: Canonical report template → [reference/common-output-format.md](reference/common-output-format.md)
+**Checklist**: Complete review checklist → [references/common-checklist.md](references/common-checklist.md)
+**Output Format Reference**: Canonical report template → [references/common-output-format.md](references/common-output-format.md)
 
-**Global & Base**: Workflow names and triggers → [reference/category-global.md](reference/category-global.md)
-**Error Handling**: continue-on-error patterns → [reference/category-error-handling.md](reference/category-error-handling.md)
-**Tool Integration**: Actions and composite actions → [reference/category-tool-integration.md](reference/category-tool-integration.md)
-**Security**: pull_request_target and secrets → [reference/category-security.md](reference/category-security.md)
-**Performance**: Caching and parallelization → [reference/category-performance.md](reference/category-performance.md)
-**Best Practices**: Reusability and maintainability → [reference/category-best-practices.md](reference/category-best-practices.md)
+**Global & Base**: Workflow names and triggers → [references/category-global.md](references/category-global.md)
+**Error Handling**: continue-on-error patterns → [references/category-error-handling.md](references/category-error-handling.md)
+**Tool Integration**: Actions and composite actions → [references/category-tool-integration.md](references/category-tool-integration.md)
+**Security**: pull_request_target and secrets → [references/category-security.md](references/category-security.md)
+**Performance**: Caching and parallelization → [references/category-performance.md](references/category-performance.md)
+**Best Practices**: Reusability and maintainability → [references/category-best-practices.md](references/category-best-practices.md)
 
 ## Best Practices
 
@@ -234,4 +240,4 @@ When performing code reviews:
 - **Prevent security oversights**: Pay special attention to SEC-\* items
 - **Prioritize automation**: Avoid excessive focus on actionlint/ghalint/zizmor
 
-For detailed checks in each category, refer to the corresponding file in the [reference/](reference/) directory.
+For detailed checks in each category, refer to the corresponding file in the [references/](references/) directory.

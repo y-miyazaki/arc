@@ -36,26 +36,26 @@ Examples:
 ## Q-07: Progressive Disclosure (Word Count)
 
 Check: Is SKILL.md word count < 5,000 words?
-Why: Word count limit ensures token efficiency, AI response speed, and human readability. Exceeding limit forces details to reference/ for on-demand loading.
+Why: Word count limit ensures token efficiency, AI response speed, and human readability. Exceeding limit forces details to references/ for on-demand loading.
 Examples:
 - ✅ wc -w SKILL.md = 996 < 5,000 → PASS
-- ❌ wc -w SKILL.md = 5,230 > 5,000 → FAIL (move verbose sections to reference/)
+- ❌ wc -w SKILL.md = 5,230 > 5,000 → FAIL (move verbose sections to references/)
 
 ---
 
 ## Q-08: Resource Separation
 
-Check: Does skill directory contain both scripts/ and reference/ subdirectories? For review skills, does reference/ include common-checklist.md and common-output-format.md?
+Check: Does skill directory contain both scripts/ and references/ subdirectories? For review skills, does references/ include common-checklist.md and common-output-format.md?
 Why: Resource separation ensures scripts for deterministic checks and references for judgment-based content. Review skills require common-checklist.md and common-output-format.md as mandatory files.
 Examples:
-- ✅ Both scripts/ and reference/ present. Review skill: includes common-checklist.md and common-output-format.md
-- ❌ Missing reference/ → FAIL. Review skill missing checklist.md or output-format.md → FAIL
+- ✅ Both scripts/ and references/ present. Review skill: includes common-checklist.md and common-output-format.md
+- ❌ Missing references/ → FAIL. Review skill missing checklist.md or output-format.md → FAIL
 
 ---
 
 ## S-03: Reference Files Header Level Consistency
 
-Check: Do reference/ files follow consistent header level standards?
+Check: Do references/ files follow consistent header level standards?
 Why: Consistent header levels ensure predictable structure, proper document hierarchy, and correct rendering when files are referenced from SKILL.md via @-mention.
 
 Header level requirements:

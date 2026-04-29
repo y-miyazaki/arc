@@ -27,7 +27,7 @@ bash .github/skills/agent-skills-review/scripts/validate.sh SKILL.md
 
 **Note:** All automated checks are executed by `validate.sh` script. If any check has status "FAIL", fix the issue and re-run before proceeding to manual review.
 
-### Structure Checks (Reference: reference/category-structure.md)
+### Structure Checks (Reference: references/category-structure.md)
 
 #### S-01: Section Order
 - [ ] All 9 required sections present in correct order:
@@ -50,7 +50,7 @@ bash .github/skills/agent-skills-review/scripts/validate.sh SKILL.md
 - [ ] All `category-*.md` files: Start with H2 (`##`)
 - **PASS** if all present files follow header level standards, **FAIL** if any file violates standard
 
-### Quality Checks (Reference: reference/category-quality.md)
+### Quality Checks (Reference: references/category-quality.md)
 
 #### Q-01: Output is Truly Structured
 - [ ] Output Specification defines structured format (JSON/Markdown/Table)
@@ -88,7 +88,7 @@ bash .github/skills/agent-skills-review/scripts/validate.sh SKILL.md
 - [ ] No forbidden expressions: "appropriately", "depending on", "case by case"
 - **PASS** if all 3 ✅
 
-### Pattern Checks (Reference: reference/patterns.md)
+### Pattern Checks (Reference: references/patterns.md)
 
 #### P-01: Design Pattern Compliance
 - [ ] 4-step Review Flow clearly documented (Context → Automated → Manual → Report)
@@ -130,11 +130,11 @@ For detailed evaluation criteria, refer to:
 
 | Check ID               | Reference File             |
 | ---------------------- | -------------------------- |
-| S-01, S-02, Q-07, Q-08 | reference/structure.md     |
-| Q-01 ~ Q-06            | reference/quality.md       |
-| P-01, P-02             | reference/patterns.md      |
-| Output examples        | reference/output-format.md |
-| Philosophy             | reference/philosophy.md    |
+| S-01, S-02, Q-07, Q-08 | references/structure.md     |
+| Q-01 ~ Q-06            | references/quality.md       |
+| P-01, P-02             | references/patterns.md      |
+| Output examples        | references/output-format.md |
+| Philosophy             | references/philosophy.md    |
 
 ---
 

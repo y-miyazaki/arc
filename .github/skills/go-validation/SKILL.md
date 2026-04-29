@@ -1,7 +1,13 @@
 ---
 name: go-validation
-description: Go code validation workflow covering formatting, linting, testing, and security using go fmt, go vet, golangci-lint, go test, and govulncheck. Always use validate.sh script for comprehensive validation. For troubleshooting, see reference/.
-license: MIT
+description: >-
+  Validates Go source code for formatting, linting, testing, and security using go fmt, go vet,
+  golangci-lint, go test, and govulncheck. Use when committing Go code, running CI validation,
+  debugging test failures, or checking for security vulnerabilities in Go projects.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -71,7 +77,7 @@ Error output format:
 Exit code: 1
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -79,7 +85,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes go mod tidy, go fmt, go vet, golangci-lint, go test, and govulncheck in recommended order
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -138,23 +144,23 @@ Error reporting format:
 - Each tool outputs errors to standard error
 - Exit code: 0=success, 1=validation failed
 - Error messages include file paths, line numbers, and specific issues
-- Detailed troubleshooting available in reference/troubleshooting.md
+- Detailed troubleshooting available in references/troubleshooting.md
 
 ## Reference Files Guide
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Go code validation checklist
-- **common-output-format.md** - Validation result report format specification
-- **common-troubleshooting.md** - Troubleshooting guide
-- **common-individual-commands.md** - Individual command execution (go fmt/vet/lint/test/govulncheck)
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when validation fails with unexpected errors
+- [common-individual-commands.md](references/common-individual-commands.md) - Read when debugging a specific tool (go fmt/vet/lint/test/govulncheck)
 
-**Category Details**:
+**Category Details** (read when investigating specific failures):
 
-- **category-security.md** - Security validation guide
-- **category-testing.md** - Test execution guide
+- [category-security.md](references/category-security.md) - Read when govulncheck reports vulnerabilities
+- [category-testing.md](references/category-testing.md) - Read when tests fail or coverage is below threshold
 
 ## Validation Script Usage
 

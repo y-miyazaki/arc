@@ -1,7 +1,13 @@
 ---
 name: diagram-as-code-validation
-description: Validates AWS Diagram as Code (DAC) YAML files using yamllint and awsdac. Use for syntax checking, diagram generation, and structure verification. Always use the 3-step validation workflow.
-license: MIT
+description: >-
+  Validates AWS Diagram as Code (DAC) YAML files for syntax and structure using yamllint and
+  awsdac. Generates PNG architecture diagrams from YAML definitions. Use when editing DAC YAML
+  files, generating AWS architecture diagrams, or validating diagram structure before commit.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -58,7 +64,7 @@ Error output format:
 ✗ awsdac: [specific failure reason]
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -66,7 +72,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes yamllint and awsdac in recommended order with proper configuration
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -122,10 +128,10 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - DAC YAML validation checklist
-- **common-output-format.md** - Validation result report format specification
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
 
 ## Validation Script Usage
 
@@ -170,4 +176,4 @@ Before committing DAC changes:
 4. **Verify diagram** - Check generated PNG visually
 5. **Commit** - Only when validation passes
 
-Detailed command options for troubleshooting are in [reference/common-individual-commands.md](reference/common-individual-commands.md).
+Detailed command options for troubleshooting are in [references/common-individual-commands.md](references/common-individual-commands.md).

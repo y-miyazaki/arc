@@ -1,7 +1,13 @@
 ---
 name: go-review
-description: Go code review for correctness, security, performance, and best practices. Use for manual review of Go code checking design decisions and patterns requiring human judgment. For detailed category-specific checks, see reference/.
-license: MIT
+description: >-
+  Reviews Go source code for correctness, security, performance, and best practices.
+  Checks design decisions, concurrency patterns, and error handling requiring human judgment.
+  Use when reviewing Go pull requests, evaluating architecture patterns, or assessing security of Go code.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -41,17 +47,17 @@ Format:
 - ## Checks Summary section: Total/Passed/Failed/Deferred counts
 - ## Checks (Failed/Deferred Only) section: Show only ❌ and ⊘ items in checklist order
 - ## Issues section: Numbered list with full details for each failed or deferred item
-- Keep full evaluation data for all checks internally using fixed ItemIDs from reference/common-checklist.md
+- Keep full evaluation data for all checks internally using fixed ItemIDs from references/common-checklist.md
 - If there are no failed or deferred checks: output "No failed or deferred checks" in Checks and "No issues found" in Issues
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
 **How to use this skill**:
 
 - This skill provides manual review guidance requiring human/AI judgment
-- Reviewer reads Go source files and systematically applies review checklist items from [reference/common-checklist.md](reference/common-checklist.md)
+- Reviewer reads Go source files and systematically applies review checklist items from [references/common-checklist.md](references/common-checklist.md)
 - **Boundary**:
   - Focus only on checks that require human/AI judgment
   - Treat formatting/lint/test/security automation as out of scope for this review skill
@@ -117,25 +123,25 @@ Error reporting format:
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Go code review checklist
-- **common-output-format.md** - Review report format specification
+- [common-checklist.md](references/common-checklist.md) - Complete review checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
 
-**Category Details**:
+**Category Details** (read when reviewing related code):
 
-- **category-architecture.md** - Architecture patterns detailed guide
-- **category-code-standards.md** - Code standards guide
-- **category-concurrency.md** - Concurrency patterns detailed guide
-- **category-context.md** - Context usage patterns detailed guide
-- **category-dependencies.md** - Dependency management guide
-- **category-documentation.md** - Documentation standards
-- **category-error-handling.md** - Error handling patterns detailed guide
-- **category-function-design.md** - Function design guide
-- **category-global.md** - Overall design patterns
-- **category-performance.md** - Performance optimization guide
-- **category-security.md** - Security patterns detailed guide
-- **category-testing.md** - Test design guide
+- [category-architecture.md](references/category-architecture.md) - Read when reviewing package design, interfaces, or dependency injection
+- [category-code-standards.md](references/category-code-standards.md) - Read when reviewing naming, style, or Go idioms
+- [category-concurrency.md](references/category-concurrency.md) - Read when reviewing goroutines, channels, mutexes, or race conditions
+- [category-context.md](references/category-context.md) - Read when reviewing context.Context propagation, timeout, or cancellation
+- [category-dependencies.md](references/category-dependencies.md) - Read when reviewing go.mod, module versioning, or dependency changes
+- [category-documentation.md](references/category-documentation.md) - Read when reviewing godoc comments or documentation updates
+- [category-error-handling.md](references/category-error-handling.md) - Read when reviewing error types, wrapping, or sentinel errors
+- [category-function-design.md](references/category-function-design.md) - Read when reviewing function signatures, parameters, or return values
+- [category-global.md](references/category-global.md) - Read when reviewing package structure, imports, or naming basics
+- [category-performance.md](references/category-performance.md) - Read when reviewing allocations, string operations, or preallocation
+- [category-security.md](references/category-security.md) - Read when reviewing input validation, crypto usage, or SQL injection prevention
+- [category-testing.md](references/category-testing.md) - Read when reviewing test structure, table-driven tests, or mocking
 
 ## Workflow
 
@@ -228,18 +234,18 @@ Review results must be output in structured format:
 
 Review categories are organized by domain. Claude will read the relevant category file(s) based on the code being reviewed.
 
-**Global & Base**: Package structure, imports, naming basics → [reference/category-global.md](reference/category-global.md)
-**Context Handling**: context.Context propagation, timeout, cancellation → [reference/category-context.md](reference/category-context.md)
-**Concurrency**: Goroutines, channels, mutexes, race conditions → [reference/category-concurrency.md](reference/category-concurrency.md)
-**Code Standards**: Naming, style, idioms, simplicity → [reference/category-code-standards.md](reference/category-code-standards.md)
-**Function Design**: Function signatures, parameters, return values → [reference/category-function-design.md](reference/category-function-design.md)
-**Error Handling**: Error types, wrapping, sentinel errors → [reference/category-error-handling.md](reference/category-error-handling.md)
-**Security**: Input validation, crypto, SQL injection, secrets → [reference/category-security.md](reference/category-security.md)
-**Performance**: Allocations, string concatenation, preallocation → [reference/category-performance.md](reference/category-performance.md)
-**Testing**: Test structure, table-driven tests, mocking, coverage → [reference/category-testing.md](reference/category-testing.md)
-**Architecture**: Package design, interfaces, dependency injection → [reference/category-architecture.md](reference/category-architecture.md)
-**Documentation**: godoc, comments, examples → [reference/category-documentation.md](reference/category-documentation.md)
-**Dependencies**: Module management, versioning, security → [reference/category-dependencies.md](reference/category-dependencies.md)
+**Global & Base**: Package structure, imports, naming basics → [references/category-global.md](references/category-global.md)
+**Context Handling**: context.Context propagation, timeout, cancellation → [references/category-context.md](references/category-context.md)
+**Concurrency**: Goroutines, channels, mutexes, race conditions → [references/category-concurrency.md](references/category-concurrency.md)
+**Code Standards**: Naming, style, idioms, simplicity → [references/category-code-standards.md](references/category-code-standards.md)
+**Function Design**: Function signatures, parameters, return values → [references/category-function-design.md](references/category-function-design.md)
+**Error Handling**: Error types, wrapping, sentinel errors → [references/category-error-handling.md](references/category-error-handling.md)
+**Security**: Input validation, crypto, SQL injection, secrets → [references/category-security.md](references/category-security.md)
+**Performance**: Allocations, string concatenation, preallocation → [references/category-performance.md](references/category-performance.md)
+**Testing**: Test structure, table-driven tests, mocking, coverage → [references/category-testing.md](references/category-testing.md)
+**Architecture**: Package design, interfaces, dependency injection → [references/category-architecture.md](references/category-architecture.md)
+**Documentation**: godoc, comments, examples → [references/category-documentation.md](references/category-documentation.md)
+**Dependencies**: Module management, versioning, security → [references/category-dependencies.md](references/category-dependencies.md)
 
 ## Best Practices
 
@@ -253,4 +259,4 @@ When performing code reviews:
 - **Prevent security oversights**: Pay special attention to SEC-\* items
 - **Respect Go idioms**: Follow Effective Go and common patterns
 
-For detailed checks in each category, refer to the corresponding file in the [reference/](reference/) directory.
+For detailed checks in each category, refer to the corresponding file in the [references/](references/) directory.

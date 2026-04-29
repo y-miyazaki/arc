@@ -1,7 +1,13 @@
 ---
 name: github-actions-validation
-description: GitHub Actions workflow validation covering syntax, security, and best practices using actionlint, ghalint, and zizmor. Always use validate.sh script for comprehensive validation. For troubleshooting, see reference/.
-license: MIT
+description: >-
+  Validates GitHub Actions workflows for syntax, security, and best practices using actionlint,
+  ghalint, and zizmor. Use when committing workflow changes, running CI validation, or checking
+  workflow files for security issues.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -60,7 +66,7 @@ Error output format:
 Exit code: 1
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -68,7 +74,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes actionlint, ghalint, and zizmor in recommended order with proper configuration
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -122,22 +128,22 @@ Error reporting format:
 - Each tool outputs errors to standard error
 - Exit code: 0=success, 1=validation failed
 - Error messages include file paths, line numbers, and specific issues
-- Detailed troubleshooting available in reference/troubleshooting.md
+- Detailed troubleshooting available in references/troubleshooting.md
 
 ## Reference Files Guide
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Overall validation workflow checklist
-- **common-output-format.md** - Validation result output format definition
-- **common-troubleshooting.md** - Common errors and solutions
-- **common-individual-commands.md** - Detailed individual command usage
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when validation fails with unexpected errors
+- [common-individual-commands.md](references/common-individual-commands.md) - Read when debugging a specific tool (actionlint/ghalint/zizmor)
 
-**Category Details**:
+**Category Details** (read when investigating specific failures):
 
-- **category-security.md** - Security best practices and guidelines
+- [category-security.md](references/category-security.md) - Read when zizmor or ghalint reports security issues
 
 ## Validation Script Usage
 

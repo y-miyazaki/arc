@@ -1,7 +1,13 @@
 ---
 name: terraform-validation
-description: Terraform configuration validation covering syntax, linting, and security. Always use validate.sh script. For troubleshooting, see reference/.
-license: MIT
+description: >-
+  Validates Terraform configurations for syntax, linting, and security using terraform fmt,
+  terraform validate, tflint, and trivy. Use when committing Terraform changes, running CI
+  validation, or checking infrastructure code for security vulnerabilities.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -65,7 +71,7 @@ Error output format:
 Exit code: 1
 ```
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -73,7 +79,7 @@ See reference/common-output-format.md for detailed format specification and exam
 
 - **Primary method**: Always use `scripts/validate.sh` for comprehensive validation
 - Script executes terraform fmt, terraform validate, tflint, and trivy config in recommended order
-- **Manual invocation**: Individual tool commands available for debugging (see reference/troubleshooting.md)
+- **Manual invocation**: Individual tool commands available for debugging (see references/troubleshooting.md)
 - **Automated CI/CD**: Integrate validate.sh into CI pipeline for automated checks
 
 **What this skill does**:
@@ -127,22 +133,22 @@ Error reporting format:
 - Standard error output with specific error messages
 - Exit code: 0=success, 1=error
 - File paths and line numbers included for all issues
-- Error details available in reference/troubleshooting.md
+- Error details available in references/troubleshooting.md
 
 ## Reference Files Guide
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - Terraform validation checklist
-- **common-output-format.md** - Validation result report format specification
-- **common-troubleshooting.md** - Troubleshooting guide
-- **common-individual-commands.md** - Individual command execution (terraform fmt/validate/tflint/trivy)
+- [common-checklist.md](references/common-checklist.md) - Validation checklist with ItemIDs
+- [common-output-format.md](references/common-output-format.md) - Report format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when validation fails with unexpected errors
+- [common-individual-commands.md](references/common-individual-commands.md) - Read when debugging a specific tool (terraform fmt/validate/tflint/trivy)
 
-**Category Details**:
+**Category Details** (read when investigating specific failures):
 
-- **category-security.md** - Security validation guide
+- [category-security.md](references/category-security.md) - Read when trivy reports security vulnerabilities
 
 ## Validation Script Usage
 

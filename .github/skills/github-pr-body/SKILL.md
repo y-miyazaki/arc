@@ -1,7 +1,13 @@
 ---
 name: github-pr-body
-description: Automated PR Body section updater. Always use pr_fetch.sh or pr_body.sh scripts. Updates PR Body sections (## Overview, ## Changes) with auto-generated content. Generates structured, idempotent updates that preserve other template sections.
-license: MIT
+description: >-
+  Updates PR Body sections (## Overview, ## Changes) with auto-generated content analyzing PR
+  purpose, scope, and file changes. Generates structured, idempotent updates that preserve other
+  template sections. Use when creating a PR, populating PR body sections, or regenerating change summaries.
+license: Apache-2.0
+metadata:
+  author: y-miyazaki
+  version: "1.0.0"
 ---
 
 ## Purpose
@@ -57,7 +63,7 @@ Overview generation policy (deterministic):
 
 See "Output Format" section for example output.
 
-See reference/common-output-format.md for detailed format specification and examples.
+See references/common-output-format.md for detailed format specification and examples.
 
 ## Execution Scope
 
@@ -124,26 +130,26 @@ Error reporting format:
 
 - Error messages to standard error output
 - Exit code: 0=success, 1=error
-- Error details available in reference/troubleshooting.md
+- Error details available in references/troubleshooting.md
 
 ## Reference Files Guide
 
 When using this skill with an agent, reference the following files via @-mention for detailed guidance:
 
-**Standard Components**:
+**Standard Components** (always read):
 
-- **common-checklist.md** - PR Overview update workflow checklist
-- **common-output-format.md** - Output format definition
-- **common-troubleshooting.md** - Common issues and solutions
+- [common-checklist.md](references/common-checklist.md) - PR update workflow checklist
+- [common-output-format.md](references/common-output-format.md) - Output format specification
+- [common-troubleshooting.md](references/common-troubleshooting.md) - Read when scripts fail or produce unexpected output
 
-**Category Details**:
+**Category Details** (read when needed):
 
-- **category-command-reference.md** - Command parameters, options, error codes
-- **category-change-classification.md** - File type classification rules
-- **category-agent-workflows.md** - Real-world usage scenarios and workflows
-- **category-pr-body-guidelines.md** - PR Body manual writing guidelines
-- **category-implementation-details.md** - Technical implementation details
-- **category-template-mapping.md** - Template structure mapping
+- [category-command-reference.md](references/category-command-reference.md) - Read when checking command parameters, options, or error codes
+- [category-change-classification.md](references/category-change-classification.md) - Read when file type classification is incorrect
+- [category-agent-workflows.md](references/category-agent-workflows.md) - Read when setting up end-to-end PR workflows
+- [category-pr-body-guidelines.md](references/category-pr-body-guidelines.md) - Read when writing PR body content manually
+- [category-implementation-details.md](references/category-implementation-details.md) - Read when debugging script internals
+- [category-template-mapping.md](references/category-template-mapping.md) - Read when template sections are not mapped correctly
 
 ## Workflow
 
@@ -308,7 +314,7 @@ After Step 2, AI completion must:
 
 ### Workflow Examples
 
-For complete workflow scenarios, see **[Agent Workflows](reference/category-agent-workflows.md)** (Japanese scenarios included).
+For complete workflow scenarios, see **[Agent Workflows](references/category-agent-workflows.md)** (Japanese scenarios included).
 
 ## Summary
 

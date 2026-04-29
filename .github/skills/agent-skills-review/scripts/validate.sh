@@ -84,7 +84,7 @@ Validation Checks:
   - Structural Completeness: 9 required sections exist
   - YAML Frontmatter Fields: name, description, license fields present
   - Progressive Disclosure: word count < 5,000
-  - Resource Separation: scripts/ and reference/ directories exist
+  - Resource Separation: scripts/ and references/ directories exist
   - Reference Mandatory Files: common-checklist.md and common-output-format.md exist
 
 Output Format:
@@ -362,7 +362,7 @@ function check_progressive_disclosure {
 # check_resource_separation: Check directory structure
 #
 # Description:
-#   Verifies that skill directory contains scripts/ and reference/ directories
+#   Verifies that skill directory contains scripts/ and references/ directories
 #   for proper resource organization
 #
 # Arguments:
@@ -390,14 +390,14 @@ function check_resource_separation {
     [[ -d "$skill_dir/reference" ]] && reference_exists=1
 
     if [[ "$scripts_exists" -eq 1 ]] && [[ "$reference_exists" -eq 1 ]]; then
-        echo "✓ Required directories present (scripts/, reference/)"
+        echo "✓ Required directories present (scripts/, references/)"
         check_names+=("Resource Separation")
         check_statuses+=("PASS")
         check_details_json+=("")
     else
         local missing_dirs=()
         [[ "$scripts_exists" -eq 0 ]] && missing_dirs+=("scripts/")
-        [[ "$reference_exists" -eq 0 ]] && missing_dirs+=("reference/")
+        [[ "$reference_exists" -eq 0 ]] && missing_dirs+=("references/")
 
         echo "✗ Missing directories: ${missing_dirs[*]}"
         check_names+=("Resource Separation")
@@ -410,7 +410,7 @@ function check_resource_separation {
 # check_reference_mandatory_files: Check mandatory reference files
 #
 # Description:
-#   Verifies that reference/ directory contains mandatory files:
+#   Verifies that references/ directory contains mandatory files:
 #   common-checklist.md and common-output-format.md
 #
 # Arguments:
@@ -434,12 +434,12 @@ function check_reference_mandatory_files {
     skill_dir="$(dirname "$SKILL_FILE")"
     local ref_dir="$skill_dir/reference"
 
-    # Skip if reference/ directory doesn't exist (already checked by check_resource_separation)
+    # Skip if references/ directory doesn't exist (already checked by check_resource_separation)
     if [[ ! -d "$ref_dir" ]]; then
-        echo "⊘ Reference mandatory files check skipped (reference/ directory not found)"
+        echo "⊘ Reference mandatory files check skipped (references/ directory not found)"
         check_names+=("Reference Mandatory Files")
         check_statuses+=("SKIP")
-        check_details_json+=("reference/ directory not found")
+        check_details_json+=("references/ directory not found")
         return
     fi
 
