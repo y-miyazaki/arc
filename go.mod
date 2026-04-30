@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.22
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.1
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.297.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.298.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.57.1
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.79.0
 	github.com/aws/aws-sdk-go-v2/service/efs v1.41.14
