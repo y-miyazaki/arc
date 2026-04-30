@@ -92,8 +92,8 @@ github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.6 h1:XR42AXidhYs4HwH0I
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.6/go.mod h1:nOTsSVQlAsgwVRdtZYtECSnsInF8IUhrpnclCPat7Fs=
 github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.3 h1:5+bnCQ31qKFtbG5QsvmnqHBY2/Ad4WqI+QMPxYw6ILI=
 github.com/aws/aws-sdk-go-v2/service/sesv2 v1.60.3/go.mod h1:upB+B9sVfla/jTOUI9ZGt17vWMeAM8S25ByUPNfTACo=
-github.com/aws/aws-sdk-go-v2/service/sfn v1.40.10 h1:R6zfaJNZcopLNZujk02QwmE78cMOL1KRx08FtxTyI88=
-github.com/aws/aws-sdk-go-v2/service/sfn v1.40.10/go.mod h1:Csc9j7BBtxws0bI2Aj+ALQpDkWaySstkqB37+1XyyJ8=
+github.com/aws/aws-sdk-go-v2/service/sfn v1.40.11 h1:GZVmdkqgNtTFMH5HDEvqk6UOXu9hvEAOkKPfbH1fQ2Y=
+github.com/aws/aws-sdk-go-v2/service/sfn v1.40.11/go.mod h1:uncFALoLM30hwDKY6Tr+cZwZEvP1XHG+qGAAHvjdx6E=
 github.com/aws/aws-sdk-go-v2/service/signin v1.0.10 h1:a1Fq/KXn75wSzoJaPQTgZO0wHGqE9mjFnylnqEPTchA=
 github.com/aws/aws-sdk-go-v2/service/signin v1.0.10/go.mod h1:p6+MXNxW7IA6dMgHfTAzljuwSKD0NCm/4lbS4t6+7vI=
 github.com/aws/aws-sdk-go-v2/service/sns v1.39.15 h1:rOWMUrXJPcTXnk75ja6Bxv1P+j83dPhIWjfJ2cujj34=
