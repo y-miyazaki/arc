@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/account"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"github.com/y-miyazaki/arc/internal/aws"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
@@ -86,7 +86,7 @@ type collectionResult struct {
 // main initializes and runs the CLI application for collecting AWS resources.
 func main() {
 	// Create CLI app with basic configuration
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "arc",
 		Usage:   "Collect AWS resources and output to CSV",
 		Version: version,
@@ -99,13 +99,13 @@ func main() {
 				Name:    "region",
 				Aliases: []string{"r"},
 				Usage:   "AWS region(s) to use (comma-separated list accepted). The first region is used as the primary region for API client initialization",
-				EnvVars: []string{"AWS_DEFAULT_REGION"},
+				Sources: cli.EnvVars("AWS_DEFAULT_REGION"),
 				Value:   "ap-northeast-1",
 			},
 			&cli.StringFlag{
 				Name:    "profile",
 				Usage:   "AWS profile to use",
-				EnvVars: []string{"AWS_PROFILE"},
+				Sources: cli.EnvVars("AWS_PROFILE"),
 			},
 			&cli.StringFlag{
 				Name:    "output-dir",
@@ -135,10 +135,10 @@ func main() {
 				Value: DefaultExecutionTimeout,
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(c context.Context, cmd *cli.Command) error {
 			// Set up logger based on verbose flag
 			logLevel := slog.LevelInfo
-			if c.Bool("verbose") {
+			if cmd.Bool("verbose") {
 				logLevel = slog.LevelDebug
 			}
 			l := logger.NewSlogLogger(&logger.SlogConfig{
@@ -147,14 +147,14 @@ func main() {
 			})
 
 			// Extract command-line arguments
-			region := c.String("region")
-			profile := c.String("profile")
-			outputDir := c.String("output-dir")
-			categories := c.String("categories")
-			html := c.Bool("html")
-			concurrency := c.Int("concurrency")
-			timeout := c.Duration("timeout")
-			ctx, cancel := createRunContext(c.Context, timeout)
+			region := cmd.String("region")
+			profile := cmd.String("profile")
+			outputDir := cmd.String("output-dir")
+			categories := cmd.String("categories")
+			html := cmd.Bool("html")
+			concurrency := cmd.Int("concurrency")
+			timeout := cmd.Duration("timeout")
+			ctx, cancel := createRunContext(c, timeout)
 			defer cancel()
 
 			// Create collection options
@@ -178,7 +178,7 @@ func main() {
 	}
 
 	// Run the CLI app and handle any errors
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		// Create a default logger for fatal errors
 		defaultLogger := logger.NewSlogLogger(nil)
 		defaultLogger.Error("Application failed", "error", err)
