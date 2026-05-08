@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/batch v1.64.1
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.11
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.62.0
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.56.3
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.71.1
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.57.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.72.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.24
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.60.2
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.3
@@ -26,11 +26,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.25
 	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.16
 	github.com/aws/aws-sdk-go-v2/service/glue v1.140.1
-	github.com/aws/aws-sdk-go-v2/service/iam v1.53.9
+	github.com/aws/aws-sdk-go-v2/service/iam v1.53.10
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.43.7
 	github.com/aws/aws-sdk-go-v2/service/kms v1.51.1
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.90.1
-	github.com/aws/aws-sdk-go-v2/service/quicksight v1.107.1
+	github.com/aws/aws-sdk-go-v2/service/quicksight v1.108.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.118.2
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.62.7
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.7
