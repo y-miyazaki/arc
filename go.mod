@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticache v1.52.2
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.12
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.45.25
-	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.15
+	github.com/aws/aws-sdk-go-v2/service/firehose v1.42.16
 	github.com/aws/aws-sdk-go-v2/service/glue v1.140.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.9
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.43.7
