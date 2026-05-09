@@ -30,10 +30,10 @@ github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.11 h1:gIRdzLv98ugE0nvM
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.71.11/go.mod h1:BMpnKVWK+343lUuI2ZM5bm282z+p61ZK9kwRg6/wBm4=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.62.0 h1:Vd4U87ecTyeQwOTezwqAYW9qcWdZpwicC96MlqXd67M=
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.62.0/go.mod h1:brhMG/gR2xEB5lezxL2Cx+hqsEzGUn4LhNUtu7+ePFE=
-github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.56.3 h1:EP1ULqh0t8szWtLlQFd7pvIvfyuwX09ALLQkJ4AZ9KA=
-github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.56.3/go.mod h1:7900IH3EvTrwNGLNx3QDKnQwPF/Cw+pD9cuvBDQ4org=
-github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.71.1 h1:p0A8HO2B++3LfOTRxQScOPc3QhFWgyAXQQ6W92RT7Yk=
-github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.71.1/go.mod h1:MLJu3PUd8fp5Qvj4CiLvyY5H8y7kxHKlTp060Wsd+Vc=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.57.0 h1:dlkFtYOrwOuM7IIBD6FPLtt0Xvnph+8hqmmbzyowkCk=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.57.0/go.mod h1:7900IH3EvTrwNGLNx3QDKnQwPF/Cw+pD9cuvBDQ4org=
+github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.72.0 h1:yOUKP1aURDdnpgB2Wbe/kGj2O0v3Gz3Hm4tOdiMboWk=
+github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.72.0/go.mod h1:MLJu3PUd8fp5Qvj4CiLvyY5H8y7kxHKlTp060Wsd+Vc=
 github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.24 h1:DLQWli3xz20zXXwMahVJ7xVgAZTmYLfMx7bB2Blwx18=
 github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.33.24/go.mod h1:D9DtGGYo4Fp2t1UwtaoTKuemugfwy5VG5aQLCqan5yk=
 github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.60.2 h1:pZxE29WAHgnk0jGj1P4UOOJnNPHXfltkfnK4F1Tg8jU=
@@ -58,8 +58,8 @@ github.com/aws/aws-sdk-go-v2/service/firehose v1.42.16 h1:nSg1UAENCjuryTr9JMPMOP
 github.com/aws/aws-sdk-go-v2/service/firehose v1.42.16/go.mod h1:8atLs+8lOWcDaxiD+suvyvt63IuwLbT8zlU6Ti9qZiY=
 github.com/aws/aws-sdk-go-v2/service/glue v1.140.1 h1:svc9ZslCPD5rQ0ZF3yYLbZPxnz/Bsu9zH52dHOWIzFY=
 github.com/aws/aws-sdk-go-v2/service/glue v1.140.1/go.mod h1:FZCvt95CcJWRkZNRcmMW1uQkpDHmyUSkZfz3awyZgqg=
-github.com/aws/aws-sdk-go-v2/service/iam v1.53.9 h1:slEs4iUvSt/YOiQQajtXkYBZTMrsEeplSnaB928p4l0=
-github.com/aws/aws-sdk-go-v2/service/iam v1.53.9/go.mod h1:1vkJzjCYC3byO0kIrBqLPzvZpuvYhPXkuyARs6E7tM4=
+github.com/aws/aws-sdk-go-v2/service/iam v1.53.10 h1:kcN3I3llO7VwIY5w3Pc5FmEonpsr23Ou7Cwk4qf7dik=
+github.com/aws/aws-sdk-go-v2/service/iam v1.53.10/go.mod h1:1vkJzjCYC3byO0kIrBqLPzvZpuvYhPXkuyARs6E7tM4=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.9 h1:FLudkZLt5ci0ozzgkVo8BJGwvqNaZbTWb3UcucAateA=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.9/go.mod h1:w7wZ/s9qK7c8g4al+UyoF1Sp/Z45UwMGcqIzLWVQHWk=
 github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.15 h1:ieLCO1JxUWuxTZ1cRd0GAaeX7O6cIxnwk7tc1LsQhC4=
@@ -76,8 +76,8 @@ github.com/aws/aws-sdk-go-v2/service/kms v1.51.1 h1:zuSf4olLKZW8cF/W9Y5wvGT+/0ra
 github.com/aws/aws-sdk-go-v2/service/kms v1.51.1/go.mod h1:Y0+uxvxz6ib4KktRdK0V4X45Vcs/JyYoz8H71pO8xeI=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.1 h1:odCeJgHXfQoXEWQUIzPkKvsJTWcLMsaOWowNpovPFFw=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.1/go.mod h1:NbtJVztitG7JkuoI4GSrDUlsB32zeXqKBvXj6bUxcMo=
-github.com/aws/aws-sdk-go-v2/service/quicksight v1.107.1 h1:7eZa00gngzzGyST9/tZE8rJh28GG8K1dQ9WZG5TvT9w=
-github.com/aws/aws-sdk-go-v2/service/quicksight v1.107.1/go.mod h1:wlXJJU4SX+4l8Mhu+t1+eOatdX+wT62wHbczlbdHwH8=
+github.com/aws/aws-sdk-go-v2/service/quicksight v1.108.0 h1:jbkZ/Rxkf0ta2kW6N8DOy6rZdKOWkSBB2f9QRkNpLiE=
+github.com/aws/aws-sdk-go-v2/service/quicksight v1.108.0/go.mod h1:wlXJJU4SX+4l8Mhu+t1+eOatdX+wT62wHbczlbdHwH8=
 github.com/aws/aws-sdk-go-v2/service/rds v1.118.2 h1:pkEeQneYFpTAnGhyqSbyp/DlCPPJTGt0GkWahlLYzMA=
 github.com/aws/aws-sdk-go-v2/service/rds v1.118.2/go.mod h1:7gS+cGrKF0mH253QHFlStmx79ws+DlNk+04ZRfmw3U0=
 github.com/aws/aws-sdk-go-v2/service/redshift v1.62.7 h1:6NCQBp9IIEs51YI9/jT5/ckSd6Ka9956gAGlw0a0yFI=
