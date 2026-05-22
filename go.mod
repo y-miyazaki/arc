@@ -46,7 +46,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.71.5
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v3 v3.9.0
-	github.com/y-miyazaki/go-common v0.10.0
+	github.com/y-miyazaki/go-common v0.10.2
 )
 
 require (
@@ -66,7 +66,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.21 // indirect
 	github.com/aws/smithy-go v1.25.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
