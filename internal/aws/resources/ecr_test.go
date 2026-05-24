@@ -77,7 +77,7 @@ func TestECRCollector_GetColumns(t *testing.T) {
 		SubCategory1: "Repository",
 		Name:         "test-repo",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo",
 			"Mutability":      "MUTABLE",
 			"Encryption":      "KMS",

@@ -92,7 +92,7 @@ func TestCognitoIdentityPoolCollector_GetColumns(t *testing.T) {
 		Name:         "test-identity-pool",
 		Region:       "us-east-1",
 		ARN:          "us-east-1:12345678-1234-1234-1234-123456789012",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"AllowUnauthenticated":      "true",
 			"DeveloperProviderName":     "dev-provider",
 			"SupportedLoginProviders":   []string{"graph.facebook.com=12345"},

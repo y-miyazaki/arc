@@ -98,7 +98,7 @@ func TestSESCollector_GetColumns(t *testing.T) {
 		Name:         "test@example.com",
 		Region:       "us-east-1",
 		ARN:          "",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"IdentityType":            "EmailAddress",
 			"VerificationStatus":      "Verified",
 			"DkimStatus":              "Enabled",
@@ -145,7 +145,7 @@ func TestSESCollector_GetColumns(t *testing.T) {
 		Name:         "test-config-set",
 		Region:       "us-east-1",
 		ARN:          "",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"SendingEnabled":           "true",
 			"ReputationMetricsEnabled": "true",
 			"TrackingOptions":          "example.com",

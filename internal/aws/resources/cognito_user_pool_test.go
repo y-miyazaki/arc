@@ -93,7 +93,7 @@ func TestCognitoUserPoolCollector_GetColumns(t *testing.T) {
 		Name:         "test-user-pool",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_123456789",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                     "us-east-1_123456789",
 			"CreationDate":           "2023-09-25T01:07:55Z",
 			"LastModifiedDate":       "2023-09-25T01:07:55Z",

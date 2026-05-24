@@ -82,7 +82,7 @@ func TestWAFCollector_GetColumns(t *testing.T) {
 		Name:         "test-web-acl",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/test-web-acl/12345678-1234-1234-1234-123456789012",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":         "Test WebACL",
 			"Scope":               "REGIONAL",
 			"Rules":               []string{"Rule1", "Rule2"},

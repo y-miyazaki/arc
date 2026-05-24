@@ -76,7 +76,7 @@ func TestIAMUserGroupCollector_GetColumns(t *testing.T) {
 		Name:         "test-user",
 		Region:       "Global",
 		ARN:          "arn:aws:iam::123456789012:user/test-user",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Path":             "/",
 			"PasswordLastUsed": "2023-09-25T01:07:55Z",
 			"CreateDate":       "2023-09-25T01:07:55Z",

@@ -77,7 +77,7 @@ func TestSecretsManagerCollector_GetColumns(t *testing.T) {
 		Name:         "test-secret",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:secretsmanager:us-east-1:123456789012:secret:test-secret-AbCdEf",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":       "Test secret",
 			"KmsKey":            "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"RotationEnabled":   "true",

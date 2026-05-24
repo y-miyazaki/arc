@@ -90,7 +90,7 @@ func TestECSCollector_GetColumns(t *testing.T) {
 		Name:         "test-service",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"RoleARN":         "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
 			"TaskDefinition":  "test-task-definition:1",
 			"LaunchType":      "FARGATE",
@@ -202,7 +202,7 @@ func TestECSCollector_collectScheduledTasks_Success(t *testing.T) {
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,
@@ -271,7 +271,7 @@ func TestECSCollector_collectClustersAndServices_DescribeClustersError(t *testin
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,
@@ -314,7 +314,7 @@ func TestECSCollector_collectClustersAndServices_Success(t *testing.T) {
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,
@@ -383,7 +383,7 @@ func TestECSCollector_collectServices_EmptyServiceArns(t *testing.T) {
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,
@@ -436,7 +436,7 @@ func TestECSCollector_collectServices_WithTaskRole(t *testing.T) {
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,
@@ -494,7 +494,7 @@ func TestECSCollector_collectTaskDefinitions_Success(t *testing.T) {
 		Region:      "us-east-1",
 		Credentials: aws.AnonymousCredentials{},
 		HTTPClient:  server.Client(),
-		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...interface{}) (aws.Endpoint, error) {
+		EndpointResolverWithOptions: aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 			return aws.Endpoint{URL: server.URL, HostnameImmutable: true}, nil
 		}),
 		RetryMaxAttempts: 1,

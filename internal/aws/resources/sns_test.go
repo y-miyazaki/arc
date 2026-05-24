@@ -78,7 +78,7 @@ func TestSNSCollector_GetColumns(t *testing.T) {
 		Name:         "test-topic",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:sns:us-east-1:123456789012:test-topic",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"DisplayName": "Test Topic",
 			"Owner":       "123456789012",
 			"Policy":      "{\"Version\":\"2012-10-17\"}",

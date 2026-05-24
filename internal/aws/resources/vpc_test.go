@@ -78,7 +78,7 @@ func TestVPCCollector_GetColumns(t *testing.T) {
 		SubCategory2: "",
 		Name:         "test-vpc",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":             "vpc-12345678",
 			"Description":    "Test VPC",
 			"CIDR":           "10.0.0.0/16",

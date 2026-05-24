@@ -82,7 +82,7 @@ func TestElastiCacheCollector_GetColumns(t *testing.T) {
 		Name:         "test-cluster",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:elasticache:us-east-1:123456789012:replicationgroup:test-cluster",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":                "Test cluster description",
 			"ReplicationGroupID":         "test-replication-group",
 			"ClusterID":                  "test-cluster-001",

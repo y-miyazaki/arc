@@ -75,7 +75,7 @@ func TestRoute53Collector_GetColumns(t *testing.T) {
 		SubCategory2: "Record",
 		Name:         "example.com",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":          "Z123456789",
 			"Type":        "Hosted Zone",
 			"Comment":     "Test zone",

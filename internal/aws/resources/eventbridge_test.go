@@ -84,7 +84,7 @@ func TestEventBridgeCollector_GetColumns(t *testing.T) {
 		Name:         "test-rule",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:events:us-east-1:123456789012:rule/test-rule",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":             "Test EventBridge rule",
 			"RoleARN":                 "arn:aws:iam::123456789012:role/EventBridgeRole",
 			"ScheduleExpression":      "rate(1 hour)",

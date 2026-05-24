@@ -23,7 +23,7 @@ func TestWriteCSV(t *testing.T) {
 				{
 					Category: "TestCategory",
 					Name:     "TestName",
-					RawData: map[string]interface{}{
+					RawData: map[string]any{
 						"Extra": "Value",
 					},
 				},
@@ -55,7 +55,7 @@ func TestWriteCSV(t *testing.T) {
 					Name:         "web-server-01",
 					Region:       "us-east-1",
 					ARN:          "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
-					RawData: map[string]interface{}{
+					RawData: map[string]any{
 						"State": "running",
 						"Type":  "t2.micro",
 					},
@@ -67,7 +67,7 @@ func TestWriteCSV(t *testing.T) {
 					Name:         "my-bucket",
 					Region:       "us-east-1",
 					ARN:          "arn:aws:s3:::my-bucket",
-					RawData: map[string]interface{}{
+					RawData: map[string]any{
 						"Versioning": "Enabled",
 					},
 				},

@@ -90,7 +90,7 @@ func TestCloudWatchAlarmsCollector_GetColumns(t *testing.T) {
 		Name:         "test-alarm",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:cloudwatch:us-east-1:123456789012:alarm:test-alarm",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"MetricName":         "CPUUtilization",
 			"Namespace":          "AWS/EC2",
 			"Statistic":          "Average",

@@ -91,7 +91,7 @@ func TestBatchCollector_GetColumns(t *testing.T) {
 		Name:         "test-queue",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Priority":              "1",
 			"Type":                  "EC2",
 			"JobRoleArn":            "arn:aws:iam::123456789012:role/BatchJobRole",

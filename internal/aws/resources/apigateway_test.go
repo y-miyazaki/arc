@@ -98,7 +98,7 @@ func TestAPIGatewayCollector_GetColumns(t *testing.T) {
 		SubCategory2: "",
 		Name:         "test-api",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":           "Test API",
 			"ID":                    "test-api-id",
 			"ProtocolType":          "REST",

@@ -82,7 +82,7 @@ func TestQuickSightCollector_GetColumns(t *testing.T) {
 		Name:         "test-datasource",
 		Region:       "us-east-1",
 		ARN:          "test-datasource-id",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Type":        "REDSHIFT",
 			"Status":      "CREATION_SUCCESSFUL",
 			"CreatedDate": "2023-09-25T01:07:55Z",

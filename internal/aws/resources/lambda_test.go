@@ -78,7 +78,7 @@ func TestLambdaCollector_GetColumns(t *testing.T) {
 		Name:         "test-function",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:lambda:us-east-1:123456789012:function:test-function",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"RoleARN":      "arn:aws:iam::123456789012:role/lambda-role",
 			"Type":         "Function",
 			"Runtime":      "python3.9",

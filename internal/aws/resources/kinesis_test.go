@@ -84,7 +84,7 @@ func TestKinesisCollector_GetColumns(t *testing.T) {
 		Name:         "test-stream",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Status":               "ACTIVE",
 			"Shards":               "2",
 			"DestinationId":        "",

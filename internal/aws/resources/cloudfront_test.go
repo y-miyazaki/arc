@@ -104,7 +104,7 @@ func TestCloudFrontCollector_GetColumns(t *testing.T) {
 		Name:         "test-distribution.cloudfront.net",
 		Region:       "Global",
 		ARN:          "",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                    "E1A2B3C4D5F6G",
 			"Description":           "Test Distribution",
 			"AlternateDomain":       "cdn.example.com",
@@ -161,7 +161,7 @@ func TestCloudFrontCollector_ErrorPageColumns(t *testing.T) {
 		SubCategory2: "ErrorPage",
 		Name:         "test-distribution.cloudfront.net",
 		Region:       "Global",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                     "E1A2B3C4D5F6G",
 			"HTTPErrorCode":          int32(404),
 			"ErrorCachingMinTTL":     int64(60),
@@ -204,7 +204,7 @@ func TestCloudFrontCollector_OriginColumns(t *testing.T) {
 		SubCategory2: "Origin",
 		Name:         "test-distribution.cloudfront.net",
 		Region:       "Global",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                    "E1A2B3C4D5F6G",
 			"OriginId":              "origin-1",
 			"DomainName":            "example.s3.amazonaws.com",
@@ -254,7 +254,7 @@ func TestCloudFrontCollector_BehaviorColumns(t *testing.T) {
 		SubCategory2: "Behavior",
 		Name:         "test-distribution.cloudfront.net",
 		Region:       "Global",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                   "E1A2B3C4D5F6G",
 			"PathPattern":          "/img/*",
 			"TargetOriginId":       "origin-1",

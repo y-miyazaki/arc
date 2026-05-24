@@ -77,7 +77,7 @@ func TestEC2Collector_GetColumns(t *testing.T) {
 		SubCategory1: "Instance",
 		Name:         "test-instance",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"InstanceID":    "i-1234567890abcdef0",
 			"InstanceType":  "t3.micro",
 			"ImageID":       "ami-12345678",

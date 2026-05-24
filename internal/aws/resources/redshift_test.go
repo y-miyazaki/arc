@@ -80,7 +80,7 @@ func TestRedshiftCollector_GetColumns(t *testing.T) {
 		Name:         "test-cluster",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:iam::123456789012:role/RedshiftRole",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"NodeType":               "dc2.large",
 			"NumberOfNodes":          "2",
 			"DBName":                 "mydb",

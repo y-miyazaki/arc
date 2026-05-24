@@ -90,7 +90,7 @@ func TestCloudWatchLogsCollector_GetColumns(t *testing.T) {
 		Name:         "test-log-group",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"RetentionInDays":     "30",
 			"StoredBytes":         "1024",
 			"MetricFilters":       []string{"filter1", "filter2"},

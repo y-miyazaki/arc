@@ -106,7 +106,7 @@ func TestACMCollector_GetColumns(t *testing.T) {
 		Name:         "example.com",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Status":         "ISSUED",
 			"Type":           "AMAZON_ISSUED",
 			"KeyAlgorithm":   "RSA_2048",

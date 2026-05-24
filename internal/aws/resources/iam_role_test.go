@@ -75,7 +75,7 @@ func TestIAMRoleCollector_GetColumns(t *testing.T) {
 		Name:         "test-role",
 		Region:       "Global",
 		ARN:          "arn:aws:iam::123456789012:role/test-role",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Path":                "/",
 			"AttachedPolicies":    "ReadOnlyAccess,PowerUserAccess",
 			"PermissionsBoundary": "arn:aws:iam::123456789012:policy/boundary",

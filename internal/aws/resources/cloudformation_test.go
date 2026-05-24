@@ -90,7 +90,7 @@ func TestCloudFormationCollector_GetColumns(t *testing.T) {
 		Name:         "test-stack",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:cloudformation:us-east-1:123456789012:stack/test-stack/12345678-1234-1234-1234-123456789012",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description": "Test CloudFormation stack",
 			"Type":        "Stack",
 			"Outputs":     "[]",

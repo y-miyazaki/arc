@@ -91,7 +91,7 @@ func TestELBCollector_GetColumns(t *testing.T) {
 		Name:         "test-alb",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/test-alb/1234567890123456",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"DNSName":          "test-alb-123456789.us-east-1.elb.amazonaws.com",
 			"Type":             "application",
 			"VPC":              "vpc-12345678 (my-vpc)",

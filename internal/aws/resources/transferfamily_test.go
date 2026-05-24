@@ -77,7 +77,7 @@ func TestTransferFamilyCollector_GetColumns(t *testing.T) {
 		Name:         "s-1234567890abcdef0",
 		Region:       "us-east-1",
 		ARN:          "s-1234567890abcdef0",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Protocol": "SFTP",
 			"State":    "ONLINE",
 		},

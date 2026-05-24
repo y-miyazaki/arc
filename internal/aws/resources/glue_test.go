@@ -78,7 +78,7 @@ func TestGlueCollector_GetColumns(t *testing.T) {
 		Name:         "test-job",
 		Region:       "us-east-1",
 		ARN:          "test-job",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description":     "Test Glue job",
 			"RoleARN":         "arn:aws:iam::123456789012:role/GlueServiceRole",
 			"Timeout":         "60",

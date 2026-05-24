@@ -76,7 +76,7 @@ func TestIAMPolicyCollector_GetColumns(t *testing.T) {
 		Name:         "test-policy",
 		Region:       "Global",
 		ARN:          "arn:aws:iam::123456789012:policy/test-policy",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Description": "Test IAM policy",
 			"Scope":       "Local",
 			"Path":        "/",

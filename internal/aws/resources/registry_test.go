@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -111,9 +112,7 @@ func TestNewResource_WithNilValues(t *testing.T) {
 func TestRegister(t *testing.T) {
 	// Clear the registry before test
 	originalCollectors := make(map[string]Collector)
-	for k, v := range collectors {
-		originalCollectors[k] = v
-	}
+	maps.Copy(originalCollectors, collectors)
 	collectors = make(map[string]Collector)
 	defer func() {
 		collectors = originalCollectors
@@ -130,9 +129,7 @@ func TestRegister(t *testing.T) {
 func TestGetCollectors(t *testing.T) {
 	// Clear the registry before test
 	originalCollectors := make(map[string]Collector)
-	for k, v := range collectors {
-		originalCollectors[k] = v
-	}
+	maps.Copy(originalCollectors, collectors)
 	collectors = make(map[string]Collector)
 	defer func() {
 		collectors = originalCollectors
@@ -210,9 +207,7 @@ func TestInitializeCollectors(t *testing.T) {
 
 	// Clear the registry before test
 	originalCollectors := make(map[string]Collector)
-	for k, v := range collectors {
-		originalCollectors[k] = v
-	}
+	maps.Copy(originalCollectors, collectors)
 	collectors = make(map[string]Collector)
 	defer func() {
 		collectors = originalCollectors
@@ -243,9 +238,7 @@ func TestInitializeCollectors(t *testing.T) {
 func TestRegisterConstructor(t *testing.T) {
 	// Clear the registry before test
 	originalConstructors := make(map[string]any)
-	for k, v := range collectorConstructors {
-		originalConstructors[k] = v
-	}
+	maps.Copy(originalConstructors, collectorConstructors)
 	collectorConstructors = make(map[string]any)
 	defer func() {
 		collectorConstructors = originalConstructors
@@ -261,9 +254,7 @@ func TestRegisterConstructor(t *testing.T) {
 func TestCreateCollector(t *testing.T) {
 	// Clear the registry before test
 	originalConstructors := make(map[string]any)
-	for k, v := range collectorConstructors {
-		originalConstructors[k] = v
-	}
+	maps.Copy(originalConstructors, collectorConstructors)
 	collectorConstructors = make(map[string]any)
 	defer func() {
 		collectorConstructors = originalConstructors

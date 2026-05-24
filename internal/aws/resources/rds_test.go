@@ -79,7 +79,7 @@ func TestRDSCollector_GetColumns(t *testing.T) {
 		SubCategory2: "DBInstance",
 		Name:         "test-db",
 		Region:       "us-east-1",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"ID":                               "test-db",
 			"Type":                             "DBInstance",
 			"Engine":                           "mysql",

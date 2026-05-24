@@ -79,7 +79,7 @@ func TestS3BucketCollector_GetColumns(t *testing.T) {
 		Name:         "test-bucket",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:s3:::test-bucket",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Versioning":               "Enabled",
 			"BucketABAC":               "[Environment=Production Team=DevOps]",
 			"Encryption":               "AES256",

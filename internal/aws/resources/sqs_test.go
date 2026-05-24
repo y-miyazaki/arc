@@ -91,7 +91,7 @@ func TestSQSCollector_GetColumns(t *testing.T) {
 		Name:         "test-queue",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:sqs:us-east-1:123456789012:test-queue",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"DelaySeconds":                  "0",
 			"MaximumMessageSize":            "262144",
 			"MessageRetentionPeriod":        "345600",

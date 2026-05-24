@@ -92,7 +92,7 @@ func TestDynamoDBCollector_GetColumns(t *testing.T) {
 		Name:         "test-table",
 		Region:       "us-east-1",
 		ARN:          "arn:aws:dynamodb:us-east-1:123456789012:table/test-table",
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"AttributeDefinitions":       "id:S",
 			"BillingMode":                "PAY_PER_REQUEST",
 			"StreamEnabled":              "false",

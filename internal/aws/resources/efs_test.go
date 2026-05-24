@@ -79,7 +79,7 @@ func TestEFSCollector_GetColumns(t *testing.T) {
 		Name:         "test-filesystem",
 		Region:       "us-east-1",
 		ARN:          "fs-12345678", // ID column uses ARN field
-		RawData: map[string]interface{}{
+		RawData: map[string]any{
 			"Type":          "REGIONAL",
 			"Performance":   "generalPurpose",
 			"Throughput":    "bursting",
