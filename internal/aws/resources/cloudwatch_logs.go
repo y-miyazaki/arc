@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,33 +43,6 @@ func NewCloudWatchLogsCollector(cfg *aws.Config, regions []string, nameResolver 
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*CloudWatchLogsCollector) Name() string {
-	return "cloudwatch_logs"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*CloudWatchLogsCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*CloudWatchLogsCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RetentionInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionInDays") }},
-		{Header: "StoredBytes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StoredBytes") }},
-		{Header: "MetricFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricFilters") }},
-		{Header: "SubscriptionFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SubscriptionFilters") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
-	}
 }
 
 // Collect collects CloudWatch Logs resources for the specified region.
@@ -155,4 +127,31 @@ func (c *CloudWatchLogsCollector) Collect(ctx context.Context, region string) ([
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*CloudWatchLogsCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "RetentionInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionInDays") }},
+		{Header: "StoredBytes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StoredBytes") }},
+		{Header: "MetricFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricFilters") }},
+		{Header: "SubscriptionFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SubscriptionFilters") }},
+		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
+		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*CloudWatchLogsCollector) Name() string {
+	return "cloudwatch_logs"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*CloudWatchLogsCollector) ShouldSort() bool {
+	return true
 }

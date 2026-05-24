@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -40,34 +39,6 @@ func NewRoute53Collector(cfg *aws.Config, regions []string, nameResolver *helper
 		client:       client,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*Route53Collector) Name() string {
-	return "route53"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*Route53Collector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*Route53Collector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Comment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Comment") }},
-		{Header: "TTL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TTL") }},
-		{Header: "RecordType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordType") }},
-		{Header: "Value", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Value") }},
-		{Header: "RecordCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordCount") }},
-	}
 }
 
 // Collect collects Route53 resources for the specified region.
@@ -163,4 +134,32 @@ func (c *Route53Collector) Collect(ctx context.Context, region string) ([]Resour
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*Route53Collector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Comment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Comment") }},
+		{Header: "TTL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TTL") }},
+		{Header: "RecordType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordType") }},
+		{Header: "Value", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Value") }},
+		{Header: "RecordCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordCount") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*Route53Collector) Name() string {
+	return "route53"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*Route53Collector) ShouldSort() bool {
+	return false
 }

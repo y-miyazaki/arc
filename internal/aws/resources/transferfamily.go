@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -45,29 +44,6 @@ func NewTransferFamilyCollector(cfg *aws.Config, regions []string, nameResolver 
 	}, nil
 }
 
-// Name returns the resource name of the collector.
-func (*TransferFamilyCollector) Name() string {
-	return "transferfamily"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*TransferFamilyCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*TransferFamilyCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ServerID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ServerID
-		{Header: "Protocol", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Protocol") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-	}
-}
-
 // Collect collects Transfer Family resources for the specified region.
 // The collector must have been initialized with a client for this region.
 func (c *TransferFamilyCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
@@ -112,4 +88,27 @@ func (c *TransferFamilyCollector) Collect(ctx context.Context, region string) ([
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*TransferFamilyCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ServerID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ServerID
+		{Header: "Protocol", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Protocol") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*TransferFamilyCollector) Name() string {
+	return "transferfamily"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*TransferFamilyCollector) ShouldSort() bool {
+	return true
 }

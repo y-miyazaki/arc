@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,35 +43,6 @@ func NewLambdaCollector(cfg *aws.Config, regions []string, nameResolver *helpers
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*LambdaCollector) Name() string {
-	return "lambda"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*LambdaCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*LambdaCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Runtime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Runtime") }},
-		{Header: "Architecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Architecture") }},
-		{Header: "MemorySize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MemorySize") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "EnvVars", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EnvVars") }},
-		{Header: "LastModified", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModified") }},
-	}
 }
 
 // Collect collects Lambda resources for the specified region.
@@ -135,4 +105,33 @@ func (c *LambdaCollector) Collect(ctx context.Context, region string) ([]Resourc
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*LambdaCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Runtime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Runtime") }},
+		{Header: "Architecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Architecture") }},
+		{Header: "MemorySize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MemorySize") }},
+		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
+		{Header: "EnvVars", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EnvVars") }},
+		{Header: "LastModified", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModified") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*LambdaCollector) Name() string {
+	return "lambda"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*LambdaCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -46,36 +45,6 @@ func NewGlueCollector(cfg *aws.Config, regions []string, nameResolver *helpers.N
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*GlueCollector) Name() string {
-	return "glue"
-}
-
-// ShouldSort returns true.
-func (*GlueCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for Glue.
-func (*GlueCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID (Name in bash script)
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "WorkerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WorkerType") }},
-		{Header: "NumberOfWorkers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumberOfWorkers") }},
-		{Header: "MaxRetries", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaxRetries") }},
-		{Header: "GlueVersion", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GlueVersion") }},
-		{Header: "Language", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Language") }},
-		{Header: "ScriptLocation", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScriptLocation") }},
-	}
 }
 
 // Collect collects Glue resources for the specified region.
@@ -163,4 +132,34 @@ func (c *GlueCollector) Collect(ctx context.Context, region string) ([]Resource,
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for Glue.
+func (*GlueCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID (Name in bash script)
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
+		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
+		{Header: "WorkerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WorkerType") }},
+		{Header: "NumberOfWorkers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumberOfWorkers") }},
+		{Header: "MaxRetries", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaxRetries") }},
+		{Header: "GlueVersion", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GlueVersion") }},
+		{Header: "Language", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Language") }},
+		{Header: "ScriptLocation", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScriptLocation") }},
+	}
+}
+
+// Name returns the collector name.
+func (*GlueCollector) Name() string {
+	return "glue"
+}
+
+// ShouldSort returns true.
+func (*GlueCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -47,33 +46,6 @@ func NewEC2Collector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*EC2Collector) Name() string {
-	return "ec2"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*EC2Collector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*EC2Collector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "InstanceID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceID") }},
-		{Header: "InstanceType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceType") }},
-		{Header: "ImageID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageID") }},
-		{Header: "VPC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPC") }},
-		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-	}
 }
 
 // Collect collects EC2 resources for the specified region.
@@ -189,4 +161,31 @@ func (c *EC2Collector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*EC2Collector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "InstanceID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceID") }},
+		{Header: "InstanceType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceType") }},
+		{Header: "ImageID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageID") }},
+		{Header: "VPC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPC") }},
+		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
+		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*EC2Collector) Name() string {
+	return "ec2"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*EC2Collector) ShouldSort() bool {
+	return true
 }

@@ -1,5 +1,3 @@
-// Package resources provides AWS resource collectors.
-//
 //nolint:revive // comments-density: VPC collector has many API calls, additional comments would be redundant
 package resources
 
@@ -47,46 +45,6 @@ func NewVPCCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*VPCCollector) Name() string {
-	return "vpc"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-// VPC should not be sorted to maintain parent-child order
-func (*VPCCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*VPCCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string {
-			if r.Name == "" {
-				return "N/A"
-			}
-			return r.Name
-		}},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "CIDR", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CIDR") }},
-		{Header: "PublicIP", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PublicIP") }},
-		{Header: "Inbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Inbound") }},
-		{Header: "Outbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Outbound") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Service", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Service") }},
-		{Header: "Subnets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnets") }},
-		{Header: "RouteTables", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RouteTables") }},
-		{Header: "SecurityGroups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroups") }},
-		{Header: "Settings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Settings") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-	}
 }
 
 // Collect collects VPC resources for the specified region.
@@ -417,4 +375,44 @@ func (c *VPCCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*VPCCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string {
+			if r.Name == "" {
+				return "N/A"
+			}
+			return r.Name
+		}},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "CIDR", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CIDR") }},
+		{Header: "PublicIP", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PublicIP") }},
+		{Header: "Inbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Inbound") }},
+		{Header: "Outbound", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Outbound") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Service", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Service") }},
+		{Header: "Subnets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnets") }},
+		{Header: "RouteTables", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RouteTables") }},
+		{Header: "SecurityGroups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroups") }},
+		{Header: "Settings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Settings") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*VPCCollector) Name() string {
+	return "vpc"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+// VPC should not be sorted to maintain parent-child order
+func (*VPCCollector) ShouldSort() bool {
+	return false
 }

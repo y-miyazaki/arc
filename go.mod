@@ -46,7 +46,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.71.5
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v3 v3.9.0
-	github.com/y-miyazaki/go-common v0.10.2
+	github.com/y-miyazaki/go-common v0.10.3
 )
 
 require (

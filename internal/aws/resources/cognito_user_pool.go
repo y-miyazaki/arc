@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -43,14 +42,19 @@ func NewCognitoUserPoolCollector(cfg *aws.Config, regions []string, nameResolver
 	}, nil
 }
 
-// Name returns the resource name of the collector.
-func (*CognitoUserPoolCollector) Name() string {
-	return "cognito_user_pool"
-}
+// Collect collects Cognito User Pool resources for the specified region.
+// The collector must have been initialized with clients for this region.
+func (c *CognitoUserPoolCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	client, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
-// ShouldSort returns whether the collected resources should be sorted.
-func (*CognitoUserPoolCollector) ShouldSort() bool {
-	return false
+	resources, err := collectUserPools(ctx, region, client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect user pools: %w", err)
+	}
+	return resources, nil
 }
 
 // GetColumns returns the CSV columns for the collector.
@@ -80,19 +84,14 @@ func (*CognitoUserPoolCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Cognito User Pool resources for the specified region.
-// The collector must have been initialized with clients for this region.
-func (c *CognitoUserPoolCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
-	client, ok := c.clients[region]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
-	}
+// Name returns the resource name of the collector.
+func (*CognitoUserPoolCollector) Name() string {
+	return "cognito_user_pool"
+}
 
-	resources, err := collectUserPools(ctx, region, client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect user pools: %w", err)
-	}
-	return resources, nil
+// ShouldSort returns whether the collected resources should be sorted.
+func (*CognitoUserPoolCollector) ShouldSort() bool {
+	return false
 }
 
 // collectUserPools lists user pools, groups, and users and returns resources.

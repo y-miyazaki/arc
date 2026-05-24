@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -53,32 +52,6 @@ func NewWAFCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 	}, nil
 }
 
-// Name returns the resource name of the collector.
-func (*WAFCollector) Name() string {
-	return "waf"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*WAFCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*WAFCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "Scope", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Scope") }},
-		{Header: "Rules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Rules") }},
-		{Header: "AssociatedResources", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AssociatedResources") }},
-		{Header: "Logging", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Logging") }},
-	}
-}
-
 // Collect collects WAF resources for the specified region.
 // The collector must have been initialized with a client for this region.
 func (c *WAFCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
@@ -102,6 +75,32 @@ func (c *WAFCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*WAFCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "Scope", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Scope") }},
+		{Header: "Rules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Rules") }},
+		{Header: "AssociatedResources", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AssociatedResources") }},
+		{Header: "Logging", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Logging") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*WAFCollector) Name() string {
+	return "waf"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*WAFCollector) ShouldSort() bool {
+	return true
 }
 
 func (*WAFCollector) collectScope(ctx context.Context, svc *wafv2.Client, cfSvc *cloudfront.Client, regionDesc string, scope types.Scope, resources *[]Resource) error {

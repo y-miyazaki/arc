@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,34 +43,6 @@ func NewECRCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*ECRCollector) Name() string {
-	return "ecr"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*ECRCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*ECRCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "URI", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "URI") }},
-		{Header: "Mutability", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Mutability") }},
-		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
-		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
-		{Header: "ScanOnPush", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScanOnPush") }},
-		{Header: "LifecyclePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecyclePolicy") }},
-		{Header: "ImageCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageCount") }},
-		{Header: "CreatedAt", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedAt") }},
-	}
 }
 
 // Collect collects ECR resources for the specified region.
@@ -167,4 +138,32 @@ func (c *ECRCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*ECRCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "URI", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "URI") }},
+		{Header: "Mutability", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Mutability") }},
+		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
+		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
+		{Header: "ScanOnPush", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScanOnPush") }},
+		{Header: "LifecyclePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecyclePolicy") }},
+		{Header: "ImageCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageCount") }},
+		{Header: "CreatedAt", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedAt") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*ECRCollector) Name() string {
+	return "ecr"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*ECRCollector) ShouldSort() bool {
+	return true
 }

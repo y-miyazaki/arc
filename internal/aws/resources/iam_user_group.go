@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -38,33 +37,6 @@ func NewIAMUserGroupCollector(cfg *aws.Config, regions []string, nameResolver *h
 		client:       client,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*IAMUserGroupCollector) Name() string {
-	return "iam_user_group"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*IAMUserGroupCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*IAMUserGroupCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "PasswordLastUsed", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PasswordLastUsed") }},
-		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
-		{Header: "AttachedUsers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedUsers") }},
-		{Header: "AttachedPolicies", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedPolicies") }},
-	}
 }
 
 // Collect collects IAM Users and Groups for the specified region.
@@ -157,4 +129,31 @@ func (c *IAMUserGroupCollector) Collect(ctx context.Context, region string) ([]R
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*IAMUserGroupCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
+		{Header: "PasswordLastUsed", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PasswordLastUsed") }},
+		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
+		{Header: "AttachedUsers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedUsers") }},
+		{Header: "AttachedPolicies", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedPolicies") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*IAMUserGroupCollector) Name() string {
+	return "iam_user_group"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*IAMUserGroupCollector) ShouldSort() bool {
+	return true
 }

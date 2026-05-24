@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -43,40 +42,6 @@ func NewRedshiftCollector(cfg *aws.Config, regions []string, nameResolver *helpe
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*RedshiftCollector) Name() string {
-	return "redshift"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*RedshiftCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*RedshiftCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "RoleARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "NodeType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeType") }},
-		{Header: "NumberOfNodes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumberOfNodes") }},
-		{Header: "DBName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DBName") }},
-		{Header: "Endpoint", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Endpoint") }},
-		{Header: "Port", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Port") }},
-		{Header: "MasterUsername", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MasterUsername") }},
-		{Header: "VPCName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPCName") }},
-		{Header: "ClusterSubnetGroupName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterSubnetGroupName") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "Encrypted", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encrypted") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "PubliclyAccessible", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PubliclyAccessible") }},
-		{Header: "ClusterStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterStatus") }},
-	}
 }
 
 // Collect collects Redshift resources for the specified region.
@@ -156,4 +121,38 @@ func (c *RedshiftCollector) Collect(ctx context.Context, region string) ([]Resou
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*RedshiftCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "RoleARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "NodeType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeType") }},
+		{Header: "NumberOfNodes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumberOfNodes") }},
+		{Header: "DBName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DBName") }},
+		{Header: "Endpoint", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Endpoint") }},
+		{Header: "Port", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Port") }},
+		{Header: "MasterUsername", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MasterUsername") }},
+		{Header: "VPCName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPCName") }},
+		{Header: "ClusterSubnetGroupName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterSubnetGroupName") }},
+		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
+		{Header: "Encrypted", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encrypted") }},
+		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
+		{Header: "PubliclyAccessible", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PubliclyAccessible") }},
+		{Header: "ClusterStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterStatus") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*RedshiftCollector) Name() string {
+	return "redshift"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*RedshiftCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,41 +43,6 @@ func NewEFSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*EFSCollector) Name() string {
-	return "efs"
-}
-
-// ShouldSort returns true.
-func (*EFSCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for EFS resources.
-func (*EFSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Performance", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Performance") }},
-		{Header: "Throughput", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Throughput") }},
-		{Header: "Encrypted", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encrypted") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "Size", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Size") }},
-		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
-		{Header: "IPAddress", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IPAddress") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "UID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "UID") }},
-		{Header: "GID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GID") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
-	}
 }
 
 // Collect collects EFS resources for the specified region.
@@ -215,4 +179,39 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for EFS resources.
+func (*EFSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Performance", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Performance") }},
+		{Header: "Throughput", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Throughput") }},
+		{Header: "Encrypted", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encrypted") }},
+		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
+		{Header: "Size", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Size") }},
+		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
+		{Header: "IPAddress", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IPAddress") }},
+		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
+		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
+		{Header: "UID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "UID") }},
+		{Header: "GID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GID") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
+	}
+}
+
+// Name returns the collector name.
+func (*EFSCollector) Name() string {
+	return "efs"
+}
+
+// ShouldSort returns true.
+func (*EFSCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors for different services.
 package resources
 
 import (
@@ -43,49 +42,6 @@ func NewElastiCacheCollector(cfg *aws.Config, regions []string, nameResolver *he
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*ElastiCacheCollector) Name() string {
-	return "elasticache"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*ElastiCacheCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*ElastiCacheCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "ReplicationGroupID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReplicationGroupID") }},
-		{Header: "ClusterID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterID") }},
-		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
-		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
-		{Header: "NodeType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeType") }},
-		{Header: "NodeGroups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeGroups") }},
-		{Header: "NumNodes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumNodes") }},
-		{Header: "CacheParameterGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CacheParameterGroup") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "MultiAZ", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MultiAZ") }},
-		{Header: "AutomaticFailover", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AutomaticFailover") }},
-		{Header: "EncryptedAtRest", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptedAtRest") }},
-		{Header: "EncryptedTransit", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptedTransit") }},
-		{Header: "AuthTokenEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthTokenEnabled") }},
-		{Header: "AutoMinorVersionUpgrade", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AutoMinorVersionUpgrade") }},
-		{Header: "PreferredMaintenanceWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PreferredMaintenanceWindow") }},
-		{Header: "SnapshotRetentionLimit", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotRetentionLimit") }},
-		{Header: "SnapshotWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotWindow") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateTime") }},
-	}
 }
 
 // Collect collects ElastiCache resources for the specified region.
@@ -293,4 +249,47 @@ func (c *ElastiCacheCollector) Collect(ctx context.Context, region string) ([]Re
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*ElastiCacheCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "ReplicationGroupID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReplicationGroupID") }},
+		{Header: "ClusterID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ClusterID") }},
+		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
+		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
+		{Header: "NodeType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeType") }},
+		{Header: "NodeGroups", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NodeGroups") }},
+		{Header: "NumNodes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumNodes") }},
+		{Header: "CacheParameterGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CacheParameterGroup") }},
+		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
+		{Header: "MultiAZ", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MultiAZ") }},
+		{Header: "AutomaticFailover", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AutomaticFailover") }},
+		{Header: "EncryptedAtRest", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptedAtRest") }},
+		{Header: "EncryptedTransit", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptedTransit") }},
+		{Header: "AuthTokenEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthTokenEnabled") }},
+		{Header: "AutoMinorVersionUpgrade", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AutoMinorVersionUpgrade") }},
+		{Header: "PreferredMaintenanceWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PreferredMaintenanceWindow") }},
+		{Header: "SnapshotRetentionLimit", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotRetentionLimit") }},
+		{Header: "SnapshotWindow", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SnapshotWindow") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateTime") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*ElastiCacheCollector) Name() string {
+	return "elasticache"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*ElastiCacheCollector) ShouldSort() bool {
+	return false
 }

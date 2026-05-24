@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -61,36 +60,6 @@ func NewEventBridgeCollector(cfg *aws.Config, regions []string, nameResolver *he
 		schClients:   schClients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*EventBridgeCollector) Name() string {
-	return "eventbridge"
-}
-
-// ShouldSort returns true.
-func (*EventBridgeCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for EventBridge.
-func (*EventBridgeCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "ScheduleExpression", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScheduleExpression") }},
-		{Header: "Target", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Target") }},
-		{Header: "RetryMaxAttempts", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetryMaxAttempts") }},
-		{Header: "RetryMaxEventAgeSeconds", Value: func(r Resource) string {
-			return helpers.GetMapValue(r.RawData, "RetryMaxEventAgeSeconds")
-		}},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-	}
 }
 
 // Collect collects EventBridge resources for the specified region.
@@ -217,4 +186,34 @@ func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Re
 	}
 
 	return resources, nil //nolint:nilerr
+}
+
+// GetColumns returns the CSV column definitions for EventBridge.
+func (*EventBridgeCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
+		{Header: "ScheduleExpression", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScheduleExpression") }},
+		{Header: "Target", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Target") }},
+		{Header: "RetryMaxAttempts", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetryMaxAttempts") }},
+		{Header: "RetryMaxEventAgeSeconds", Value: func(r Resource) string {
+			return helpers.GetMapValue(r.RawData, "RetryMaxEventAgeSeconds")
+		}},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Name returns the collector name.
+func (*EventBridgeCollector) Name() string {
+	return "eventbridge"
+}
+
+// ShouldSort returns true.
+func (*EventBridgeCollector) ShouldSort() bool {
+	return true
 }

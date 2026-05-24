@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -43,31 +42,6 @@ func NewKMSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*KMSCollector) Name() string {
-	return "kms"
-}
-
-// ShouldSort returns false to preserve key order.
-func (*KMSCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for KMS keys.
-func (*KMSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "KeyUsage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyUsage") }},
-		{Header: "KeyManager", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyManager") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-	}
 }
 
 // Collect collects KMS keys for the specified region.
@@ -132,4 +106,29 @@ func (c *KMSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for KMS keys.
+func (*KMSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "KeyUsage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyUsage") }},
+		{Header: "KeyManager", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyManager") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+	}
+}
+
+// Name returns the collector name.
+func (*KMSCollector) Name() string {
+	return "kms"
+}
+
+// ShouldSort returns false to preserve key order.
+func (*KMSCollector) ShouldSort() bool {
+	return true
 }

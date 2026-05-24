@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -43,34 +42,6 @@ func NewACMCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*ACMCollector) Name() string {
-	return "acm"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*ACMCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*ACMCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "KeyAlgorithm", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyAlgorithm") }},
-		{Header: "InUse", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InUse") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-		{Header: "IssuedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IssuedDate") }},
-		{Header: "ExpirationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExpirationDate") }},
-	}
 }
 
 // Collect collects ACM resources for the specified region.
@@ -127,4 +98,32 @@ func (c *ACMCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*ACMCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "KeyAlgorithm", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyAlgorithm") }},
+		{Header: "InUse", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InUse") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+		{Header: "IssuedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IssuedDate") }},
+		{Header: "ExpirationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExpirationDate") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*ACMCollector) Name() string {
+	return "acm"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*ACMCollector) ShouldSort() bool {
+	return true
 }

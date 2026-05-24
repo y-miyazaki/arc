@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -59,34 +58,6 @@ func NewKinesisCollector(cfg *aws.Config, regions []string, nameResolver *helper
 		firehoseClients: firehoseClients,
 		nameResolver:    nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*KinesisCollector) Name() string {
-	return "kinesis"
-}
-
-// ShouldSort returns true.
-func (*KinesisCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for Kinesis.
-func (*KinesisCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Shards", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Shards") }},
-		{Header: "DestinationId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationId") }},
-		{Header: "RetentionPeriodHours", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionPeriodHours") }},
-		{Header: "EncryptionType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptionType") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-		{Header: "LastUpdatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastUpdatedDate") }},
-	}
 }
 
 // Collect collects Kinesis resources for the specified region.
@@ -190,4 +161,32 @@ func (c *KinesisCollector) Collect(ctx context.Context, region string) ([]Resour
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for Kinesis.
+func (*KinesisCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Shards", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Shards") }},
+		{Header: "DestinationId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationId") }},
+		{Header: "RetentionPeriodHours", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionPeriodHours") }},
+		{Header: "EncryptionType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptionType") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+		{Header: "LastUpdatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastUpdatedDate") }},
+	}
+}
+
+// Name returns the collector name.
+func (*KinesisCollector) Name() string {
+	return "kinesis"
+}
+
+// ShouldSort returns true.
+func (*KinesisCollector) ShouldSort() bool {
+	return true
 }

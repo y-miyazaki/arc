@@ -1,6 +1,3 @@
-// Package resources provides AWS resource collectors for different services.
-// This package contains collectors that gather information about various AWS resources
-// such as ECS clusters, services, task definitions, and scheduled tasks.
 package resources
 
 import (
@@ -36,10 +33,8 @@ const (
 	EstimatedEnvVarsPerContainer = 5
 )
 
-var (
-	// ErrTaskDefinitionNotFound is returned when a task definition is not found
-	ErrTaskDefinitionNotFound = errors.New("task definition not found")
-)
+// ErrTaskDefinitionNotFound is returned when a task definition is not found
+var ErrTaskDefinitionNotFound = errors.New("task definition not found")
 
 // ECSCollector collects ECS resources.
 // It uses dependency injection to manage ECS clients for multiple regions.
@@ -89,37 +84,6 @@ func NewECSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 	}, nil
 }
 
-// Name returns the resource name of the collector.
-func (*ECSCollector) Name() string {
-	return "ecs"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*ECSCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*ECSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "TaskDefinition", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TaskDefinition") }},
-		{Header: "LaunchType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LaunchType") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CronSchedule", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CronSchedule") }},
-		{Header: "Spec", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Spec") }},
-		{Header: "RuntimePlatform", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RuntimePlatform") }},
-		{Header: "PortMappings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PortMappings") }},
-		{Header: "Environment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Environment") }},
-	}
-}
-
 // Collect collects ECS resources for the specified region.
 // The collector must have been initialized with a client for this region.
 // This method is safe for concurrent execution across multiple goroutines and regions.
@@ -161,6 +125,37 @@ func (c *ECSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	return allResources, nil
 }
 
+// GetColumns returns the CSV columns for the collector.
+func (*ECSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
+		{Header: "TaskDefinition", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TaskDefinition") }},
+		{Header: "LaunchType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LaunchType") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CronSchedule", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CronSchedule") }},
+		{Header: "Spec", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Spec") }},
+		{Header: "RuntimePlatform", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RuntimePlatform") }},
+		{Header: "PortMappings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PortMappings") }},
+		{Header: "Environment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Environment") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*ECSCollector) Name() string {
+	return "ecs"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*ECSCollector) ShouldSort() bool {
+	return false
+}
+
 // getTaskDef gets task definition with caching.
 // This is a package-level helper function that takes cache as a parameter,
 // making the collector safe for concurrent use across multiple goroutines.
@@ -179,6 +174,60 @@ func getTaskDef(ctx context.Context, ecsClient *ecs.Client, arn string, taskDefC
 		return out.TaskDefinition, nil
 	}
 	return nil, ErrTaskDefinitionNotFound
+}
+
+// collectClustersAndServices collects clusters and their services
+func (c *ECSCollector) collectClustersAndServices(ctx context.Context, ecsClient *ecs.Client, region string, scheduledTasks map[string][]Resource, taskDefCache map[string]*types.TaskDefinition) ([]Resource, error) {
+	// Pre-allocate with estimated capacity: cluster + services + scheduled tasks
+	resources := make([]Resource, 0, len(scheduledTasks)*EstimatedResourcesPerCluster)
+
+	clusterPaginator := ecs.NewListClustersPaginator(ecsClient, &ecs.ListClustersInput{})
+	for clusterPaginator.HasMorePages() {
+		page, err := clusterPaginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list clusters: %w", err)
+		}
+
+		if len(page.ClusterArns) == 0 {
+			continue
+		}
+
+		// Describe Clusters to get details
+		descClustersOut, err := ecsClient.DescribeClusters(ctx, &ecs.DescribeClustersInput{
+			Clusters: page.ClusterArns,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe clusters: %w", err)
+		}
+
+		for i := range descClustersOut.Clusters {
+			cluster := &descClustersOut.Clusters[i]
+			clusterArn := helpers.StringValue(cluster.ClusterArn)
+
+			// Add cluster
+			resources = append(resources, NewResource(&ResourceInput{
+				Category:     "ecs",
+				SubCategory1: "Cluster",
+				Name:         cluster.ClusterName,
+				Region:       region,
+				ARN:          cluster.ClusterArn,
+				RawData: map[string]any{
+					"Status": cluster.Status,
+				},
+			}))
+
+			// Add services for this cluster
+			serviceResources := c.collectServices(ctx, ecsClient, region, clusterArn, taskDefCache)
+			resources = append(resources, serviceResources...)
+
+			// Add scheduled tasks for this cluster
+			if tasks, ok := scheduledTasks[clusterArn]; ok {
+				resources = append(resources, tasks...)
+			}
+		}
+	}
+
+	return resources, nil
 }
 
 // collectScheduledTasks collects scheduled tasks from EventBridge rules
@@ -262,60 +311,6 @@ func (*ECSCollector) collectScheduledTasks(ctx context.Context, ecsClient *ecs.C
 	return scheduledTasksByCluster, nil
 }
 
-// collectClustersAndServices collects clusters and their services
-func (c *ECSCollector) collectClustersAndServices(ctx context.Context, ecsClient *ecs.Client, region string, scheduledTasks map[string][]Resource, taskDefCache map[string]*types.TaskDefinition) ([]Resource, error) {
-	// Pre-allocate with estimated capacity: cluster + services + scheduled tasks
-	resources := make([]Resource, 0, len(scheduledTasks)*EstimatedResourcesPerCluster)
-
-	clusterPaginator := ecs.NewListClustersPaginator(ecsClient, &ecs.ListClustersInput{})
-	for clusterPaginator.HasMorePages() {
-		page, err := clusterPaginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list clusters: %w", err)
-		}
-
-		if len(page.ClusterArns) == 0 {
-			continue
-		}
-
-		// Describe Clusters to get details
-		descClustersOut, err := ecsClient.DescribeClusters(ctx, &ecs.DescribeClustersInput{
-			Clusters: page.ClusterArns,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to describe clusters: %w", err)
-		}
-
-		for i := range descClustersOut.Clusters {
-			cluster := &descClustersOut.Clusters[i]
-			clusterArn := helpers.StringValue(cluster.ClusterArn)
-
-			// Add cluster
-			resources = append(resources, NewResource(&ResourceInput{
-				Category:     "ecs",
-				SubCategory1: "Cluster",
-				Name:         cluster.ClusterName,
-				Region:       region,
-				ARN:          cluster.ClusterArn,
-				RawData: map[string]any{
-					"Status": cluster.Status,
-				},
-			}))
-
-			// Add services for this cluster
-			serviceResources := c.collectServices(ctx, ecsClient, region, clusterArn, taskDefCache)
-			resources = append(resources, serviceResources...)
-
-			// Add scheduled tasks for this cluster
-			if tasks, ok := scheduledTasks[clusterArn]; ok {
-				resources = append(resources, tasks...)
-			}
-		}
-	}
-
-	return resources, nil
-}
-
 // collectServices collects services for the given cluster
 func (*ECSCollector) collectServices(ctx context.Context, ecsClient *ecs.Client, region, clusterArn string, taskDefCache map[string]*types.TaskDefinition) []Resource {
 	// Pre-allocate with estimated capacity for services per cluster
@@ -336,10 +331,7 @@ func (*ECSCollector) collectServices(ctx context.Context, ecsClient *ecs.Client,
 
 		// Describe Services (max MaxServicesPerDescribe)
 		for chunkIndex := 0; chunkIndex < len(svcPage.ServiceArns); chunkIndex += MaxServicesPerDescribe {
-			end := chunkIndex + MaxServicesPerDescribe
-			if end > len(svcPage.ServiceArns) {
-				end = len(svcPage.ServiceArns)
-			}
+			end := min(chunkIndex+MaxServicesPerDescribe, len(svcPage.ServiceArns))
 			chunk := svcPage.ServiceArns[chunkIndex:end]
 
 			descServicesOut, descErr := ecsClient.DescribeServices(ctx, &ecs.DescribeServicesInput{

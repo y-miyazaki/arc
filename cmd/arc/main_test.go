@@ -267,7 +267,7 @@ func TestConstants(t *testing.T) {
 	if LogKeyFile != "file" {
 		t.Errorf("Expected LogKeyFile to be 'file', got %s", LogKeyFile)
 	}
-	if DefaultDirPerm != 0750 {
+	if DefaultDirPerm != 0o750 {
 		t.Errorf("Expected DefaultDirPerm to be 0750, got %d", DefaultDirPerm)
 	}
 }

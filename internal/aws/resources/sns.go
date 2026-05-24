@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,30 +43,6 @@ func NewSNSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*SNSCollector) Name() string {
-	return "sns"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*SNSCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*SNSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "DisplayName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DisplayName") }},
-		{Header: "Owner", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Owner") }},
-		{Header: "Policy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Policy") }},
-	}
 }
 
 // Collect collects SNS resources for the specified region.
@@ -127,4 +102,28 @@ func (c *SNSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*SNSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "DisplayName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DisplayName") }},
+		{Header: "Owner", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Owner") }},
+		{Header: "Policy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Policy") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*SNSCollector) Name() string {
+	return "sns"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*SNSCollector) ShouldSort() bool {
+	return true
 }

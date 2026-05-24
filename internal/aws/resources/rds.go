@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -50,42 +49,6 @@ func NewRDSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*RDSCollector) Name() string {
-	return "rds"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-// RDS should not be sorted to maintain parent-child order (Cluster -> Instance)
-func (*RDSCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*RDSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
-		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
-		{Header: "InstanceClass", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceClass") }},
-		{Header: "AllocatedStorage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AllocatedStorage") }},
-		{Header: "MultiAZ", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MultiAZ") }},
-		{Header: "DBClusterMembers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DBClusterMembers") }},
-		{Header: "EngineLifecycleSupport", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EngineLifecycleSupport") }},
-		{Header: "IAMDatabaseAuthenticationEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IAMDatabaseAuthenticationEnabled") }},
-		{Header: "KerberosAuth", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KerberosAuth") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "AvailabilityZone", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AvailabilityZone") }},
-		{Header: "BackupRetentionPeriod", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BackupRetentionPeriod") }},
-	}
 }
 
 // Collect collects RDS resources for the specified region.
@@ -260,4 +223,40 @@ func (c *RDSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*RDSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Engine", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Engine") }},
+		{Header: "Version", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Version") }},
+		{Header: "InstanceClass", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceClass") }},
+		{Header: "AllocatedStorage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AllocatedStorage") }},
+		{Header: "MultiAZ", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MultiAZ") }},
+		{Header: "DBClusterMembers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DBClusterMembers") }},
+		{Header: "EngineLifecycleSupport", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EngineLifecycleSupport") }},
+		{Header: "IAMDatabaseAuthenticationEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IAMDatabaseAuthenticationEnabled") }},
+		{Header: "KerberosAuth", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KerberosAuth") }},
+		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
+		{Header: "AvailabilityZone", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AvailabilityZone") }},
+		{Header: "BackupRetentionPeriod", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BackupRetentionPeriod") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*RDSCollector) Name() string {
+	return "rds"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+// RDS should not be sorted to maintain parent-child order (Cluster -> Instance)
+func (*RDSCollector) ShouldSort() bool {
+	return false
 }

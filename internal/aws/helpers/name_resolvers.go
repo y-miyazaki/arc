@@ -1,4 +1,3 @@
-// Package helpers provides helper functions for AWS resource collection.
 package helpers
 
 import (
@@ -123,6 +122,34 @@ func NewNameResolver(cfg *aws.Config, regions []string) (*NameResolver, error) {
 	}, nil
 }
 
+// GetAllImages retrieves all AMIs owned by the account in the region with caching.
+// Returns a map of image ID to image name.
+// Results are cached per region to minimize API calls.
+func (nr *NameResolver) GetAllImages(ctx context.Context, region string) (map[string]string, error) {
+	// Check cache first
+	if nr.cache[region] != nil && nr.cache[region]["images"] != nil {
+		return nr.cache[region]["images"], nil
+	}
+
+	svc, ok := nr.ec2Clients[region]
+	if !ok {
+		return nil, fmt.Errorf(ErrMsgClientRegionFmt, ErrNoEC2ClientForRegion, region)
+	}
+
+	imageMap, err := getAllImagesWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllImagesWithClient: %w", err)
+	}
+
+	// Cache the result
+	if nr.cache[region] == nil {
+		nr.cache[region] = make(map[string]map[string]string)
+	}
+	nr.cache[region]["images"] = imageMap
+
+	return imageMap, nil
+}
+
 // GetAllKMSKeys retrieves all KMS keys and their aliases in the region with caching.
 // Returns a map where both key ID and key ARN can be used as lookup keys to get the alias name.
 // This allows lookups with either format: key ID (e.g., "12345678-1234-1234-1234-123456789012")
@@ -151,36 +178,6 @@ func (nr *NameResolver) GetAllKMSKeys(ctx context.Context, region string) (map[s
 	nr.cache[region]["kms"] = keyMap
 
 	return keyMap, nil
-}
-
-// GetAllImages retrieves all AMIs owned by the account in the region.
-// Returns a map of image ID to image name.
-// GetAllImages retrieves all AMIs owned by the account in the region with caching.
-// Returns a map of image ID to image name.
-// Results are cached per region to minimize API calls.
-func (nr *NameResolver) GetAllImages(ctx context.Context, region string) (map[string]string, error) {
-	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["images"] != nil {
-		return nr.cache[region]["images"], nil
-	}
-
-	svc, ok := nr.ec2Clients[region]
-	if !ok {
-		return nil, fmt.Errorf(ErrMsgClientRegionFmt, ErrNoEC2ClientForRegion, region)
-	}
-
-	imageMap, err := getAllImagesWithClient(ctx, svc)
-	if err != nil {
-		return nil, fmt.Errorf("getAllImagesWithClient: %w", err)
-	}
-
-	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["images"] = imageMap
-
-	return imageMap, nil
 }
 
 // GetAllNetworkInterfaces retrieves all network interfaces in the region with caching.
@@ -295,34 +292,6 @@ func (nr *NameResolver) GetAllSubnets(ctx context.Context, region string) (map[s
 	return subnetMap, nil
 }
 
-// GetAllVolumes retrieves all EBS volumes in the region with caching.
-// Returns a map of volume ID to volume name.
-// Results are cached per region to minimize API calls.
-func (nr *NameResolver) GetAllVolumes(ctx context.Context, region string) (map[string]string, error) {
-	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["volumes"] != nil {
-		return nr.cache[region]["volumes"], nil
-	}
-
-	svc, ok := nr.ec2Clients[region]
-	if !ok {
-		return nil, fmt.Errorf(ErrMsgClientRegionFmt, ErrNoEC2ClientForRegion, region)
-	}
-
-	volumeMap, err := getAllVolumesWithClient(ctx, svc)
-	if err != nil {
-		return nil, fmt.Errorf("getAllVolumesWithClient: %w", err)
-	}
-
-	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["volumes"] = volumeMap
-
-	return volumeMap, nil
-}
-
 // GetAllVPCs retrieves all VPCs in the region with caching.
 // Returns a map of VPC ID to VPC name.
 // Results are cached per region to minimize API calls.
@@ -349,6 +318,34 @@ func (nr *NameResolver) GetAllVPCs(ctx context.Context, region string) (map[stri
 	nr.cache[region]["vpcs"] = vpcMap
 
 	return vpcMap, nil
+}
+
+// GetAllVolumes retrieves all EBS volumes in the region with caching.
+// Returns a map of volume ID to volume name.
+// Results are cached per region to minimize API calls.
+func (nr *NameResolver) GetAllVolumes(ctx context.Context, region string) (map[string]string, error) {
+	// Check cache first
+	if nr.cache[region] != nil && nr.cache[region]["volumes"] != nil {
+		return nr.cache[region]["volumes"], nil
+	}
+
+	svc, ok := nr.ec2Clients[region]
+	if !ok {
+		return nil, fmt.Errorf(ErrMsgClientRegionFmt, ErrNoEC2ClientForRegion, region)
+	}
+
+	volumeMap, err := getAllVolumesWithClient(ctx, svc)
+	if err != nil {
+		return nil, fmt.Errorf("getAllVolumesWithClient: %w", err)
+	}
+
+	// Cache the result
+	if nr.cache[region] == nil {
+		nr.cache[region] = make(map[string]map[string]string)
+	}
+	nr.cache[region]["volumes"] = volumeMap
+
+	return volumeMap, nil
 }
 
 // GetResourceNameFromARN extracts the resource name from an ARN.
@@ -704,36 +701,6 @@ func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, e
 	return vpcMap, nil
 }
 
-// GetOriginAccessControlName returns the name for a CloudFront Origin Access Control ID.
-// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
-func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID string) string {
-	cacheKey := "oac:" + oacID
-	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
-		return name
-	}
-
-	// CloudFront is a global service, use us-east-1 client
-	client, ok := nr.cloudfrontClients[CloudFrontRegion]
-	if !ok {
-		return ""
-	}
-
-	output, err := client.GetOriginAccessControl(ctx, &cloudfront.GetOriginAccessControlInput{
-		Id: aws.String(oacID),
-	})
-	if err != nil {
-		return ""
-	}
-
-	name := ""
-	if output.OriginAccessControl != nil && output.OriginAccessControl.OriginAccessControlConfig != nil {
-		name = aws.ToString(output.OriginAccessControl.OriginAccessControlConfig.Name)
-	}
-
-	nr.cloudfrontCache[cacheKey] = name
-	return name
-}
-
 // GetCachePolicyName returns the name for a CloudFront Cache Policy ID.
 // Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
 func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string) string {
@@ -758,6 +725,36 @@ func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string)
 	name := ""
 	if output.CachePolicy != nil && output.CachePolicy.CachePolicyConfig != nil {
 		name = aws.ToString(output.CachePolicy.CachePolicyConfig.Name)
+	}
+
+	nr.cloudfrontCache[cacheKey] = name
+	return name
+}
+
+// GetOriginAccessControlName returns the name for a CloudFront Origin Access Control ID.
+// Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
+func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID string) string {
+	cacheKey := "oac:" + oacID
+	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
+		return name
+	}
+
+	// CloudFront is a global service, use us-east-1 client
+	client, ok := nr.cloudfrontClients[CloudFrontRegion]
+	if !ok {
+		return ""
+	}
+
+	output, err := client.GetOriginAccessControl(ctx, &cloudfront.GetOriginAccessControlInput{
+		Id: aws.String(oacID),
+	})
+	if err != nil {
+		return ""
+	}
+
+	name := ""
+	if output.OriginAccessControl != nil && output.OriginAccessControl.OriginAccessControlConfig != nil {
+		name = aws.ToString(output.OriginAccessControl.OriginAccessControlConfig.Name)
 	}
 
 	nr.cloudfrontCache[cacheKey] = name

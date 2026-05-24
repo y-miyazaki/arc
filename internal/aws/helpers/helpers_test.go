@@ -673,6 +673,7 @@ type MockKMSClientWithError struct{}
 func (m *MockKMSClientWithError) ListKeys(ctx context.Context, params *kms.ListKeysInput, optFns ...func(*kms.Options)) (*kms.ListKeysOutput, error) {
 	return nil, fmt.Errorf("kms failed")
 }
+
 func (m *MockKMSClientWithError) ListAliases(ctx context.Context, params *kms.ListAliasesInput, optFns ...func(*kms.Options)) (*kms.ListAliasesOutput, error) {
 	return &kms.ListAliasesOutput{}, nil
 }

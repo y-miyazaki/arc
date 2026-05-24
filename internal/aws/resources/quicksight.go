@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -46,31 +45,6 @@ func NewQuickSightCollector(cfg *aws.Config, regions []string, nameResolver *hel
 		stsClient:    sts.NewFromConfig(*cfg),
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*QuickSightCollector) Name() string {
-	return "quicksight"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*QuickSightCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*QuickSightCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-	}
 }
 
 // Collect collects QuickSight resources for the specified region.
@@ -146,4 +120,29 @@ func (c *QuickSightCollector) Collect(ctx context.Context, region string) ([]Res
 	}
 
 	return resources, nil //nolint:nilerr
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*QuickSightCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*QuickSightCollector) Name() string {
+	return "quicksight"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*QuickSightCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,43 +43,6 @@ func NewDynamoDBCollector(cfg *aws.Config, regions []string, nameResolver *helpe
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*DynamoDBCollector) Name() string {
-	return "dynamodb"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*DynamoDBCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*DynamoDBCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "AttributeDefinitions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttributeDefinitions") }},
-		{Header: "BillingMode", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BillingMode") }},
-		{Header: "StreamEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StreamEnabled") }},
-		{Header: "GlobalTable", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GlobalTable") }},
-		{Header: "PointInTimeRecovery", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PointInTimeRecovery") }},
-		{Header: "RecoveryPeriodInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecoveryPeriodInDays") }},
-		{Header: "EarliestRestorableDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EarliestRestorableDateTime") }},
-		{Header: "LatestRestorableDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LatestRestorableDateTime") }},
-		{Header: "DeletionProtection", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DeletionProtection") }},
-		{Header: "TTLAttribute", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TTLAttribute") }},
-		{Header: "SSE", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSE") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "ItemCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ItemCount") }},
-		{Header: "TableSize(Bytes)", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TableSize") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreationDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDateTime") }},
-	}
 }
 
 // Collect collects DynamoDB resources for the specified region.
@@ -208,4 +170,41 @@ func (c *DynamoDBCollector) Collect(ctx context.Context, region string) ([]Resou
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*DynamoDBCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "AttributeDefinitions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttributeDefinitions") }},
+		{Header: "BillingMode", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BillingMode") }},
+		{Header: "StreamEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StreamEnabled") }},
+		{Header: "GlobalTable", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GlobalTable") }},
+		{Header: "PointInTimeRecovery", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PointInTimeRecovery") }},
+		{Header: "RecoveryPeriodInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecoveryPeriodInDays") }},
+		{Header: "EarliestRestorableDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EarliestRestorableDateTime") }},
+		{Header: "LatestRestorableDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LatestRestorableDateTime") }},
+		{Header: "DeletionProtection", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DeletionProtection") }},
+		{Header: "TTLAttribute", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TTLAttribute") }},
+		{Header: "SSE", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSE") }},
+		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
+		{Header: "ItemCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ItemCount") }},
+		{Header: "TableSize(Bytes)", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TableSize") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreationDateTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDateTime") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*DynamoDBCollector) Name() string {
+	return "dynamodb"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*DynamoDBCollector) ShouldSort() bool {
+	return true
 }

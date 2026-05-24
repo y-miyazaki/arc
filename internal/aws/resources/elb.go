@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -67,42 +66,6 @@ func NewELBCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		ec2Clients:   ec2Clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*ELBCollector) Name() string {
-	return "elb"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-// ELB resources maintain grouping structure, so sorting is disabled
-func (*ELBCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-// Defines the output format for ELB resource data including DNS, type, VPC, etc.
-func (*ELBCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "DNSName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DNSName") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "VPC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPC") }},
-		{Header: "AvailabilityZone", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AvailabilityZone") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
-		{Header: "Protocol", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Protocol") }},
-		{Header: "Port", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Port") }},
-		{Header: "HealthCheck", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "HealthCheck") }},
-		{Header: "SSLPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSLPolicy") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-		{Header: "CreatedTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedTime") }},
-	}
 }
 
 // Collect collects ELB resources for the specified region.
@@ -290,4 +253,40 @@ func (c *ELBCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+// Defines the output format for ELB resource data including DNS, type, VPC, etc.
+func (*ELBCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "DNSName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DNSName") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "VPC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPC") }},
+		{Header: "AvailabilityZone", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AvailabilityZone") }},
+		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
+		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
+		{Header: "Protocol", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Protocol") }},
+		{Header: "Port", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Port") }},
+		{Header: "HealthCheck", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "HealthCheck") }},
+		{Header: "SSLPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSLPolicy") }},
+		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+		{Header: "CreatedTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedTime") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*ELBCollector) Name() string {
+	return "elb"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+// ELB resources maintain grouping structure, so sorting is disabled
+func (*ELBCollector) ShouldSort() bool {
+	return false
 }

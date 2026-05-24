@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -44,35 +43,6 @@ func NewCloudWatchAlarmsCollector(cfg *aws.Config, regions []string, nameResolve
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*CloudWatchAlarmsCollector) Name() string {
-	return "cloudwatch_alarms"
-}
-
-// ShouldSort returns true.
-func (*CloudWatchAlarmsCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for CloudWatch alarms.
-func (*CloudWatchAlarmsCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "MetricName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricName") }},
-		{Header: "Namespace", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Namespace") }},
-		{Header: "Statistic", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Statistic") }},
-		{Header: "Threshold", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Threshold") }},
-		{Header: "ComparisonOperator", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ComparisonOperator") }},
-		{Header: "EvaluationPeriods", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EvaluationPeriods") }},
-		{Header: "Period", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Period") }},
-		{Header: "TreatMissingData", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TreatMissingData") }},
-	}
 }
 
 // Collect collects CloudWatch alarms for the specified region.
@@ -131,4 +101,33 @@ func (c *CloudWatchAlarmsCollector) Collect(ctx context.Context, region string) 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for CloudWatch alarms.
+func (*CloudWatchAlarmsCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "MetricName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricName") }},
+		{Header: "Namespace", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Namespace") }},
+		{Header: "Statistic", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Statistic") }},
+		{Header: "Threshold", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Threshold") }},
+		{Header: "ComparisonOperator", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ComparisonOperator") }},
+		{Header: "EvaluationPeriods", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EvaluationPeriods") }},
+		{Header: "Period", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Period") }},
+		{Header: "TreatMissingData", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TreatMissingData") }},
+	}
+}
+
+// Name returns the collector name.
+func (*CloudWatchAlarmsCollector) Name() string {
+	return "cloudwatch_alarms"
+}
+
+// ShouldSort returns true.
+func (*CloudWatchAlarmsCollector) ShouldSort() bool {
+	return true
 }

@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -71,59 +70,6 @@ func NewCloudFrontCollector(cfg *aws.Config, regions []string, nameResolver *hel
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*CloudFrontCollector) Name() string {
-	return "cloudfront"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*CloudFrontCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*CloudFrontCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "AlternateDomain", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AlternateDomain") }},
-		{Header: "Origin", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Origin") }},
-		{Header: "SSLCertificate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSLCertificate") }},
-		{Header: "SecurityPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityPolicy") }},
-		{Header: "SupportedHTTPVersions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SupportedHTTPVersions") }},
-		{Header: "DefaultRootObject", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DefaultRootObject") }},
-		{Header: "PriceClass", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PriceClass") }},
-		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
-		{Header: "AccessLogDestinations", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogDestinations") }},
-		{Header: "OriginId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginId") }},
-		{Header: "DomainName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DomainName") }},
-		{Header: "OriginPath", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginPath") }},
-		{Header: "OriginType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginType") }},
-		{Header: "OriginAccessControlId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginAccessControlId") }},
-		{Header: "OriginShield", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginShield") }},
-		{Header: "ConnectionTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ConnectionTimeout") }},
-		{Header: "ResponseTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ResponseTimeout") }},
-		{Header: "Config", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Config") }},
-		{Header: "PathPattern", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PathPattern") }},
-		{Header: "TargetOriginId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TargetOriginId") }},
-		{Header: "ViewerProtocolPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ViewerProtocolPolicy") }},
-		{Header: "CacheConfiguration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CacheConfiguration") }},
-		{Header: "SmoothStreaming", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SmoothStreaming") }},
-		{Header: "RealtimeLogConfig", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RealtimeLogConfig") }},
-		{Header: "FunctionAssociations", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "FunctionAssociations") }},
-		{Header: "Compress", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Compress") }},
-		{Header: "HTTPErrorCode", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "HTTPErrorCode") }},
-		{Header: "ErrorCachingMinTTL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ErrorCachingMinTTL") }},
-		{Header: "CustomizeErrorResponse", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CustomizeErrorResponse") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-	}
 }
 
 // Collect collects CloudFront resources for the specified region.
@@ -206,9 +152,9 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 					wafARN := *dist.WebACLId
 					// Try to extract the human-friendly name from WAFv2 ARN which contains "/webacl/<name>/"
 					// Example: arn:aws:wafv2:us-east-1:123456789012:regional/webacl/MyWebACL/uuid
-					if idx := strings.Index(wafARN, "/webacl/"); idx != -1 {
+					if _, after, found := strings.Cut(wafARN, "/webacl/"); found {
 						// take the part after "/webacl/" and split by '/'
-						sub := wafARN[idx+len("/webacl/"):]
+						sub := after
 						subParts := strings.SplitN(sub, "/", 2) //nolint:mnd
 						if len(subParts) > 0 && subParts[0] != "" {
 							wafName := subParts[0]
@@ -268,7 +214,8 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 								configParts = append(configParts, fmt.Sprintf("OAI=%s", *origin.S3OriginConfig.OriginAccessIdentity))
 							}
 						} else if origin.CustomOriginConfig != nil {
-							configParts = append(configParts,
+							configParts = append(
+								configParts,
 								fmt.Sprintf("HTTP=%d", aws.ToInt32(origin.CustomOriginConfig.HTTPPort)),
 								fmt.Sprintf("HTTPS=%d", aws.ToInt32(origin.CustomOriginConfig.HTTPSPort)),
 								fmt.Sprintf("Protocol=%s", origin.CustomOriginConfig.OriginProtocolPolicy),
@@ -579,4 +526,57 @@ func (c *CloudFrontCollector) Collect(ctx context.Context, region string) ([]Res
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*CloudFrontCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "AlternateDomain", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AlternateDomain") }},
+		{Header: "Origin", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Origin") }},
+		{Header: "SSLCertificate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SSLCertificate") }},
+		{Header: "SecurityPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityPolicy") }},
+		{Header: "SupportedHTTPVersions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SupportedHTTPVersions") }},
+		{Header: "DefaultRootObject", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DefaultRootObject") }},
+		{Header: "PriceClass", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PriceClass") }},
+		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
+		{Header: "AccessLogDestinations", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogDestinations") }},
+		{Header: "OriginId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginId") }},
+		{Header: "DomainName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DomainName") }},
+		{Header: "OriginPath", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginPath") }},
+		{Header: "OriginType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginType") }},
+		{Header: "OriginAccessControlId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginAccessControlId") }},
+		{Header: "OriginShield", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OriginShield") }},
+		{Header: "ConnectionTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ConnectionTimeout") }},
+		{Header: "ResponseTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ResponseTimeout") }},
+		{Header: "Config", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Config") }},
+		{Header: "PathPattern", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PathPattern") }},
+		{Header: "TargetOriginId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TargetOriginId") }},
+		{Header: "ViewerProtocolPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ViewerProtocolPolicy") }},
+		{Header: "CacheConfiguration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CacheConfiguration") }},
+		{Header: "SmoothStreaming", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SmoothStreaming") }},
+		{Header: "RealtimeLogConfig", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RealtimeLogConfig") }},
+		{Header: "FunctionAssociations", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "FunctionAssociations") }},
+		{Header: "Compress", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Compress") }},
+		{Header: "HTTPErrorCode", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "HTTPErrorCode") }},
+		{Header: "ErrorCachingMinTTL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ErrorCachingMinTTL") }},
+		{Header: "CustomizeErrorResponse", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CustomizeErrorResponse") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*CloudFrontCollector) Name() string {
+	return "cloudfront"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*CloudFrontCollector) ShouldSort() bool {
+	return false
 }

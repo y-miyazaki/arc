@@ -42,35 +42,6 @@ func NewSQSCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 	}, nil
 }
 
-// Name returns the collector name.
-func (*SQSCollector) Name() string {
-	return "sqs"
-}
-
-// ShouldSort returns true.
-func (*SQSCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for SQS queues.
-func (*SQSCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "DelaySeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DelaySeconds") }},
-		{Header: "MaximumMessageSize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaximumMessageSize") }},
-		{Header: "MessageRetentionPeriod", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MessageRetentionPeriod") }},
-		{Header: "ReceiveMessageWaitTimeSeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReceiveMessageWaitTimeSeconds") }},
-		{Header: "VisibilityTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VisibilityTimeout") }},
-		{Header: "RedrivePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RedrivePolicy") }},
-		{Header: "CreatedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedTimestamp") }},
-		{Header: "LastModifiedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModifiedTimestamp") }},
-	}
-}
-
 // Collect collects SQS queues from the specified region.
 func (c *SQSCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	svc, ok := c.clients[region]
@@ -131,4 +102,33 @@ func (c *SQSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for SQS queues.
+func (*SQSCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "DelaySeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DelaySeconds") }},
+		{Header: "MaximumMessageSize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaximumMessageSize") }},
+		{Header: "MessageRetentionPeriod", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MessageRetentionPeriod") }},
+		{Header: "ReceiveMessageWaitTimeSeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReceiveMessageWaitTimeSeconds") }},
+		{Header: "VisibilityTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VisibilityTimeout") }},
+		{Header: "RedrivePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RedrivePolicy") }},
+		{Header: "CreatedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedTimestamp") }},
+		{Header: "LastModifiedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModifiedTimestamp") }},
+	}
+}
+
+// Name returns the collector name.
+func (*SQSCollector) Name() string {
+	return "sqs"
+}
+
+// ShouldSort returns true.
+func (*SQSCollector) ShouldSort() bool {
+	return true
 }

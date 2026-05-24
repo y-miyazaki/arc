@@ -31,10 +31,8 @@ const (
 	MillisThreshold = 1000000000000 // 1_000_000_000_000
 )
 
-var (
-	// ErrInvalidARNFormat indicates that the provided ARN has an invalid format
-	ErrInvalidARNFormat = errors.New("invalid ARN format")
-)
+// ErrInvalidARNFormat indicates that the provided ARN has an invalid format
+var ErrInvalidARNFormat = errors.New("invalid ARN format")
 
 // ExtractAccountID extracts the AWS account ID from an ARN
 func ExtractAccountID(arn string) (string, error) {
@@ -124,7 +122,7 @@ func StructToKeyValue(s any) []string {
 	val := reflect.ValueOf(s)
 
 	// Dereference pointer if needed
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return nil
 		}

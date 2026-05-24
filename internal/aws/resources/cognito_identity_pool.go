@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -45,14 +44,19 @@ func NewCognitoIdentityPoolCollector(cfg *aws.Config, regions []string, nameReso
 	}, nil
 }
 
-// Name returns the resource name of the collector.
-func (*CognitoIdentityPoolCollector) Name() string {
-	return "cognito_identity_pool"
-}
+// Collect collects Cognito Identity Pool resources for the specified region.
+// The collector must have been initialized with clients for this region.
+func (c *CognitoIdentityPoolCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
+	client, ok := c.clients[region]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
+	}
 
-// ShouldSort returns whether the collected resources should be sorted.
-func (*CognitoIdentityPoolCollector) ShouldSort() bool {
-	return true
+	resources, err := collectIdentityPools(ctx, region, client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect identity pools: %w", err)
+	}
+	return resources, nil
 }
 
 // GetColumns returns the CSV columns for the collector.
@@ -73,19 +77,14 @@ func (*CognitoIdentityPoolCollector) GetColumns() []Column {
 	}
 }
 
-// Collect collects Cognito Identity Pool resources for the specified region.
-// The collector must have been initialized with clients for this region.
-func (c *CognitoIdentityPoolCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
-	client, ok := c.clients[region]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrNoClientForRegion, region)
-	}
+// Name returns the resource name of the collector.
+func (*CognitoIdentityPoolCollector) Name() string {
+	return "cognito_identity_pool"
+}
 
-	resources, err := collectIdentityPools(ctx, region, client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect identity pools: %w", err)
-	}
-	return resources, nil
+// ShouldSort returns whether the collected resources should be sorted.
+func (*CognitoIdentityPoolCollector) ShouldSort() bool {
+	return true
 }
 
 // collectIdentityPools lists identity pools and returns resources.

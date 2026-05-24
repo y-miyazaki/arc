@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -33,38 +32,6 @@ func NewSESCollector(cfg *aws.Config, regions []string, nameResolver *helpers.Na
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*SESCollector) Name() string { return "ses" }
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*SESCollector) ShouldSort() bool { return false }
-
-// GetColumns returns the CSV columns for the collector.
-func (*SESCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "IdentityType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IdentityType") }},
-		{Header: "VerificationStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VerificationStatus") }},
-		{Header: "DkimStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DkimStatus") }},
-		{Header: "DkimTokens", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DkimTokens") }},
-		{Header: "MailFromDomain", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MailFromDomain") }},
-		{Header: "MailFromDomainStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MailFromDomainStatus") }},
-		{Header: "BehaviorOnMXFailure", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BehaviorOnMXFailure") }},
-		{Header: "DefaultConfigurationSet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DefaultConfigurationSet") }},
-		{Header: "SendingEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SendingEnabled") }},
-		{Header: "ReputationMetricsEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReputationMetricsEnabled") }},
-		{Header: "TrackingOptions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TrackingOptions") }},
-		{Header: "DestinationType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationType") }},
-		{Header: "DestinationARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationARN") }},
-		{Header: "EventTypes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EventTypes") }},
-	}
 }
 
 // Collect collects SES resources for the specified region.
@@ -232,3 +199,35 @@ func (c *SESCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 	return resources, nil
 }
+
+// GetColumns returns the CSV columns for the collector.
+func (*SESCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "IdentityType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IdentityType") }},
+		{Header: "VerificationStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VerificationStatus") }},
+		{Header: "DkimStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DkimStatus") }},
+		{Header: "DkimTokens", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DkimTokens") }},
+		{Header: "MailFromDomain", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MailFromDomain") }},
+		{Header: "MailFromDomainStatus", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MailFromDomainStatus") }},
+		{Header: "BehaviorOnMXFailure", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BehaviorOnMXFailure") }},
+		{Header: "DefaultConfigurationSet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DefaultConfigurationSet") }},
+		{Header: "SendingEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SendingEnabled") }},
+		{Header: "ReputationMetricsEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReputationMetricsEnabled") }},
+		{Header: "TrackingOptions", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TrackingOptions") }},
+		{Header: "DestinationType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationType") }},
+		{Header: "DestinationARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationARN") }},
+		{Header: "EventTypes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EventTypes") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*SESCollector) Name() string { return "ses" }
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*SESCollector) ShouldSort() bool { return false }

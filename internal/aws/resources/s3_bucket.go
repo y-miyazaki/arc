@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -48,43 +47,6 @@ func NewS3BucketCollector(cfg *aws.Config, regions []string, nameResolver *helpe
 		client:       client,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*S3BucketCollector) Name() string {
-	return "s3_bucket"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*S3BucketCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*S3BucketCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Versioning", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Versioning") }},
-		{Header: "BucketABAC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BucketABAC") }},
-		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
-		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
-		{Header: "AccessLogARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogARN") }},
-		{Header: "TransferAcceleration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TransferAcceleration") }},
-		{Header: "ObjectLock", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ObjectLock") }},
-		{Header: "RequesterPays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RequesterPays") }},
-		{Header: "StaticWebsiteHosting", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StaticWebsiteHosting") }},
-		{Header: "PABBlockPublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicACLs") }},
-		{Header: "PABIgnorePublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABIgnorePublicACLs") }},
-		{Header: "PABBlockPublicPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicPolicy") }},
-		{Header: "PABRestrictPublicBuckets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABRestrictPublicBuckets") }},
-		{Header: "ACL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ACL") }},
-		{Header: "LifecycleRules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecycleRules") }},
-		{Header: "CreationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDate") }},
-	}
 }
 
 // Collect collects S3 resources for the specified region.
@@ -308,4 +270,41 @@ func (c *S3BucketCollector) Collect(ctx context.Context, region string) ([]Resou
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*S3BucketCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Versioning", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Versioning") }},
+		{Header: "BucketABAC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BucketABAC") }},
+		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
+		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
+		{Header: "AccessLogARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogARN") }},
+		{Header: "TransferAcceleration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TransferAcceleration") }},
+		{Header: "ObjectLock", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ObjectLock") }},
+		{Header: "RequesterPays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RequesterPays") }},
+		{Header: "StaticWebsiteHosting", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StaticWebsiteHosting") }},
+		{Header: "PABBlockPublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicACLs") }},
+		{Header: "PABIgnorePublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABIgnorePublicACLs") }},
+		{Header: "PABBlockPublicPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicPolicy") }},
+		{Header: "PABRestrictPublicBuckets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABRestrictPublicBuckets") }},
+		{Header: "ACL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ACL") }},
+		{Header: "LifecycleRules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecycleRules") }},
+		{Header: "CreationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDate") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*S3BucketCollector) Name() string {
+	return "s3_bucket"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*S3BucketCollector) ShouldSort() bool {
+	return true
 }

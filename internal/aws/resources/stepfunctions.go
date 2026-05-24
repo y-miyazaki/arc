@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -45,41 +44,6 @@ func NewStepFunctionsCollector(cfg *aws.Config, regions []string, nameResolver *
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the resource name of the collector.
-func (*StepFunctionsCollector) Name() string {
-	return "stepfunctions"
-}
-
-// ShouldSort returns whether the collected resources should be sorted.
-func (*StepFunctionsCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV columns for the collector.
-func (*StepFunctionsCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Comment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Comment") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "LoggingLevel", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LoggingLevel") }},
-		{Header: "LoggingIncludeExecutionData", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LoggingIncludeExecutionData") }},
-		{Header: "LogDestination", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LogDestination") }},
-		{Header: "TracingEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TracingEnabled") }},
-		{Header: "EncryptionType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptionType") }},
-		{Header: "KMSKeyID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKeyID") }},
-		{Header: "KMSDataKeyReusePeriodSeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSDataKeyReusePeriodSeconds") }},
-		{Header: "Definition", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Definition") }},
-		{Header: "RevisionID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RevisionID") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-	}
 }
 
 // Collect collects Step Functions resources for the specified region.
@@ -168,6 +132,41 @@ func (c *StepFunctionsCollector) Collect(ctx context.Context, region string) ([]
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV columns for the collector.
+func (*StepFunctionsCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Comment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Comment") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
+		{Header: "LoggingLevel", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LoggingLevel") }},
+		{Header: "LoggingIncludeExecutionData", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LoggingIncludeExecutionData") }},
+		{Header: "LogDestination", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LogDestination") }},
+		{Header: "TracingEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TracingEnabled") }},
+		{Header: "EncryptionType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptionType") }},
+		{Header: "KMSKeyID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKeyID") }},
+		{Header: "KMSDataKeyReusePeriodSeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSDataKeyReusePeriodSeconds") }},
+		{Header: "Definition", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Definition") }},
+		{Header: "RevisionID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RevisionID") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+	}
+}
+
+// Name returns the resource name of the collector.
+func (*StepFunctionsCollector) Name() string {
+	return "stepfunctions"
+}
+
+// ShouldSort returns whether the collected resources should be sorted.
+func (*StepFunctionsCollector) ShouldSort() bool {
+	return true
 }
 
 func getDefinitionComment(definition *string) string {

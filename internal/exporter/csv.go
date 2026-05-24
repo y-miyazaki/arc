@@ -1,5 +1,4 @@
-// Package exporter provides functionality to export collected resources to various formats.
-// Package exporter provides CSV export functionality.
+//nolint:revive // comments-density: CSV exporter is concise and self-documenting
 package exporter
 
 import (

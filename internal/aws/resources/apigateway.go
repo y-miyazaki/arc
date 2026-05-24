@@ -1,7 +1,4 @@
-// Package resources contains AWS resource collectors including API Gateway.
-// This package provides collectors for various AWS services, each implementing
-// the Collector interface with dependency injection for regional clients.
-// API Gateway collector specifically handles REST APIs (v1) and HTTP APIs (v2).
+//nolint:revive // comments-density: API Gateway collector code is self-documenting
 package resources
 
 import (
@@ -59,34 +56,6 @@ func NewAPIGatewayCollector(cfg *aws.Config, regions []string, nameResolver *hel
 	}, nil
 }
 
-// Name returns the collector name.
-func (*APIGatewayCollector) Name() string {
-	return "apigateway"
-}
-
-// ShouldSort returns false to maintain API and authorizer grouping.
-func (*APIGatewayCollector) ShouldSort() bool {
-	return false
-}
-
-// GetColumns returns the CSV column definitions for API Gateway.
-func (*APIGatewayCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "ProtocolType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ProtocolType") }},
-		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
-		{Header: "AuthorizerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerType") }},
-		{Header: "AuthorizerProviderARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerProviderARN") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-	}
-}
-
 // Collect collects API Gateway resources from the specified region.
 func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	svcV1, okV1 := c.clientsV1[region]
@@ -123,8 +92,8 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 					if stage.WebAclArn != nil {
 						// Extract WAF name from ARN
 						arn := *stage.WebAclArn
-						if idx := strings.Index(arn, "/webacl/"); idx != -1 {
-							sub := arn[idx+len("/webacl/"):]
+						if _, after, ok := strings.Cut(arn, "/webacl/"); ok {
+							sub := after
 							parts := strings.SplitN(sub, "/", 2) //nolint:mnd
 							if len(parts) > 0 {
 								wafName = parts[0]
@@ -261,4 +230,32 @@ func (c *APIGatewayCollector) Collect(ctx context.Context, region string) ([]Res
 	}
 
 	return resources, nil //nolint:nilerr
+}
+
+// GetColumns returns the CSV column definitions for API Gateway.
+func (*APIGatewayCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
+		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
+		{Header: "ProtocolType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ProtocolType") }},
+		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
+		{Header: "AuthorizerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerType") }},
+		{Header: "AuthorizerProviderARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerProviderARN") }},
+		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+	}
+}
+
+// Name returns the collector name.
+func (*APIGatewayCollector) Name() string {
+	return "apigateway"
+}
+
+// ShouldSort returns false to maintain API and authorizer grouping.
+func (*APIGatewayCollector) ShouldSort() bool {
+	return false
 }

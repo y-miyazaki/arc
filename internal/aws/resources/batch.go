@@ -1,4 +1,3 @@
-// Package resources provides AWS resource collectors.
 package resources
 
 import (
@@ -41,39 +40,6 @@ func NewBatchCollector(cfg *aws.Config, regions []string, nameResolver *helpers.
 		clients:      clients,
 		nameResolver: nameResolver,
 	}, nil
-}
-
-// Name returns the collector name.
-func (*BatchCollector) Name() string {
-	return "batch"
-}
-
-// ShouldSort returns true.
-func (*BatchCollector) ShouldSort() bool {
-	return true
-}
-
-// GetColumns returns the CSV column definitions for Batch.
-func (*BatchCollector) GetColumns() []Column {
-	return []Column{
-		{Header: "Category", Value: func(r Resource) string { return r.Category }},
-		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
-		{Header: "Name", Value: func(r Resource) string { return r.Name }},
-		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Priority", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Priority") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "JobRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JobRoleArn") }},
-		{Header: "ExecutionRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExecutionRoleArn") }},
-		{Header: "Image", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Image") }},
-		{Header: "vCPU", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "vCPU") }},
-		{Header: "Memory", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Memory") }},
-		{Header: "CpuArchitecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CpuArchitecture") }},
-		{Header: "OperatingSystemFamily", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OperatingSystemFamily") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "JSON", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JSON") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-	}
 }
 
 // Collect collects Batch resources from the specified region.
@@ -230,4 +196,37 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 	}
 
 	return resources, nil
+}
+
+// GetColumns returns the CSV column definitions for Batch.
+func (*BatchCollector) GetColumns() []Column {
+	return []Column{
+		{Header: "Category", Value: func(r Resource) string { return r.Category }},
+		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
+		{Header: "Name", Value: func(r Resource) string { return r.Name }},
+		{Header: "Region", Value: func(r Resource) string { return r.Region }},
+		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
+		{Header: "Priority", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Priority") }},
+		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
+		{Header: "JobRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JobRoleArn") }},
+		{Header: "ExecutionRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExecutionRoleArn") }},
+		{Header: "Image", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Image") }},
+		{Header: "vCPU", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "vCPU") }},
+		{Header: "Memory", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Memory") }},
+		{Header: "CpuArchitecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CpuArchitecture") }},
+		{Header: "OperatingSystemFamily", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OperatingSystemFamily") }},
+		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
+		{Header: "JSON", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JSON") }},
+		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+	}
+}
+
+// Name returns the collector name.
+func (*BatchCollector) Name() string {
+	return "batch"
+}
+
+// ShouldSort returns true.
+func (*BatchCollector) ShouldSort() bool {
+	return true
 }

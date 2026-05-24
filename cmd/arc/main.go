@@ -31,7 +31,7 @@ import (
 // Version information (set by GoReleaser during build)
 const (
 	// DefaultDirPerm is the default directory permission
-	DefaultDirPerm = 0750
+	DefaultDirPerm = 0o750
 	// DefaultExecutionTimeout is the default upper bound for a single arc run.
 	DefaultExecutionTimeout = 30 * time.Minute
 	// DefaultMaxConcurrency is the default maximum number of concurrent AWS API requests
