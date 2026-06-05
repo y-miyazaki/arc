@@ -14,15 +14,12 @@ import (
 
 // Sentinel errors for registry operations (alphabetical order).
 var (
+	collectors              = make(map[string]Collector)
+	collectorConstructors   = make(map[string]any)
 	ErrInvalidCollectorType = errors.New("constructor returned invalid collector type")
 	ErrInvalidErrorType     = errors.New("constructor returned invalid error type")
 	ErrNoClientForRegion    = errors.New("no client found for region")
 	ErrUnknownCollector     = errors.New("unknown collector")
-)
-
-var (
-	collectors            = make(map[string]Collector)
-	collectorConstructors = make(map[string]any)
 )
 
 // Collector is the interface that all resource collectors must implement.
