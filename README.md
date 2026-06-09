@@ -3,7 +3,7 @@
 ![Go](https://custom-icon-badges.herokuapp.com/badge/Go-00ADD8.svg?logo=Go&logoColor=white)
 ![Apache-2.0](https://custom-icon-badges.herokuapp.com/badge/license-Apache%202.0-8BB80A.svg?logo=law&logoColor=white)
 [![GitHub release](https://img.shields.io/github/release/y-miyazaki/arc.svg)](https://github.com/y-miyazaki/arc/releases/latest)
-[![cd-wd-go-releaser](https://github.com/y-miyazaki/arc/actions/workflows/cd-wd-go-releaser.yaml/badge.svg?branch=main)](https://github.com/y-miyazaki/arc/actions/workflows/cd-wd-go-releaser.yaml)
+[![on-cd-wd-go-releaser](https://github.com/y-miyazaki/arc/actions/workflows/on-cd-wd-go-releaser.yaml/badge.svg)](https://github.com/y-miyazaki/arc/actions/workflows/on-cd-wd-go-releaser.yaml)
 
 ARC is a command-line tool for collecting AWS resource information across multiple services and regions, generating organized CSV files and an interactive HTML viewer for easy browsing.
 
