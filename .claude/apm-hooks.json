@@ -1,7 +1,7 @@
 {
   "Stop": [
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -12,7 +12,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -23,7 +23,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -34,7 +34,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -45,7 +45,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -56,7 +56,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -67,7 +67,7 @@
       "_apm_source": "common-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -78,7 +78,7 @@
       "_apm_source": "go-hooks-claude"
     },
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -91,7 +91,7 @@
   ],
   "PostToolUse": [
     {
-      "matcher": "*",
+      "matcher": "",
       "hooks": [
         {
           "type": "command",
@@ -115,23 +115,23 @@
   ],
   "PreToolUse": [
     {
-      "matcher": "*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook redirect",
-          "timeout": 5
-        }
-      ],
-      "_apm_source": "common-hooks-claude"
-    },
-    {
       "matcher": "Bash|Write",
       "hooks": [
         {
           "type": "command",
           "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook rewrite",
           "timeout": 15
+        }
+      ],
+      "_apm_source": "common-hooks-claude"
+    },
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook redirect",
+          "timeout": 5
         }
       ],
       "_apm_source": "common-hooks-claude"

@@ -272,7 +272,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -282,7 +282,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -292,7 +292,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -302,7 +302,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -312,7 +312,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -322,7 +322,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -332,7 +332,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -342,7 +342,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -357,7 +357,6 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "command",
             "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook observe",
             "timeout": 5
           }
@@ -367,13 +366,14 @@
         "matcher": "*",
         "hooks": [
           {
+            "type": "command",
             "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook observe",
             "timeout": 5
           }
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -398,16 +398,6 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "command",
-            "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook redirect",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
             "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook rewrite",
             "timeout": 15
           }
@@ -417,6 +407,16 @@
         "matcher": "*",
         "hooks": [
           {
+            "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook redirect",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
             "command": "command -v lean-ctx >/dev/null 2>&1 || exit 0; lean-ctx hook redirect",
             "timeout": 5
           }
@@ -433,7 +433,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
