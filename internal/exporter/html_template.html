@@ -1,616 +1,801 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+            rel="icon"
+            href="data:image/svg+xml;utf8,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'><rect%20fill='%23ffffff'%20width='64'%20height='64'/><circle%20cx='32'%20cy='32'%20r='30'%20fill='%23FF9900'/><text%20x='32'%20y='42'%20font-family='Arial,Helvetica,sans-serif'%20font-size='36'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'>A</text></svg>"
+        />
+        <title>@@INDEX_TITLE@@</title>
+        <!-- DataTables (bundled with jQuery and FixedColumns) - use minified bundle -->
+        <link
+            href="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.3.5/fc-5.0.5/datatables.min.css"
+            rel="stylesheet"
+            integrity="sha384-z5g7UelsNVivfOmTyEVMYwcn21IjJM7emyaFvT3ZWjrtqpBQaqjU7ta6Z9hxToSq"
+            crossorigin="anonymous"
+        />
+        <style>
+            :root {
+                --sidebar-width: 260px;
+                --max-width: 1400px;
+                /* Shared color tokens */
+                --bg-color: #f6f8fa;
+                --text-color: #24292f;
+                --muted-color: #57606a;
+                --primary-color: #0969da;
+                --panel-bg: #ffffff;
+                --panel-border: #cfd8e6;
+                --table-border: #e1e4e8;
+                --cell-bg: #ffffff;
+                --btn-bg: #ffffff;
+            }
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon"
-        href="data:image/svg+xml;utf8,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'><rect%20fill='%23ffffff'%20width='64'%20height='64'/><circle%20cx='32'%20cy='32'%20r='30'%20fill='%23FF9900'/><text%20x='32'%20y='42'%20font-family='Arial,Helvetica,sans-serif'%20font-size='36'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'>A</text></svg>" />
-    <title>@@INDEX_TITLE@@</title>
-    <!-- DataTables (bundled with jQuery and FixedColumns) - use minified bundle -->
-    <link href="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.3.5/fc-5.0.5/datatables.min.css" rel="stylesheet"
-        integrity="sha384-z5g7UelsNVivfOmTyEVMYwcn21IjJM7emyaFvT3ZWjrtqpBQaqjU7ta6Z9hxToSq" crossorigin="anonymous">
-    <style>
-        :root {
-            --sidebar-width: 260px;
-            --max-width: 1400px;
-            /* Shared color tokens */
-            --bg-color: #f6f8fa;
-            --text-color: #24292f;
-            --muted-color: #57606a;
-            --primary-color: #0969da;
-            --panel-bg: #ffffff;
-            --panel-border: #cfd8e6;
-            --table-border: #e1e4e8;
-            --cell-bg: #ffffff;
-            --btn-bg: #ffffff;
-        }
+            html,
+            body {
+                overflow-x: hidden;
+            }
 
-        html,
-        body {
-            overflow-x: hidden
-        }
+            body {
+                margin: 0;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+                background: var(--bg-color);
+                color: var(--text-color);
+            }
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-            background: var(--bg-color);
-            color: var(--text-color)
-        }
-
-        /* Use CSS Grid so sidebar and content form two columns; prevents overlap */
-        /* Full-width two-pane: use screen width rather than centering to allow wider content */
-        .viewer.two-pane {
-            display: grid;
-            grid-template-columns: var(--sidebar-width) 1fr;
-            column-gap: 24px;
-            width: calc(100% - 24px);
-            max-width: none;
-            margin: 12px;
-            height: calc(100vh - 48px);
-            align-items: start;
-            overflow-x: hidden
-        }
-
-        aside.sidebar {
-            width: var(--sidebar-width);
-            min-width: 220px;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 0;
-            padding: 18px;
-            overflow: auto;
-            box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
-            position: sticky;
-            top: 12px;
-            height: calc(100vh - 48px);
-            /* z-index: 20 */
-        }
-
-        .sidebar h2 {
-            font-size: 16px;
-            margin: 0 0 8px 0;
-            color: var(--text-color)
-        }
-
-        .sidebar .search {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1
-        }
-
-        .category-list {
-            list-style: none;
-            padding: 6px 0;
-            margin: 8px 0 0 0;
-            border-top: 1px solid #eef3f8
-        }
-
-        .category-list li {
-            display: block;
-            padding: 8px 10px;
-            margin: 4px 0;
-            border-radius: 6px;
-            cursor: pointer;
-            color: var(--text-color);
-            font-size: 14px;
-            line-height: 1.2;
-            position: relative
-        }
-
-        .category-list li:hover {
-            background: #eef8ff;
-            color: var(--primary-color)
-        }
-
-        .category-list li:focus {
-            outline: 2px solid rgba(3, 102, 214, 0.12);
-            outline-offset: 2px
-        }
-
-        .category-list li.active {
-            background: #eaf5ff;
-            font-weight: 600;
-            color: var(--primary-color);
-            box-shadow: inset 0 0 0 1px rgba(3, 102, 214, 0.06)
-        }
-
-        .category-list li.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 6px;
-            bottom: 6px;
-            width: 3px;
-            background: var(--primary-color);
-            border-radius: 3px
-        }
-
-        main.content {
-            display: block;
-            padding: 0 20px;
-            min-width: 0
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 8px;
-            align-items: center
-        }
-
-        .toolbar .btn {
-            background: var(--primary-color);
-            color: #fff;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer
-        }
-
-        .toolbar .btn.secondary {
-            background: var(--btn-bg);
-            color: var(--primary-color);
-            border: 1px solid var(--panel-border)
-        }
-
-        .toolbar .select {
-            padding: 6px 8px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1
-        }
-
-        #tableArea {
-            flex: 1;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 6px;
-            padding: 12px;
-            overflow: visible;
-            min-width: 0
-        }
-
-        /* confine horizontal scrolling to the table container */
-        .table-container {
-            width: 100%;
-            max-width: 100%;
-            overflow-x: auto;
-            overflow-y: visible;
-            -webkit-overflow-scrolling: touch
-        }
-
-        /* allow table to be wider than its container so horizontal scroll appears on the container only */
-        table.dataTable {
-            width: max-content !important;
-            min-width: 100%;
-            border-collapse: collapse
-        }
-
-        table.dataTable th,
-        table.dataTable td {
-            border: 1px solid var(--table-border)
-        }
-
-        /* cell behavior copied from html_template: pre-wrap-like behavior and collapsible long content */
-        table.dataTable thead tr th {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        table.dataTable tbody td {
-            white-space: pre-wrap;
-            overflow-wrap: break-word;
-            min-width: 120px;
-            /* ensure minimum readable width */
-            max-width: 400px;
-            /* prevent overly wide cells */
-            position: relative;
-        }
-
-        table.dataTable tbody td.no-wrap {
-            overflow-wrap: normal;
-            word-break: normal;
-            white-space: pre;
-            max-width: none;
-            /* allow cells to expand when word wrap is disabled */
-        }
-
-        /* Collapsible cell styles */
-        .cell-content {
-            display: block;
-        }
-
-        .cell-content.collapsed {
-            max-height: 7.5em;
-            /* ~7 lines */
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .cell-content.collapsed::after {
-            content: "... (click to expand)";
-            display: block;
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(to right, transparent, var(--cell-bg) 50%);
-            border: 1px solid var(--table-border);
-            padding: 0 8px 0 30px;
-            color: #0969da;
-            font-style: italic;
-            font-size: 11px;
-        }
-
-        /* Resource title displayed above each table */
-        .resource-title {
-            font-weight: 600;
-            margin: 8px 0 6px;
-            color: var(--text-color);
-            font-size: 20px;
-        }
-
-        /* subtle footer signature shown under the table */
-        .table-footer {
-            margin-top: 10px;
-            font-size: 12px;
-            color: var(--muted-color);
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .table-footer a {
-            color: var(--primary-color);
-            text-decoration: none
-        }
-
-        .table-footer .author {
-            color: var(--muted-color);
-        }
-
-        /* small DataTables attribution (visible) */
-        .dt-attribution {
-            font-size: 11px;
-            color: var(--muted-color);
-            margin-top: 10px;
-            line-height: 1.2;
-        }
-
-        /* Ensure FixedColumns wrapper stays behind the sidebar */
-        /* .DTFC_LeftWrapper, .DTFC_LeftBodyWrapper, .DTFC_LeftHeadWrapper { z-index:5 } */
-        /* make FixedColumns borders visible and match other table borders */
-        .DTFC_LeftWrapper table.dataTable th,
-        .DTFC_LeftWrapper table.dataTable td,
-        .DTFC_LeftBodyWrapper table.dataTable td,
-        .DTFC_LeftHeadWrapper table.dataTable th {
-            border: 1px solid var(--table-border) !important;
-            background: var(--cell-bg) !important;
-        }
-
-        /* Per-row fixed cell classes used by FixedColumns - keep same background and stacking so they match table body */
-        table.dataTable tbody tr>.dtfc-fixed-left,
-        table.dataTable tbody tr>.dtfc-fixed-right {
-            /* z-index: 1; */
-            border: 1px solid var(--table-border) !important;
-            background: var(--cell-bg) !important;
-        }
-
-        /* Header/footer fixed cells should use header background and sit above body rows */
-        table.dataTable thead tr>.dtfc-fixed-left,
-        table.dataTable thead tr>.dtfc-fixed-right,
-        table.dataTable tfoot tr>.dtfc-fixed-left,
-        table.dataTable tfoot tr>.dtfc-fixed-right {
-            top: 0;
-            bottom: 0;
-            /* z-index: 3; */
-            border: 1px solid var(--table-border) !important;
-            background: var(--bg-color) !important;
-        }
-
-        /* Higher z-index for sidebar so it remains visible above fixed columns */
-        aside.sidebar {
-            z-index: 30
-        }
-
-        /* Compact theme adjustments */
-        body[data-theme="compact"] {
-            --max-width: 1000px;
-            font-size: 13px
-        }
-
-        body[data-theme="compact"] .toolbar .btn {
-            padding: 5px 8px
-        }
-
-        body[data-theme="compact"] .category-list li {
-            padding: 8px 6px;
-            font-size: 12px
-        }
-
-        /* responsive */
-        @media (max-width:900px) {
+            /* Use CSS Grid so sidebar and content form two columns; prevents overlap */
+            /* Full-width two-pane: use screen width rather than centering to allow wider content */
             .viewer.two-pane {
-                display: block;
-                height: auto
+                display: grid;
+                grid-template-columns: var(--sidebar-width) 1fr;
+                column-gap: 24px;
+                width: calc(100% - 24px);
+                max-width: none;
+                margin: 12px;
+                height: calc(100vh - 48px);
+                align-items: start;
+                overflow-x: hidden;
             }
 
             aside.sidebar {
+                width: var(--sidebar-width);
+                min-width: 220px;
+                background: var(--panel-bg);
+                border: 1px solid var(--panel-border);
+                border-radius: 0;
+                padding: 18px;
+                overflow: auto;
+                box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+                position: sticky;
+                top: 12px;
+                height: calc(100vh - 48px);
+                /* z-index: 20 */
+            }
+
+            .sidebar h2 {
+                font-size: 16px;
+                margin: 0 0 8px 0;
+                color: var(--text-color);
+            }
+
+            .sidebar .search {
                 width: 100%;
-                max-height: 220px;
-                position: static;
-                height: auto;
-                margin-bottom: 12px
+                box-sizing: border-box;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #cbd5e1;
+            }
+
+            .category-list {
+                list-style: none;
+                padding: 6px 0;
+                margin: 8px 0 0 0;
+                border-top: 1px solid #eef3f8;
+            }
+
+            .category-list li {
+                display: block;
+                padding: 8px 10px;
+                margin: 4px 0;
+                border-radius: 6px;
+                cursor: pointer;
+                color: var(--text-color);
+                font-size: 14px;
+                line-height: 1.2;
+                position: relative;
+            }
+
+            .category-list li:hover {
+                background: #eef8ff;
+                color: var(--primary-color);
+            }
+
+            .category-list li:focus {
+                outline: 2px solid rgba(3, 102, 214, 0.12);
+                outline-offset: 2px;
+            }
+
+            .category-list li.active {
+                background: #eaf5ff;
+                font-weight: 600;
+                color: var(--primary-color);
+                box-shadow: inset 0 0 0 1px rgba(3, 102, 214, 0.06);
+            }
+
+            .category-list li.active::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 6px;
+                bottom: 6px;
+                width: 3px;
+                background: var(--primary-color);
+                border-radius: 3px;
             }
 
             main.content {
-                margin-left: 0
-            }
-        }
-
-        /* content inner max width not restricted for full-bleed layout */
-        .content-inner {
-            max-width: none;
-            margin: 0 auto;
-        }
-
-        /* theme variables */
-        /* Dark theme overrides: set the same tokens for consistent usage */
-        body[data-theme="dark"] {
-            --bg-color: #071224;
-            --text-color: #cbd5e1;
-            --muted-color: #cbd5e1;
-            --panel-bg: #071224;
-            --panel-border: #123;
-            --table-border: #1f2d38;
-            --cell-bg: #071224;
-        }
-
-        /* dark theme: improve sidebar link contrast */
-        body[data-theme="dark"] .category-list li {
-            color: var(--text-color)
-        }
-
-        body[data-theme="dark"] .category-list li.active {
-            background: #063150;
-            color: #e6f0ff
-        }
-
-        body[data-theme="dark"] .category-list li:hover {
-            background: #062033
-        }
-
-        body[data-theme="dark"] .category-list li.active {
-            background: #063150
-        }
-    </style>
-</head>
-
-<body data-theme="default">
-    <h1 style="display:none">@@INDEX_TITLE@@</h1>
-    <div class="viewer two-pane">
-        <aside class="sidebar" role="navigation" aria-label="Resources">
-            <h2>Resources - @@ACCOUNT_ID@@</h2>
-            <input id="sideSearch" class="search" placeholder="search categories" />
-            <ul id="categoryList" class="category-list" role="listbox" aria-label="Category list"></ul>
-        </aside>
-
-        <main class="content">
-            <div class="toolbar">
-                <select id="designSelect" class="select" title="Design">
-                    <option value="default">Default</option>
-                    <option value="compact">Compact</option>
-                    <option value="dark">Dark</option>
-                </select>
-                <button id="lockColumns" class="btn secondary" title="Toggle fixed columns">Lock Columns</button>
-                <button id="reload" class="btn">Reload</button>
-                <a id="downloadAll" class="btn secondary" href="resources.zip" download>Download all csv</a>
-                <a id="downloadCurrent" class="btn secondary" href="#" download style="display:none">Download csv</a>
-                <div style="margin-left:auto" id="meta">Generated: <span id="generated"></span></div>
-            </div>
-
-            <div id="tableArea">
-                <div id="tablePlaceholder">Select a resource on the left to load its table.</div>
-                <div id="tableContainer" style="display:none"></div>
-            </div>
-
-            <!-- Copyright footer -->
-            <footer class="dt-attribution" style="margin-top: 20px; text-align: center;">
-                ARC designed and created by Yoshiaki Miyazaki.<br>
-                © 2025 <a href="https://github.com/y-miyazaki/arc/blob/main/LICENSE" target="_blank"
-                    rel="noopener noreferrer">Apache License 2.0</a>.
-                <a href="https://github.com/y-miyazaki/arc" target="_blank"
-                    rel="noopener noreferrer">github.com/y-miyazaki/arc</a>
-            </footer>
-        </main>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
-    <!-- DataTables bundle includes jQuery, DataTables core and FixedColumns -->
-    <script src="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.3.5/fc-5.0.5/datatables.min.js"
-        integrity="sha384-g8XKc+5kND0Ef1VsOnwwytKZhM9s75E87l8/e34JfeZNsA4Revs37btWYklE6ahc"
-        crossorigin="anonymous"></script>
-    <script>
-        // Two-pane viewer: build category list and render selected CSV in right pane
-        const TwoPane = { current: null, table: null, columnsLocked: false };
-
-        function setTheme(v) { if (v === 'default') document.body.removeAttribute('data-theme'); else document.body.setAttribute('data-theme', v); }
-
-        async function loadManifest() { const resp = await fetch('files.json'); if (!resp.ok) throw new Error('failed to load files.json'); return resp.json(); }
-
-        function renderCategoryList(files) {
-            const list = document.getElementById('categoryList');
-            list.innerHTML = '';
-            files.forEach((f, idx) => {
-                // Skip 'all.csv' from sidebar list
-                const displayName = f.display_name || f.path;
-                if (displayName.toLowerCase() === 'all' || f.path.toLowerCase().endsWith('all.csv')) {
-                    return;
-                }
-
-                const li = document.createElement('li');
-                li.setAttribute('role', 'option');
-                li.tabIndex = 0;
-                li.textContent = displayName;
-                li.dataset.path = f.path;
-                li.addEventListener('click', () => selectCategory(li));
-                li.addEventListener('keydown', (e) => { if (e.key === 'Enter') { selectCategory(li); } });
-                list.appendChild(li);
-            });
-        }
-
-        function selectCategory(li) {
-            const list = document.querySelectorAll('#categoryList li');
-            list.forEach(n => n.classList.remove('active'));
-            li.classList.add('active');
-            const path = li.dataset.path;
-            TwoPane.current = { li, path };
-
-            // Update download current button
-            const downloadBtn = document.getElementById('downloadCurrent');
-            if (downloadBtn && path) {
-                const resourceName = (li.textContent || path.split('/').pop().replace(/\.csv$/, ''));
-                downloadBtn.href = path;
-                downloadBtn.download = path.split('/').pop();
-                downloadBtn.textContent = 'Download resource csv';
-                downloadBtn.style.display = 'inline-block';
+                display: block;
+                padding: 0 20px;
+                min-width: 0;
             }
 
-            loadAndShowCSV(path);
-        }
+            .toolbar {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
 
-        async function loadAndShowCSV(path) {
-            const area = document.getElementById('tableArea'); const container = document.getElementById('tableContainer'); const placeholder = document.getElementById('tablePlaceholder'); placeholder.style.display = 'none'; container.style.display = 'block'; container.innerHTML = '<div>Loading ' + path + '...</div>'; try {
-                const r = await fetch(path);
-                if (!r.ok) throw new Error('failed to fetch ' + path);
-                const txt = await r.text();
-                const parsed = Papa.parse(txt, { header: true, skipEmptyLines: true });
-                const rows = parsed.data || [];
-                let fields = parsed.meta && parsed.meta.fields ? parsed.meta.fields : (rows.length ? Object.keys(rows[0]) : []);
+            .toolbar .btn {
+                background: var(--primary-color);
+                color: #fff;
+                border: none;
+                padding: 6px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+            }
 
-                // If CSV has an initial 'Category' column, drop it so it's not rendered in the table
-                if (fields && fields.length > 0 && typeof fields[0] === 'string' && fields[0].trim().toLowerCase() === 'category') {
-                    fields = fields.slice(1);
+            .toolbar .btn.secondary {
+                background: var(--btn-bg);
+                color: var(--primary-color);
+                border: 1px solid var(--panel-border);
+            }
+
+            .toolbar .select {
+                padding: 6px 8px;
+                border-radius: 6px;
+                border: 1px solid #cbd5e1;
+            }
+
+            #tableArea {
+                flex: 1;
+                background: var(--panel-bg);
+                border: 1px solid var(--panel-border);
+                border-radius: 6px;
+                padding: 12px;
+                overflow: visible;
+                min-width: 0;
+            }
+
+            /* confine horizontal scrolling to the table container */
+            .table-container {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                overflow-y: visible;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* allow table to be wider than its container so horizontal scroll appears on the container only */
+            table.dataTable {
+                width: max-content !important;
+                min-width: 100%;
+                border-collapse: collapse;
+            }
+
+            table.dataTable th,
+            table.dataTable td {
+                border: 1px solid var(--table-border);
+            }
+
+            /* cell behavior copied from html_template: pre-wrap-like behavior and collapsible long content */
+            table.dataTable thead tr th {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            table.dataTable tbody td {
+                white-space: pre-wrap;
+                overflow-wrap: break-word;
+                min-width: 120px;
+                /* ensure minimum readable width */
+                max-width: 400px;
+                /* prevent overly wide cells */
+                position: relative;
+            }
+
+            table.dataTable tbody td.no-wrap {
+                overflow-wrap: normal;
+                word-break: normal;
+                white-space: pre;
+                max-width: none;
+                /* allow cells to expand when word wrap is disabled */
+            }
+
+            /* Collapsible cell styles */
+            .cell-content {
+                display: block;
+            }
+
+            .cell-content.collapsed {
+                max-height: 7.5em;
+                /* ~7 lines */
+                overflow: hidden;
+                cursor: pointer;
+            }
+
+            .cell-content.collapsed::after {
+                content: "... (click to expand)";
+                display: block;
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                background: linear-gradient(
+                    to right,
+                    transparent,
+                    var(--cell-bg) 50%
+                );
+                border: 1px solid var(--table-border);
+                padding: 0 8px 0 30px;
+                color: #0969da;
+                font-style: italic;
+                font-size: 11px;
+            }
+
+            /* Resource title displayed above each table */
+            .resource-title {
+                font-weight: 600;
+                margin: 8px 0 6px;
+                color: var(--text-color);
+                font-size: 20px;
+            }
+
+            /* subtle footer signature shown under the table */
+            .table-footer {
+                margin-top: 10px;
+                font-size: 12px;
+                color: var(--muted-color);
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .table-footer a {
+                color: var(--primary-color);
+                text-decoration: none;
+            }
+
+            .table-footer .author {
+                color: var(--muted-color);
+            }
+
+            /* small DataTables attribution (visible) */
+            .dt-attribution {
+                font-size: 11px;
+                color: var(--muted-color);
+                margin-top: 10px;
+                line-height: 1.2;
+            }
+
+            /* Ensure FixedColumns wrapper stays behind the sidebar */
+            /* .DTFC_LeftWrapper, .DTFC_LeftBodyWrapper, .DTFC_LeftHeadWrapper { z-index:5 } */
+            /* make FixedColumns borders visible and match other table borders */
+            .DTFC_LeftWrapper table.dataTable th,
+            .DTFC_LeftWrapper table.dataTable td,
+            .DTFC_LeftBodyWrapper table.dataTable td,
+            .DTFC_LeftHeadWrapper table.dataTable th {
+                border: 1px solid var(--table-border) !important;
+                background: var(--cell-bg) !important;
+            }
+
+            /* Per-row fixed cell classes used by FixedColumns - keep same background and stacking so they match table body */
+            table.dataTable tbody tr > .dtfc-fixed-left,
+            table.dataTable tbody tr > .dtfc-fixed-right {
+                /* z-index: 1; */
+                border: 1px solid var(--table-border) !important;
+                background: var(--cell-bg) !important;
+            }
+
+            /* Header/footer fixed cells should use header background and sit above body rows */
+            table.dataTable thead tr > .dtfc-fixed-left,
+            table.dataTable thead tr > .dtfc-fixed-right,
+            table.dataTable tfoot tr > .dtfc-fixed-left,
+            table.dataTable tfoot tr > .dtfc-fixed-right {
+                top: 0;
+                bottom: 0;
+                /* z-index: 3; */
+                border: 1px solid var(--table-border) !important;
+                background: var(--bg-color) !important;
+            }
+
+            /* Higher z-index for sidebar so it remains visible above fixed columns */
+            aside.sidebar {
+                z-index: 30;
+            }
+
+            /* Compact theme adjustments */
+            body[data-theme="compact"] {
+                --max-width: 1000px;
+                font-size: 13px;
+            }
+
+            body[data-theme="compact"] .toolbar .btn {
+                padding: 5px 8px;
+            }
+
+            body[data-theme="compact"] .category-list li {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+
+            /* responsive */
+            @media (max-width: 900px) {
+                .viewer.two-pane {
+                    display: block;
+                    height: auto;
                 }
-                container.innerHTML = '';
-                const table = document.createElement('table'); table.classList.add('dataTable');
-                const thead = document.createElement('thead'); const tr = document.createElement('tr');
-                fields.forEach(h => { const th = document.createElement('th'); th.textContent = h; tr.appendChild(th); }); thead.appendChild(tr); table.appendChild(thead);
-                const tbody = document.createElement('tbody');
-                rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    fields.forEach(h => {
-                        const td = document.createElement('td');
-                        const content = row[h] ?? '';
-                        // If content contains many lines, render collapsed pre-like block with click-to-expand
-                        const lineCount = (content && typeof content === 'string') ? content.split('\n').length : 0;
-                        if (lineCount >= 7) {
-                            const wrapper = document.createElement('div');
-                            wrapper.classList.add('cell-content', 'collapsed');
-                            wrapper.textContent = content;
-                            wrapper.addEventListener('click', function (e) {
-                                e.stopPropagation();
-                                if (this.classList.contains('collapsed')) { this.classList.remove('collapsed'); this.classList.add('expanded'); }
-                                else { this.classList.remove('expanded'); this.classList.add('collapsed'); }
-                            });
-                            td.appendChild(wrapper);
-                        } else {
-                            td.textContent = content;
+
+                aside.sidebar {
+                    width: 100%;
+                    max-height: 220px;
+                    position: static;
+                    height: auto;
+                    margin-bottom: 12px;
+                }
+
+                main.content {
+                    margin-left: 0;
+                }
+            }
+
+            /* content inner max width not restricted for full-bleed layout */
+            .content-inner {
+                max-width: none;
+                margin: 0 auto;
+            }
+
+            /* theme variables */
+            /* Dark theme overrides: set the same tokens for consistent usage */
+            body[data-theme="dark"] {
+                --bg-color: #071224;
+                --text-color: #cbd5e1;
+                --muted-color: #cbd5e1;
+                --panel-bg: #071224;
+                --panel-border: #123;
+                --table-border: #1f2d38;
+                --cell-bg: #071224;
+            }
+
+            /* dark theme: improve sidebar link contrast */
+            body[data-theme="dark"] .category-list li {
+                color: var(--text-color);
+            }
+
+            body[data-theme="dark"] .category-list li.active {
+                background: #063150;
+                color: #e6f0ff;
+            }
+
+            body[data-theme="dark"] .category-list li:hover {
+                background: #062033;
+            }
+
+            body[data-theme="dark"] .category-list li.active {
+                background: #063150;
+            }
+        </style>
+    </head>
+
+    <body data-theme="default">
+        <h1 style="display: none">@@INDEX_TITLE@@</h1>
+        <div class="viewer two-pane">
+            <aside class="sidebar" role="navigation" aria-label="Resources">
+                <h2>Resources - @@ACCOUNT_ID@@</h2>
+                <input
+                    id="sideSearch"
+                    class="search"
+                    placeholder="search categories"
+                />
+                <ul
+                    id="categoryList"
+                    class="category-list"
+                    role="listbox"
+                    aria-label="Category list"
+                ></ul>
+            </aside>
+
+            <main class="content">
+                <div class="toolbar">
+                    <select id="designSelect" class="select" title="Design">
+                        <option value="default">Default</option>
+                        <option value="compact">Compact</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                    <button
+                        id="lockColumns"
+                        class="btn secondary"
+                        title="Toggle fixed columns"
+                    >
+                        Lock Columns
+                    </button>
+                    <button id="reload" class="btn">Reload</button>
+                    <a
+                        id="downloadAll"
+                        class="btn secondary"
+                        href="resources.zip"
+                        download
+                        >Download all csv</a
+                    >
+                    <a
+                        id="downloadCurrent"
+                        class="btn secondary"
+                        href="#"
+                        download
+                        style="display: none"
+                        >Download csv</a
+                    >
+                    <div style="margin-left: auto" id="meta">
+                        Generated: <span id="generated"></span>
+                    </div>
+                </div>
+
+                <div id="tableArea">
+                    <div id="tablePlaceholder">
+                        Select a resource on the left to load its table.
+                    </div>
+                    <div id="tableContainer" style="display: none"></div>
+                </div>
+
+                <!-- Copyright footer -->
+                <footer
+                    class="dt-attribution"
+                    style="margin-top: 20px; text-align: center"
+                >
+                    ARC designed and created by Yoshiaki Miyazaki.<br />
+                    © 2025
+                    <a
+                        href="https://github.com/y-miyazaki/arc/blob/main/LICENSE"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Apache License 2.0</a
+                    >.
+                    <a
+                        href="https://github.com/y-miyazaki/arc"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >github.com/y-miyazaki/arc</a
+                    >
+                </footer>
+            </main>
+        </div>
+
+        <script
+            src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"
+            integrity="sha384-D/t0ZMqQW31H3az8ktEiNb39wyKnS82iFY52QPACM+IjKW3jDUhyIgh2PApRqJZs"
+            crossorigin="anonymous"
+        ></script>
+        <!-- DataTables bundle includes jQuery, DataTables core and FixedColumns -->
+        <script
+            src="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.3.5/fc-5.0.5/datatables.min.js"
+            integrity="sha384-g8XKc+5kND0Ef1VsOnwwytKZhM9s75E87l8/e34JfeZNsA4Revs37btWYklE6ahc"
+            crossorigin="anonymous"
+        ></script>
+        <script>
+            // Two-pane viewer: build category list and render selected CSV in right pane
+            const TwoPane = {
+                current: null,
+                table: null,
+                columnsLocked: false,
+            };
+
+            function setTheme(v) {
+                if (v === "default")
+                    document.body.removeAttribute("data-theme");
+                else document.body.setAttribute("data-theme", v);
+            }
+
+            async function loadManifest() {
+                const resp = await fetch("files.json");
+                if (!resp.ok) throw new Error("failed to load files.json");
+                return resp.json();
+            }
+
+            function renderCategoryList(files) {
+                const list = document.getElementById("categoryList");
+                list.innerHTML = "";
+                files.forEach((f, idx) => {
+                    // Skip 'all.csv' from sidebar list
+                    const displayName = f.display_name || f.path;
+                    if (
+                        displayName.toLowerCase() === "all" ||
+                        f.path.toLowerCase().endsWith("all.csv")
+                    ) {
+                        return;
+                    }
+
+                    const li = document.createElement("li");
+                    li.setAttribute("role", "option");
+                    li.tabIndex = 0;
+                    li.textContent = displayName;
+                    li.dataset.path = f.path;
+                    li.addEventListener("click", () => selectCategory(li));
+                    li.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") {
+                            selectCategory(li);
                         }
-                        tr.appendChild(td);
                     });
-                    tbody.appendChild(tr);
+                    list.appendChild(li);
                 });
-                table.appendChild(tbody);
-                // wrap table so horizontal scrolling stays inside right pane
-                const wrapper = document.createElement('div'); wrapper.classList.add('table-container'); wrapper.appendChild(table);
+            }
 
-                // Insert resource title above the table (use selected list label or fallback to filename)
-                const titleText = (TwoPane && TwoPane.current && TwoPane.current.li && TwoPane.current.li.textContent)
-                    ? TwoPane.current.li.textContent
-                    : (path ? path.split('/').pop().replace(/\.[^/.]+$/, '') : '');
-                if (titleText) {
-                    const titleEl = document.createElement('div');
-                    titleEl.classList.add('resource-title');
-                    titleEl.textContent = titleText;
-                    container.appendChild(titleEl);
+            function selectCategory(li) {
+                const list = document.querySelectorAll("#categoryList li");
+                list.forEach((n) => n.classList.remove("active"));
+                li.classList.add("active");
+                const path = li.dataset.path;
+                TwoPane.current = { li, path };
+
+                // Update download current button
+                const downloadBtn = document.getElementById("downloadCurrent");
+                if (downloadBtn && path) {
+                    const resourceName =
+                        li.textContent ||
+                        path
+                            .split("/")
+                            .pop()
+                            .replace(/\.csv$/, "");
+                    downloadBtn.href = path;
+                    downloadBtn.download = path.split("/").pop();
+                    downloadBtn.textContent = "Download resource csv";
+                    downloadBtn.style.display = "inline-block";
                 }
 
-                container.appendChild(wrapper);
-                // init DataTable with dynamic FixedColumns support
-                const dt = $(table).DataTable({
-                    // show paging/control both above and below the table
-                    // use DataTables v2+ `layout` option with feature names / arrays
-                    layout: {
-                        // put info + pagination on the top row
-                        top1Start: 'search',
-                        top1End: '',
-                        topEnd: 'paging',
-                        // put page-length selector and pagination at the bottom
-                        bottomEnd: 'paging'
-                    },
-                    scrollX: true,
-                    pageLength: 50,
-                    lengthMenu: [10, 25, 50, 100],
-                    deferRender: true,
-                    processing: true,
-                    autoWidth: false,
-                    order: [],  // Disable default sorting, keep CSV file order
-                    fixedColumns: { leftColumns: TwoPane.columnsLocked ? 3 : 0 }
-                });
+                loadAndShowCSV(path);
+            }
 
-                // Store table reference for FixedColumns control
-                TwoPane.table = dt;
-            } catch (err) { container.innerHTML = '<div style="color:#900">Error: ' + String(err) + '</div>'; }
-        }
+            async function loadAndShowCSV(path) {
+                const area = document.getElementById("tableArea");
+                const container = document.getElementById("tableContainer");
+                const placeholder = document.getElementById("tablePlaceholder");
+                placeholder.style.display = "none";
+                container.style.display = "block";
+                container.innerHTML = "<div>Loading " + path + "...</div>";
+                try {
+                    const r = await fetch(path);
+                    if (!r.ok) throw new Error("failed to fetch " + path);
+                    const txt = await r.text();
+                    const parsed = Papa.parse(txt, {
+                        header: true,
+                        skipEmptyLines: true,
+                    });
+                    const rows = parsed.data || [];
+                    let fields =
+                        parsed.meta && parsed.meta.fields
+                            ? parsed.meta.fields
+                            : rows.length
+                              ? Object.keys(rows[0])
+                              : [];
 
-        async function init() {
-            try {
-                const files = await loadManifest();
-                renderCategoryList(files);
-                document.getElementById('generated').textContent = new Date().toUTCString();
+                    // If CSV has an initial 'Category' column, drop it so it's not rendered in the table
+                    if (
+                        fields &&
+                        fields.length > 0 &&
+                        typeof fields[0] === "string" &&
+                        fields[0].trim().toLowerCase() === "category"
+                    ) {
+                        fields = fields.slice(1);
+                    }
+                    container.innerHTML = "";
+                    const table = document.createElement("table");
+                    table.classList.add("dataTable");
+                    const thead = document.createElement("thead");
+                    const tr = document.createElement("tr");
+                    fields.forEach((h) => {
+                        const th = document.createElement("th");
+                        th.textContent = h;
+                        tr.appendChild(th);
+                    });
+                    thead.appendChild(tr);
+                    table.appendChild(thead);
+                    const tbody = document.createElement("tbody");
+                    rows.forEach((row) => {
+                        const tr = document.createElement("tr");
+                        fields.forEach((h) => {
+                            const td = document.createElement("td");
+                            const content = row[h] ?? "";
+                            // If content contains many lines, render collapsed pre-like block with click-to-expand
+                            const lineCount =
+                                content && typeof content === "string"
+                                    ? content.split("\n").length
+                                    : 0;
+                            if (lineCount >= 7) {
+                                const wrapper = document.createElement("div");
+                                wrapper.classList.add(
+                                    "cell-content",
+                                    "collapsed",
+                                );
+                                wrapper.textContent = content;
+                                wrapper.addEventListener("click", function (e) {
+                                    e.stopPropagation();
+                                    if (this.classList.contains("collapsed")) {
+                                        this.classList.remove("collapsed");
+                                        this.classList.add("expanded");
+                                    } else {
+                                        this.classList.remove("expanded");
+                                        this.classList.add("collapsed");
+                                    }
+                                });
+                                td.appendChild(wrapper);
+                            } else {
+                                td.textContent = content;
+                            }
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                    // wrap table so horizontal scrolling stays inside right pane
+                    const wrapper = document.createElement("div");
+                    wrapper.classList.add("table-container");
+                    wrapper.appendChild(table);
 
-                // auto-select first category if available
-                const first = document.querySelector('#categoryList li');
-                if (first) {
-                    // small timeout to ensure UI paints
-                    setTimeout(() => { try { selectCategory(first); } catch (e) { console.warn('auto-select failed', e) } }, 50);
+                    // Insert resource title above the table (use selected list label or fallback to filename)
+                    const titleText =
+                        TwoPane &&
+                        TwoPane.current &&
+                        TwoPane.current.li &&
+                        TwoPane.current.li.textContent
+                            ? TwoPane.current.li.textContent
+                            : path
+                              ? path
+                                    .split("/")
+                                    .pop()
+                                    .replace(/\.[^/.]+$/, "")
+                              : "";
+                    if (titleText) {
+                        const titleEl = document.createElement("div");
+                        titleEl.classList.add("resource-title");
+                        titleEl.textContent = titleText;
+                        container.appendChild(titleEl);
+                    }
+
+                    container.appendChild(wrapper);
+                    // init DataTable with dynamic FixedColumns support
+                    const dt = $(table).DataTable({
+                        // show paging/control both above and below the table
+                        // use DataTables v2+ `layout` option with feature names / arrays
+                        layout: {
+                            // put info + pagination on the top row
+                            top1Start: "search",
+                            top1End: "",
+                            topEnd: "paging",
+                            // put page-length selector and pagination at the bottom
+                            bottomEnd: "paging",
+                        },
+                        scrollX: true,
+                        pageLength: 50,
+                        lengthMenu: [10, 25, 50, 100],
+                        deferRender: true,
+                        processing: true,
+                        autoWidth: false,
+                        order: [], // Disable default sorting, keep CSV file order
+                        fixedColumns: {
+                            leftColumns: TwoPane.columnsLocked ? 3 : 0,
+                        },
+                    });
+
+                    // Store table reference for FixedColumns control
+                    TwoPane.table = dt;
+                } catch (err) {
+                    container.innerHTML =
+                        '<div style="color:#900">Error: ' +
+                        String(err) +
+                        "</div>";
                 }
+            }
 
-                document.getElementById('sideSearch').addEventListener('input', (e) => { const q = e.target.value.trim().toLowerCase(); document.querySelectorAll('#categoryList li').forEach(li => { const name = li.textContent.toLowerCase(); li.style.display = (!q || name.includes(q)) ? 'block' : 'none'; }); });
-                document.getElementById('designSelect').addEventListener('change', () => { setTheme(document.getElementById('designSelect').value); });
+            async function init() {
+                try {
+                    const files = await loadManifest();
+                    renderCategoryList(files);
+                    document.getElementById("generated").textContent =
+                        new Date().toUTCString();
 
-                // FixedColumns toggle button
-                document.getElementById('lockColumns').addEventListener('click', () => {
-                    TwoPane.columnsLocked = !TwoPane.columnsLocked;
-                    const btn = document.getElementById('lockColumns');
-
-                    if (TwoPane.columnsLocked) {
-                        btn.textContent = 'Unlock Columns';
-                        btn.classList.remove('secondary');
-                    } else {
-                        btn.textContent = 'Lock Columns';
-                        btn.classList.add('secondary');
+                    // auto-select first category if available
+                    const first = document.querySelector("#categoryList li");
+                    if (first) {
+                        // small timeout to ensure UI paints
+                        setTimeout(() => {
+                            try {
+                                selectCategory(first);
+                            } catch (e) {
+                                console.warn("auto-select failed", e);
+                            }
+                        }, 50);
                     }
 
-                    // Apply to current table if exists
-                    if (TwoPane.table && TwoPane.table.fixedColumns) {
-                        TwoPane.table.fixedColumns().left(TwoPane.columnsLocked ? 3 : 0);
-                    }
-                });
+                    document
+                        .getElementById("sideSearch")
+                        .addEventListener("input", (e) => {
+                            const q = e.target.value.trim().toLowerCase();
+                            document
+                                .querySelectorAll("#categoryList li")
+                                .forEach((li) => {
+                                    const name = li.textContent.toLowerCase();
+                                    li.style.display =
+                                        !q || name.includes(q)
+                                            ? "block"
+                                            : "none";
+                                });
+                        });
+                    document
+                        .getElementById("designSelect")
+                        .addEventListener("change", () => {
+                            setTheme(
+                                document.getElementById("designSelect").value,
+                            );
+                        });
 
-                document.getElementById('reload').addEventListener('click', async () => {
-                    const cur = TwoPane.current; try {
-                        const files = await loadManifest(); renderCategoryList(files); if (cur && cur.path) { // re-select by path
-                            const node = Array.from(document.querySelectorAll('#categoryList li')).find(n => n.dataset.path === cur.path); if (node) selectCategory(node);
-                        }
-                    } catch (e) { alert('Reload failed: ' + e) }
-                });
-            } catch (e) { document.getElementById('tableArea').textContent = 'Failed to initialize viewer: ' + e }
-        }
-        window.addEventListener('load', init);
-    </script>
-</body>
+                    // FixedColumns toggle button
+                    document
+                        .getElementById("lockColumns")
+                        .addEventListener("click", () => {
+                            TwoPane.columnsLocked = !TwoPane.columnsLocked;
+                            const btn = document.getElementById("lockColumns");
 
+                            if (TwoPane.columnsLocked) {
+                                btn.textContent = "Unlock Columns";
+                                btn.classList.remove("secondary");
+                            } else {
+                                btn.textContent = "Lock Columns";
+                                btn.classList.add("secondary");
+                            }
+
+                            // Apply to current table if exists
+                            if (TwoPane.table && TwoPane.table.fixedColumns) {
+                                TwoPane.table
+                                    .fixedColumns()
+                                    .left(TwoPane.columnsLocked ? 3 : 0);
+                            }
+                        });
+
+                    document
+                        .getElementById("reload")
+                        .addEventListener("click", async () => {
+                            const cur = TwoPane.current;
+                            try {
+                                const files = await loadManifest();
+                                renderCategoryList(files);
+                                if (cur && cur.path) {
+                                    // re-select by path
+                                    const node = Array.from(
+                                        document.querySelectorAll(
+                                            "#categoryList li",
+                                        ),
+                                    ).find((n) => n.dataset.path === cur.path);
+                                    if (node) selectCategory(node);
+                                }
+                            } catch (e) {
+                                alert("Reload failed: " + e);
+                            }
+                        });
+                } catch (e) {
+                    document.getElementById("tableArea").textContent =
+                        "Failed to initialize viewer: " + e;
+                }
+            }
+            window.addEventListener("load", init);
+        </script>
+    </body>
 </html>

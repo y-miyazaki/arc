@@ -470,7 +470,9 @@ func TestECSCollector_collectTaskDefinitions_Success(t *testing.T) {
 
 		switch target {
 		case "AmazonEC2ContainerServiceV20141113.ListTaskDefinitions":
-			_, _ = w.Write([]byte(`{"taskDefinitionArns":["invalid-arn","` + arnA1 + `","` + arnA2 + `","` + arnB1 + `"]}`))
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"taskDefinitionArns": []string{"invalid-arn", arnA1, arnA2, arnB1},
+			})
 		case "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition":
 			var req map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&req)
@@ -478,9 +480,60 @@ func TestECSCollector_collectTaskDefinitions_Success(t *testing.T) {
 
 			switch asked {
 			case arnA2:
-				_, _ = w.Write([]byte(`{"taskDefinition":{"taskDefinitionArn":"` + arnA2 + `","family":"family-a","revision":2,"taskRoleArn":"arn:aws:iam::123456789012:role/task-role-a","status":"ACTIVE","cpu":"256","memory":"512","networkMode":"awsvpc","runtimePlatform":{"operatingSystemFamily":"LINUX","cpuArchitecture":"X86_64"},"containerDefinitions":[{"name":"app","portMappings":[{"containerPort":80}],"environment":[{"name":"KEY","value":"VALUE"}]}]}}`))
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"taskDefinition": map[string]any{
+						"taskDefinitionArn": arnA2,
+						"family":            "family-a",
+						"revision":          2,
+						"taskRoleArn":       "arn:aws:iam::123456789012:role/task-role-a",
+						"status":            "ACTIVE",
+						"cpu":               "256",
+						"memory":            "512",
+						"networkMode":       "awsvpc",
+						"runtimePlatform": map[string]any{
+							"operatingSystemFamily": "LINUX",
+							"cpuArchitecture":       "X86_64",
+						},
+						"containerDefinitions": []map[string]any{
+							{
+								"name": "app",
+								"portMappings": []map[string]any{
+									{"containerPort": 80},
+								},
+								"environment": []map[string]any{
+									{"name": "KEY", "value": "VALUE"},
+								},
+							},
+						},
+					},
+				})
 			case arnB1:
-				_, _ = w.Write([]byte(`{"taskDefinition":{"taskDefinitionArn":"` + arnB1 + `","family":"family-b","revision":1,"executionRoleArn":"arn:aws:iam::123456789012:role/execution-role-b","status":"ACTIVE","cpu":"1024","memory":"2048","networkMode":"bridge","runtimePlatform":{"operatingSystemFamily":""},"containerDefinitions":[{"name":"worker","portMappings":[{"containerPort":8080,"hostPort":18080,"protocol":"udp"}],"environment":[{"name":"A","value":"B"}]}]}}`))
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"taskDefinition": map[string]any{
+						"taskDefinitionArn": arnB1,
+						"family":            "family-b",
+						"revision":          1,
+						"executionRoleArn":  "arn:aws:iam::123456789012:role/execution-role-b",
+						"status":            "ACTIVE",
+						"cpu":               "1024",
+						"memory":            "2048",
+						"networkMode":       "bridge",
+						"runtimePlatform": map[string]any{
+							"operatingSystemFamily": "",
+						},
+						"containerDefinitions": []map[string]any{
+							{
+								"name": "worker",
+								"portMappings": []map[string]any{
+									{"containerPort": 8080, "hostPort": 18080, "protocol": "udp"},
+								},
+								"environment": []map[string]any{
+									{"name": "A", "value": "B"},
+								},
+							},
+						},
+					},
+				})
 			default:
 				http.Error(w, "unexpected task definition", http.StatusBadRequest)
 			}

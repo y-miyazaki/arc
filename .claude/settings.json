@@ -272,7 +272,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -282,7 +282,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -292,7 +292,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -302,7 +302,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -312,7 +312,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -322,7 +322,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -332,7 +332,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -342,7 +342,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -373,7 +373,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -433,7 +433,7 @@
         ]
       },
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
