@@ -34,7 +34,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.124.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.65.3
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.65.5
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.3
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.4
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.20.3
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.44.3
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.66.3
@@ -43,7 +43,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.46.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.3
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.75.3
-	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.77.1
+	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.77.2
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/y-miyazaki/go-common v0.10.4
