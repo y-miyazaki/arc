@@ -416,7 +416,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.26.2'
+          go-version: "1.26.5"
 
       - name: Install arc
         run: go install github.com/y-miyazaki/arc/cmd/arc@latest
