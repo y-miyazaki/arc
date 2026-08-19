@@ -44,7 +44,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.5
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.75.5
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.77.4
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/y-miyazaki/go-common v0.10.4
 )
@@ -65,8 +65,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.33.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.5 // indirect
 	github.com/aws/smithy-go v1.27.7 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
