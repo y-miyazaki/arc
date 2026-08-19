@@ -13,99 +13,134 @@ import (
 )
 
 func TestNewCloudWatchLogsCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewCloudWatchLogsCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, 2)
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewCloudWatchLogsCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewCloudWatchLogsCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewCloudWatchLogsCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestCloudWatchLogsCollector_Basic(t *testing.T) {
-	collector := &CloudWatchLogsCollector{
-		clients: make(map[string]*cloudwatchlogs.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "cloudwatch_logs", wantSort: true},
 	}
-	assert.Equal(t, "cloudwatch_logs", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &CloudWatchLogsCollector{
+				clients: make(map[string]*cloudwatchlogs.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestCloudWatchLogsCollector_Collect_NoClient(t *testing.T) {
-	collector := &CloudWatchLogsCollector{
-		clients: make(map[string]*cloudwatchlogs.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-west-2", wantContains: "no client found for region"},
 	}
 
-	ctx := context.Background()
-	_, err := collector.Collect(ctx, "us-west-2")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &CloudWatchLogsCollector{
+				clients: make(map[string]*cloudwatchlogs.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestCloudWatchLogsCollector_GetColumns(t *testing.T) {
-	collector := &CloudWatchLogsCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ARN",
-		"RetentionInDays", "StoredBytes", "MetricFilters", "SubscriptionFilters", "KmsKey", "CreationTime",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "CloudWatch",
-		SubCategory1: "Logs",
-		Name:         "test-log-group",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
-		RawData: map[string]any{
-			"RetentionInDays":     "30",
-			"StoredBytes":         "1024",
-			"MetricFilters":       []string{"filter1", "filter2"},
-			"SubscriptionFilters": []string{"subscription1"},
-			"KmsKey":              "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
-			"CreationTime":        "1695600475",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "CloudWatch",
+				SubCategory1: "Logs",
+				Name:         "test-log-group",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
+				RawData: map[string]any{
+					"RetentionInDays":     "30",
+					"StoredBytes":         "1024",
+					"MetricFilters":       []string{"filter1", "filter2"},
+					"SubscriptionFilters": []string{"subscription1"},
+					"KmsKey":              "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+					"CreationTime":        "1695600475",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ARN",
+				"RetentionInDays", "StoredBytes", "MetricFilters", "SubscriptionFilters", "KmsKey", "CreationTime",
+			},
+			wantValues: []string{
+				"CloudWatch", "Logs", "test-log-group", "us-east-1", "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
+				"30", "1024", "filter1\nfilter2", "subscription1", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "1695600475",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"CloudWatch", "Logs", "test-log-group", "us-east-1", "arn:aws:logs:us-east-1:123456789012:log-group:test-log-group:*",
-		"30", "1024", "filter1\nfilter2", "subscription1", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "1695600475",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &CloudWatchLogsCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

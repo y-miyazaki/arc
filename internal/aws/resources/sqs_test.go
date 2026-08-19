@@ -13,103 +13,138 @@ import (
 )
 
 func TestNewSQSCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewSQSCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, 2)
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewSQSCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewSQSCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewSQSCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestSQSCollector_Basic(t *testing.T) {
-	collector := &SQSCollector{
-		clients: make(map[string]*sqs.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "sqs", wantSort: true},
 	}
-	assert.Equal(t, "sqs", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &SQSCollector{
+				clients: make(map[string]*sqs.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestSQSCollector_Collect_NoClient(t *testing.T) {
-	collector := &SQSCollector{
-		clients: make(map[string]*sqs.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-west-2", wantContains: "no SQS client found for region"},
 	}
 
-	ctx := context.Background()
-	_, err := collector.Collect(ctx, "us-west-2")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no SQS client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &SQSCollector{
+				clients: make(map[string]*sqs.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestSQSCollector_GetColumns(t *testing.T) {
-	collector := &SQSCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ARN",
-		"DelaySeconds", "MaximumMessageSize", "MessageRetentionPeriod", "ReceiveMessageWaitTimeSeconds",
-		"VisibilityTimeout", "RedrivePolicy", "CreatedTimestamp", "LastModifiedTimestamp",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "SQS",
-		SubCategory1: "Queue",
-		Name:         "test-queue",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:sqs:us-east-1:123456789012:test-queue",
-		RawData: map[string]any{
-			"DelaySeconds":                  "0",
-			"MaximumMessageSize":            "262144",
-			"MessageRetentionPeriod":        "345600",
-			"ReceiveMessageWaitTimeSeconds": "0",
-			"VisibilityTimeout":             "30",
-			"RedrivePolicy":                 "{}",
-			"CreatedTimestamp":              "1695600475",
-			"LastModifiedTimestamp":         "1695600475",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "SQS",
+				SubCategory1: "Queue",
+				Name:         "test-queue",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:sqs:us-east-1:123456789012:test-queue",
+				RawData: map[string]any{
+					"DelaySeconds":                  "0",
+					"MaximumMessageSize":            "262144",
+					"MessageRetentionPeriod":        "345600",
+					"ReceiveMessageWaitTimeSeconds": "0",
+					"VisibilityTimeout":             "30",
+					"RedrivePolicy":                 "{}",
+					"CreatedTimestamp":              "1695600475",
+					"LastModifiedTimestamp":         "1695600475",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ARN",
+				"DelaySeconds", "MaximumMessageSize", "MessageRetentionPeriod", "ReceiveMessageWaitTimeSeconds",
+				"VisibilityTimeout", "RedrivePolicy", "CreatedTimestamp", "LastModifiedTimestamp",
+			},
+			wantValues: []string{
+				"SQS", "Queue", "test-queue", "us-east-1", "arn:aws:sqs:us-east-1:123456789012:test-queue",
+				"0", "262144", "345600", "0",
+				"30", "{}", "1695600475", "1695600475",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"SQS", "Queue", "test-queue", "us-east-1", "arn:aws:sqs:us-east-1:123456789012:test-queue",
-		"0", "262144", "345600", "0",
-		"30", "{}", "1695600475", "1695600475",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &SQSCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

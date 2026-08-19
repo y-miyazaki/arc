@@ -12,90 +12,113 @@ import (
 )
 
 func TestNewECRCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewECRCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, len(regions))
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewECRCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewECRCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, 0)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewECRCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestECRCollector_Basic(t *testing.T) {
-	collector := &ECRCollector{
-		clients: map[string]*ecr.Client{},
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "ecr", wantSort: true},
 	}
-	assert.Equal(t, "ecr", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &ECRCollector{
+				clients: map[string]*ecr.Client{},
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestECRCollector_GetColumns(t *testing.T) {
-	collector := &ECRCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region",
-		"URI", "Mutability", "Encryption", "KMSKey", "ScanOnPush",
-		"LifecyclePolicy", "ImageCount", "CreatedAt",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "ECR",
-		SubCategory1: "Repository",
-		Name:         "test-repo",
-		Region:       "us-east-1",
-		RawData: map[string]any{
-			"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo",
-			"Mutability":      "MUTABLE",
-			"Encryption":      "KMS",
-			"KMSKey":          "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
-			"ScanOnPush":      "true",
-			"LifecyclePolicy": "Yes",
-			"ImageCount":      "5",
-			"CreatedAt":       "2023-09-25T01:07:55Z",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "ECR",
+				SubCategory1: "Repository",
+				Name:         "test-repo",
+				Region:       "us-east-1",
+				RawData: map[string]any{
+					"URI":             "123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo",
+					"Mutability":      "MUTABLE",
+					"Encryption":      "KMS",
+					"KMSKey":          "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+					"ScanOnPush":      "true",
+					"LifecyclePolicy": "Yes",
+					"ImageCount":      "5",
+					"CreatedAt":       "2023-09-25T01:07:55Z",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region",
+				"URI", "Mutability", "Encryption", "KMSKey", "ScanOnPush",
+				"LifecyclePolicy", "ImageCount", "CreatedAt",
+			},
+			wantValues: []string{
+				"ECR", "Repository", "test-repo", "us-east-1",
+				"123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo", "MUTABLE", "KMS", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "true",
+				"Yes", "5", "2023-09-25T01:07:55Z",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"ECR", "Repository", "test-repo", "us-east-1",
-		"123456789012.dkr.ecr.us-east-1.amazonaws.com/test-repo", "MUTABLE", "KMS", "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012", "true",
-		"Yes", "5", "2023-09-25T01:07:55Z",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &ECRCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

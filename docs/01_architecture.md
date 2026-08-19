@@ -225,18 +225,9 @@ SES はメール送信・受信に関わる各種設定を収集します。実�
 
 ```json
 {
-    "Effect": "Allow",
-    "Action": [
-        "sesv2:ListEmailIdentities",
-        "sesv2:GetEmailIdentity",
-        "sesv2:ListConfigurationSets",
-        "sesv2:GetConfigurationSet",
-        "sesv2:ListEmailTemplates",
-        "sesv2:GetEmailTemplate",
-        "ses:ListIdentities",
-        "ses:GetIdentityDkimAttributes"
-    ],
-    "Resource": "*"
+  "Effect": "Allow",
+  "Action": ["sesv2:ListEmailIdentities", "sesv2:GetEmailIdentity", "sesv2:ListConfigurationSets", "sesv2:GetConfigurationSet", "sesv2:ListEmailTemplates", "sesv2:GetEmailTemplate", "ses:ListIdentities", "ses:GetIdentityDkimAttributes"],
+  "Resource": "*"
 }
 ```
 

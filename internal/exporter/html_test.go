@@ -8,209 +8,188 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// Test GenerateHTML creates files.json and index.html under the account directory
-func TestGenerateHTML_CreatesFilesAndIndex(t *testing.T) {
-	base := t.TempDir()
-	accountID := "123456789012"
-	resourcesDir := filepath.Join(base, accountID, "resources")
+func TestGenerateHTML(t *testing.T) {
+	t.Parallel()
 
-	// ensure parent dirs
-	if err := os.MkdirAll(resourcesDir, 0o755); err != nil {
-		t.Fatalf("failed to create resources dir: %v", err)
+	tests := []struct {
+		name           string
+		accountID      string
+		accountDisplay string
+		outputFile     string
+		categories     []string
+		setup          func(t *testing.T, base, accountID string)
+		wantErr        bool
+		wantEntries    []FileManifestEntry
+		wantIndex      []string
+	}{
+		{
+			name:           "creates manifest and index from existing csv files",
+			accountID:      "123456789012",
+			accountDisplay: "123456789012",
+			outputFile:     "files.json",
+			categories:     []string{"ec2", "s3", "rds"},
+			setup: func(t *testing.T, base, accountID string) {
+				t.Helper()
+				resourcesDir := filepath.Join(base, accountID, "resources")
+				require.NoError(t, os.MkdirAll(resourcesDir, 0o755))
+				require.NoError(t, os.WriteFile(filepath.Join(resourcesDir, "ec2.csv"), []byte("a,b,c\n"), 0o644))
+				require.NoError(t, os.WriteFile(filepath.Join(resourcesDir, "s3.csv"), []byte("x,y,z\n"), 0o644))
+			},
+			wantEntries: []FileManifestEntry{
+				{Path: "resources/ec2.csv", DisplayName: "ec2"},
+				{Path: "resources/s3.csv", DisplayName: "s3"},
+			},
+			wantIndex: []string{"AWS Resources (123456789012)", "files.json"},
+		},
+		{
+			name:           "account path as file returns error",
+			accountID:      "acct-as-file",
+			accountDisplay: "acct-as-file",
+			outputFile:     "index.html",
+			categories:     []string{"x"},
+			setup: func(t *testing.T, base, accountID string) {
+				t.Helper()
+				require.NoError(t, os.WriteFile(filepath.Join(base, accountID), []byte("not a directory"), 0o644))
+			},
+			wantErr: true,
+		},
+		{
+			name:           "empty categories still writes manifest and index",
+			accountID:      "no-cats",
+			accountDisplay: "no-cats",
+			outputFile:     "index.html",
+			categories:     []string{},
+			setup: func(t *testing.T, base, accountID string) {
+				t.Helper()
+				require.NoError(t, os.MkdirAll(filepath.Join(base, accountID), 0o755))
+			},
+			wantEntries: nil,
+			wantIndex:   []string{},
+		},
+		{
+			name:           "custom account display is rendered",
+			accountID:      "123456789012",
+			accountDisplay: "my-account(123456789012)",
+			outputFile:     "index.html",
+			categories:     []string{},
+			setup: func(t *testing.T, base, accountID string) {
+				t.Helper()
+				require.NoError(t, os.MkdirAll(filepath.Join(base, accountID), 0o755))
+			},
+			wantEntries: nil,
+			wantIndex:   []string{"AWS Resources (my-account(123456789012))"},
+		},
 	}
 
-	// create a couple of csv files (only these should appear in manifest)
-	if err := os.WriteFile(filepath.Join(resourcesDir, "ec2.csv"), []byte("a,b,c\n"), 0o644); err != nil {
-		t.Fatalf("failed to write csv file: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			base := t.TempDir()
+			tt.setup(t, base, tt.accountID)
+
+			err := GenerateHTML(base, tt.accountID, tt.accountDisplay, tt.outputFile, tt.categories)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			b, readErr := os.ReadFile(filepath.Join(base, tt.accountID, "files.json"))
+			require.NoError(t, readErr)
+			var entries []FileManifestEntry
+			require.NoError(t, json.Unmarshal(b, &entries))
+			assert.Equal(t, tt.wantEntries, entries)
+
+			indexPath := filepath.Join(base, tt.accountID, "index.html")
+			_, statErr := os.Stat(indexPath)
+			require.NoError(t, statErr)
+			ib, indexErr := os.ReadFile(indexPath)
+			require.NoError(t, indexErr)
+			for _, fragment := range tt.wantIndex {
+				assert.Contains(t, string(ib), fragment)
+			}
+		})
 	}
-	if err := os.WriteFile(filepath.Join(resourcesDir, "s3.csv"), []byte("x,y,z\n"), 0o644); err != nil {
-		t.Fatalf("failed to write csv file: %v", err)
-	}
-
-	// call GenerateHTML with several categories including one missing
-	outputFile := "files.json"
-	categories := []string{"ec2", "s3", "rds"}
-
-	err := GenerateHTML(base, accountID, accountID, outputFile, categories)
-	if err != nil {
-		t.Fatalf("GenerateHTML returned error: %v", err)
-	}
-
-	// validate manifest exists and contains only ec2 and s3
-	manifestPath := filepath.Join(base, accountID, "files.json")
-	b, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("failed to read manifest: %v", err)
-	}
-
-	var entries []FileManifestEntry
-	if err := json.Unmarshal(b, &entries); err != nil {
-		t.Fatalf("failed to unmarshal manifest json: %v", err)
-	}
-
-	// expect two entries for ec2 and s3
-	assert.Len(t, entries, 2)
-	assert.Equal(t, "resources/ec2.csv", entries[0].Path)
-	assert.Equal(t, "ec2", entries[0].DisplayName)
-	assert.Equal(t, "resources/s3.csv", entries[1].Path)
-	assert.Equal(t, "s3", entries[1].DisplayName)
-
-	// validate index.html exists and contains the output file placeholder
-	indexPath := filepath.Join(base, accountID, "index.html")
-	ib, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("failed to read index.html: %v", err)
-	}
-
-	s := string(ib)
-	assert.Contains(t, s, "AWS Resources (123456789012)")
-	assert.Contains(t, s, outputFile)
 }
 
-// If the account directory is a file (not a directory), GenerateHTML should return an error
-func TestGenerateHTML_FailsWhenAccountPathIsFile(t *testing.T) {
-	base := t.TempDir()
-	accountID := "acct-as-file"
+func TestCreateResourcesZip(t *testing.T) {
+	t.Parallel()
 
-	// create a file at the path where a directory is expected
-	acctPath := filepath.Join(base, accountID)
-	if err := os.WriteFile(acctPath, []byte("not a directory"), 0o644); err != nil {
-		t.Fatalf("failed to create file: %v", err)
+	tests := []struct {
+		name      string
+		setup     func(t *testing.T, resourcesDir string)
+		wantFiles []string
+	}{
+		{
+			name:      "missing resources dir creates empty zip",
+			setup:     func(t *testing.T, _ string) { t.Helper() },
+			wantFiles: []string{},
+		},
+		{
+			name: "includes only csv files",
+			setup: func(t *testing.T, resourcesDir string) {
+				t.Helper()
+				require.NoError(t, os.MkdirAll(resourcesDir, 0o755))
+				require.NoError(t, os.WriteFile(filepath.Join(resourcesDir, "ec2.csv"), []byte("a,b\n"), 0o644))
+				require.NoError(t, os.WriteFile(filepath.Join(resourcesDir, "readme.txt"), []byte("ignore"), 0o644))
+			},
+			wantFiles: []string{"ec2.csv"},
+		},
 	}
 
-	// call GenerateHTML (it should try to create files under base/accountID and fail)
-	err := GenerateHTML(base, accountID, accountID, "index.html", []string{"x"})
-	assert.Error(t, err)
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			base := t.TempDir()
+			resourcesDir := filepath.Join(base, "resources")
+			tt.setup(t, resourcesDir)
 
-// Empty categories should produce a manifest with zero entries and still create index.html
-func TestGenerateHTML_EmptyCategories(t *testing.T) {
-	base := t.TempDir()
-	accountID := "no-cats"
-	if err := os.MkdirAll(filepath.Join(base, accountID), 0o755); err != nil {
-		t.Fatalf("failed to create account dir: %v", err)
-	}
+			zipPath := filepath.Join(base, "resources.zip")
+			require.NoError(t, createResourcesZip(zipPath, resourcesDir))
 
-	err := GenerateHTML(base, accountID, accountID, "index.html", []string{})
-	if err != nil {
-		t.Fatalf("GenerateHTML returned error: %v", err)
-	}
+			zr, err := zip.OpenReader(zipPath)
+			require.NoError(t, err)
+			defer func() {
+				_ = zr.Close()
+			}()
 
-	// manifest should still exist
-	manifestPath := filepath.Join(base, accountID, "files.json")
-	b, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("failed to read manifest: %v", err)
-	}
-
-	var entries []FileManifestEntry
-	if err := json.Unmarshal(b, &entries); err != nil {
-		t.Fatalf("failed to unmarshal manifest json: %v", err)
-	}
-	assert.Len(t, entries, 0)
-
-	indexPath := filepath.Join(base, accountID, "index.html")
-	_, err = os.Stat(indexPath)
-	assert.NoError(t, err)
-}
-
-// Custom account display should be rendered in index.html when provided.
-func TestGenerateHTML_UsesCustomAccountDisplay(t *testing.T) {
-	base := t.TempDir()
-	accountID := "123456789012"
-	accountDisplay := "my-account(123456789012)"
-	if err := os.MkdirAll(filepath.Join(base, accountID), 0o755); err != nil {
-		t.Fatalf("failed to create account dir: %v", err)
-	}
-
-	err := GenerateHTML(base, accountID, accountDisplay, "index.html", []string{})
-	if err != nil {
-		t.Fatalf("GenerateHTML returned error: %v", err)
-	}
-
-	indexPath := filepath.Join(base, accountID, "index.html")
-	ib, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("failed to read index.html: %v", err)
-	}
-
-	assert.Contains(t, string(ib), "AWS Resources (my-account(123456789012))")
-}
-
-func TestCreateResourcesZip_EmptyWhenResourcesDirMissing(t *testing.T) {
-	base := t.TempDir()
-	zipPath := filepath.Join(base, "resources.zip")
-	resourcesDir := filepath.Join(base, "resources")
-
-	err := createResourcesZip(zipPath, resourcesDir)
-	if err != nil {
-		t.Fatalf("createResourcesZip returned error: %v", err)
-	}
-
-	zr, err := zip.OpenReader(zipPath)
-	if err != nil {
-		t.Fatalf("failed to open zip: %v", err)
-	}
-	defer func() {
-		_ = zr.Close()
-	}()
-
-	assert.Len(t, zr.File, 0)
-}
-
-func TestCreateResourcesZip_IncludesOnlyCSVFiles(t *testing.T) {
-	base := t.TempDir()
-	resourcesDir := filepath.Join(base, "resources")
-	if err := os.MkdirAll(resourcesDir, 0o755); err != nil {
-		t.Fatalf("failed to create resources dir: %v", err)
-	}
-
-	if err := os.WriteFile(filepath.Join(resourcesDir, "ec2.csv"), []byte("a,b\n"), 0o644); err != nil {
-		t.Fatalf("failed to write csv file: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(resourcesDir, "readme.txt"), []byte("ignore"), 0o644); err != nil {
-		t.Fatalf("failed to write txt file: %v", err)
-	}
-
-	zipPath := filepath.Join(base, "resources.zip")
-	err := createResourcesZip(zipPath, resourcesDir)
-	if err != nil {
-		t.Fatalf("createResourcesZip returned error: %v", err)
-	}
-
-	zr, err := zip.OpenReader(zipPath)
-	if err != nil {
-		t.Fatalf("failed to open zip: %v", err)
-	}
-	defer func() {
-		_ = zr.Close()
-	}()
-
-	if assert.Len(t, zr.File, 1) {
-		assert.Equal(t, "ec2.csv", zr.File[0].Name)
+			got := make([]string, 0, len(zr.File))
+			for _, f := range zr.File {
+				got = append(got, f.Name)
+			}
+			assert.Equal(t, tt.wantFiles, got)
+		})
 	}
 }
 
 func TestGenerateIndexHTML_FallbackToAccountIDWhenDisplayEmpty(t *testing.T) {
-	base := t.TempDir()
-	indexPath := filepath.Join(base, "index.html")
-	accountID := "123456789012"
+	t.Parallel()
 
-	err := generateIndexHTML(indexPath, accountID, "", "all.csv")
-	if err != nil {
-		t.Fatalf("generateIndexHTML returned error: %v", err)
+	tests := []struct {
+		name           string
+		accountID      string
+		accountDisplay string
+		wantContains   string
+	}{
+		{name: "empty display falls back to account id", accountID: "123456789012", accountDisplay: "", wantContains: "AWS Resources (123456789012)"},
 	}
 
-	b, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("failed to read index.html: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			indexPath := filepath.Join(t.TempDir(), "index.html")
+			require.NoError(t, generateIndexHTML(indexPath, tt.accountID, tt.accountDisplay, "all.csv"))
+			b, err := os.ReadFile(indexPath)
+			require.NoError(t, err)
+			assert.Contains(t, string(b), tt.wantContains)
+		})
 	}
-
-	assert.Contains(t, string(b), "AWS Resources (123456789012)")
 }
 
+// Walk permission failure needs a chmod'd directory; keep dedicated setup (TBL-05).
 func TestCreateResourcesZip_ReturnsErrorWhenWalkFails(t *testing.T) {
 	base := t.TempDir()
 	resourcesDir := filepath.Join(base, "resources")

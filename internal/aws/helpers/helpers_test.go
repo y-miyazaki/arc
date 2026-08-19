@@ -56,107 +56,167 @@ func (m *MockEC2ClientForVPCs) DescribeVpcs(ctx context.Context, params *ec2.Des
 }
 
 func TestStringValue_PrimitivesAndPointers(t *testing.T) {
-	// nil
-	assert.Equal(t, "N/A", StringValue(nil))
+	t.Parallel()
 
-	// string
 	s := "hello"
-	assert.Equal(t, "hello", StringValue(s))
 	empty := ""
-	assert.Equal(t, "N/A", StringValue(empty))
-
-	// *string
-	assert.Equal(t, "hello", StringValue(&s))
-	assert.Equal(t, "N/A", StringValue(&empty))
-
-	// int family
-	assert.Equal(t, "42", StringValue(42))
 	var i32 int32 = 7
-	assert.Equal(t, "7", StringValue(i32))
 	var i64 int64 = 900
-	assert.Equal(t, "900", StringValue(i64))
-
-	// floats
 	var f32 float32 = 1.5
 	var f64 float64 = 2.25
-	assert.Equal(t, "1.5", StringValue(f32))
-	assert.Equal(t, "2.25", StringValue(f64))
-
-	// bool
-	assert.Equal(t, "true", StringValue(true))
 	var bptr *bool
-	assert.Equal(t, "N/A", StringValue(bptr))
-
-	// time
 	z := time.Time{}
-	assert.Equal(t, "N/A", StringValue(z))
 	now := time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC)
-	assert.Equal(t, "2020-01-02T03:04:05Z", StringValue(now))
-
-	// slices
-	arr := []string{"a", "b"}
-	assert.Equal(t, "a\nb", StringValue(arr))
-	emptyArr := []string{}
-	assert.Equal(t, "N/A", StringValue(emptyArr))
-
-	// []*string
 	s1 := "x"
 	s2 := ""
-	ptrs := []*string{&s1, &s2, nil}
-	assert.Equal(t, "x", StringValue(ptrs))
+
+	tests := []struct {
+		name  string
+		input any
+		want  string
+	}{
+		{name: "nil", input: nil, want: "N/A"},
+		{name: "string", input: s, want: "hello"},
+		{name: "empty string", input: empty, want: "N/A"},
+		{name: "string pointer", input: &s, want: "hello"},
+		{name: "empty string pointer", input: &empty, want: "N/A"},
+		{name: "int", input: 42, want: "42"},
+		{name: "int32", input: i32, want: "7"},
+		{name: "int64", input: i64, want: "900"},
+		{name: "float32", input: f32, want: "1.5"},
+		{name: "float64", input: f64, want: "2.25"},
+		{name: "bool true", input: true, want: "true"},
+		{name: "nil bool pointer", input: bptr, want: "N/A"},
+		{name: "zero time", input: z, want: "N/A"},
+		{name: "time", input: now, want: "2020-01-02T03:04:05Z"},
+		{name: "string slice", input: []string{"a", "b"}, want: "a\nb"},
+		{name: "empty string slice", input: []string{}, want: "N/A"},
+		{name: "string pointer slice skips empty", input: []*string{&s1, &s2, nil}, want: "x"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := StringValue(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestStringValue_DoesNotMutateInputSlice(t *testing.T) {
-	// ensure StringValue does not mutate the caller's slice order
-	src := []string{"b", "a", "c"}
-	// make a copy to compare after the call
-	original := make([]string, len(src))
-	copy(original, src)
+	t.Parallel()
 
-	// call StringValue which sorts a copy internally
-	out := StringValue(src)
-	// output should be sorted
-	assert.Equal(t, "a\nb\nc", out)
-	// original slice must remain unchanged
-	assert.Equal(t, original, src)
+	tests := []struct {
+		name string
+		src  []string
+		want string
+	}{
+		{name: "sorts a copy of the caller slice", src: []string{"b", "a", "c"}, want: "a\nb\nc"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			original := make([]string, len(tt.src))
+			copy(original, tt.src)
+			got := StringValue(tt.src)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, original, tt.src)
+		})
+	}
 }
 
 func TestStringValue_SortsCaseInsensitively(t *testing.T) {
-	// test case-insensitive sorting for []string
-	src := []string{"Banana", "apple", "Cherry"}
-	out := StringValue(src)
-	// should be sorted case-insensitively: apple, Banana, Cherry
-	assert.Equal(t, "apple\nBanana\nCherry", out)
+	t.Parallel()
 
-	// test case-insensitive sorting for []*string
 	s1 := "Banana"
 	s2 := "apple"
 	s3 := "Cherry"
-	srcPtr := []*string{&s1, &s2, &s3}
-	outPtr := StringValue(srcPtr)
-	assert.Equal(t, "apple\nBanana\nCherry", outPtr)
+
+	tests := []struct {
+		name  string
+		input any
+		want  string
+	}{
+		{name: "string slice", input: []string{"Banana", "apple", "Cherry"}, want: "apple\nBanana\nCherry"},
+		{name: "string pointer slice", input: []*string{&s1, &s2, &s3}, want: "apple\nBanana\nCherry"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, StringValue(tt.input))
+		})
+	}
 }
 
 func TestStringValue_DefaultOverride(t *testing.T) {
-	assert.Equal(t, "default", StringValue(nil, "default"))
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input any
+		def   string
+		want  string
+	}{
+		{name: "nil uses default", input: nil, def: "default", want: "default"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, StringValue(tt.input, tt.def))
+		})
+	}
 }
 
 func TestExtractAccountID(t *testing.T) {
-	arn := "arn:aws:iam::123456789012:role/test"
-	acct, err := ExtractAccountID(arn)
-	assert.NoError(t, err)
-	assert.Equal(t, "123456789012", acct)
+	t.Parallel()
 
-	// invalid
-	_, err = ExtractAccountID("invalid-arn")
-	assert.Error(t, err)
+	tests := []struct {
+		name    string
+		arn     string
+		want    string
+		wantErr bool
+	}{
+		{name: "valid iam role arn", arn: "arn:aws:iam::123456789012:role/test", want: "123456789012"},
+		{name: "invalid arn", arn: "invalid-arn", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := ExtractAccountID(tt.arn)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestToString(t *testing.T) {
+	t.Parallel()
+
 	var p *string
-	assert.Equal(t, "", ToString(p))
 	s := "ok"
-	assert.Equal(t, "ok", ToString(&s))
+	tests := []struct {
+		name  string
+		input *string
+		want  string
+	}{
+		{name: "nil pointer", input: p, want: ""},
+		{name: "non-nil pointer", input: &s, want: "ok"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, ToString(tt.input))
+		})
+	}
 }
 
 func TestNormalizeRawDataAndGetMapValue(t *testing.T) {
@@ -178,106 +238,182 @@ func TestNormalizeRawDataAndGetMapValue(t *testing.T) {
 }
 
 func TestFormatJSONIndent(t *testing.T) {
-	// nil
-	s, err := FormatJSONIndent(nil)
-	assert.NoError(t, err)
-	assert.Equal(t, "", s)
+	t.Parallel()
 
-	// empty string
-	s2, err := FormatJSONIndent("")
-	assert.NoError(t, err)
-	assert.Equal(t, "", s2)
+	tests := []struct {
+		name    string
+		input   any
+		want    string
+		wantErr bool
+	}{
+		{name: "nil returns empty string", input: nil, want: ""},
+		{name: "empty string returns empty string", input: "", want: ""},
+		{name: "valid json string is indented", input: `{"k":1}`, want: "{\n  \"k\": 1\n}"},
+		{name: "invalid json string returns error", input: "not-json", wantErr: true},
+		{name: "map is marshaled", input: map[string]any{"x": "y"}, want: "{\n  \"x\": \"y\"\n}"},
+		{name: "unmarshalable value returns error", input: make(chan int), wantErr: true},
+	}
 
-	// valid json string
-	in := `{"k":1}`
-	out, err := FormatJSONIndent(in)
-	assert.NoError(t, err)
-	assert.Contains(t, out, "\n  \"k\": 1")
-
-	// invalid json string -> error
-	_, err = FormatJSONIndent("not-json")
-	assert.Error(t, err)
-
-	// map input
-	m := map[string]any{"x": "y"}
-	out2, err := FormatJSONIndent(m)
-	assert.NoError(t, err)
-	assert.Contains(t, out2, "\"x\": \"y\"")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := FormatJSONIndent(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestFormatJSONIndentOrRaw(t *testing.T) {
-	// nil -> empty string
-	assert.Equal(t, "", FormatJSONIndentOrRaw(nil))
+	t.Parallel()
 
-	// String inputs
-	t.Run("string inputs", func(t *testing.T) {
-		// empty string -> empty string
-		assert.Equal(t, "", FormatJSONIndentOrRaw(""))
+	type testStruct struct {
+		Name  string `json:"name"`
+		Count int    `json:"count"`
+	}
 
-		// valid JSON -> formatted
-		validJSON := `{"key":"value"}`
-		result := FormatJSONIndentOrRaw(validJSON)
-		assert.Contains(t, result, "\"key\": \"value\"")
-		assert.Contains(t, result, "\n") // should be indented
+	tests := []struct {
+		name         string
+		input        any
+		want         string
+		wantContains []string
+	}{
+		{name: "nil returns empty string", input: nil, want: ""},
+		{name: "empty string returns empty string", input: "", want: ""},
+		{name: "valid json is indented", input: `{"key":"value"}`, wantContains: []string{`"key": "value"`, "\n"}},
+		{name: "plain text is returned unchanged", input: "just a plain text value", want: "just a plain text value"},
+		{name: "token-like text is returned unchanged", input: "73I=n=fRT9?aeAstq%TOY9DJsXvf", want: "73I=n=fRT9?aeAstq%TOY9DJsXvf"},
+		{name: "struct is indented json", input: testStruct{Name: "test", Count: 42}, wantContains: []string{`"name": "test"`, `"count": 42`, "\n"}},
+		{name: "string slice is indented json", input: []string{"a", "b", "c"}, wantContains: []string{`"a"`, `"b"`, `"c"`}},
+		{name: "map is indented json", input: map[string]int{"x": 1, "y": 2}, wantContains: []string{`"x": 1`, `"y": 2`}},
+		{name: "channel returns empty string", input: make(chan int), want: ""},
+	}
 
-		// invalid JSON (plain text) -> returns original
-		plainText := "just a plain text value"
-		assert.Equal(t, plainText, FormatJSONIndentOrRaw(plainText))
-
-		// another plain text example
-		apiToken := "73I=n=fRT9?aeAstq%TOY9DJsXvf"
-		assert.Equal(t, apiToken, FormatJSONIndentOrRaw(apiToken))
-	})
-
-	// Struct inputs
-	t.Run("struct inputs", func(t *testing.T) {
-		// struct -> formatted JSON
-		type testStruct struct {
-			Name  string `json:"name"`
-			Count int    `json:"count"`
-		}
-		s := testStruct{Name: "test", Count: 42}
-		result := FormatJSONIndentOrRaw(s)
-		assert.Contains(t, result, "\"name\": \"test\"")
-		assert.Contains(t, result, "\"count\": 42")
-		assert.Contains(t, result, "\n") // should be indented
-
-		// slice -> formatted JSON
-		slice := []string{"a", "b", "c"}
-		sliceResult := FormatJSONIndentOrRaw(slice)
-		assert.Contains(t, sliceResult, "\"a\"")
-		assert.Contains(t, sliceResult, "\"b\"")
-		assert.Contains(t, sliceResult, "\"c\"")
-
-		// map -> formatted JSON
-		m := map[string]int{"x": 1, "y": 2}
-		mapResult := FormatJSONIndentOrRaw(m)
-		assert.Contains(t, mapResult, "\"x\": 1")
-		assert.Contains(t, mapResult, "\"y\": 2")
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := FormatJSONIndentOrRaw(tt.input)
+			if tt.wantContains != nil {
+				for _, fragment := range tt.wantContains {
+					assert.Contains(t, got, fragment)
+				}
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestParseTimestamp_EpochAndRFC3339(t *testing.T) {
-	// epoch seconds -> *time.Time
-	v := ParseTimestamp("1695601655")
-	tptr, ok := v.(*time.Time)
-	assert.True(t, ok, "expected *time.Time for epoch string")
-	if ok {
-		assert.Equal(t, time.Unix(1695601655, 0).UTC().Format(time.RFC3339), StringValue(tptr))
+	t.Parallel()
+
+	epochSec := time.Unix(1695601655, 0).UTC()
+	rfc3339 := time.Date(2023, 8, 10, 9, 0, 0, 0, time.UTC)
+	epochMillis := time.Unix(0, 1695601655000*int64(time.Millisecond)).UTC()
+
+	tests := []struct {
+		name  string
+		input string
+		want  any
+	}{
+		{name: "epoch seconds returns time pointer", input: "1695601655", want: &epochSec},
+		{name: "rfc3339 returns time pointer", input: "2023-08-10T09:00:00Z", want: &rfc3339},
+		{name: "invalid value returns original string", input: "not-a-timestamp", want: "not-a-timestamp"},
+		{name: "empty string returns empty string", input: "", want: ""},
+		{name: "epoch milliseconds returns time pointer", input: "1695601655000", want: &epochMillis},
 	}
 
-	// RFC3339 -> *time.Time
-	v2 := ParseTimestamp("2023-08-10T09:00:00Z")
-	tptr2, ok2 := v2.(*time.Time)
-	assert.True(t, ok2, "expected *time.Time for RFC3339 string")
-	if ok2 {
-		assert.Equal(t, "2023-08-10T09:00:00Z", StringValue(tptr2))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := ParseTimestamp(tt.input)
+			switch want := tt.want.(type) {
+			case *time.Time:
+				gotTime, ok := got.(*time.Time)
+				require.True(t, ok, "ParseTimestamp(%q) type = %T, want *time.Time", tt.input, got)
+				assert.Equal(t, want.UTC().Format(time.RFC3339), StringValue(gotTime))
+			case string:
+				assert.Equal(t, want, got)
+			default:
+				t.Fatalf("unexpected want type %T", tt.want)
+			}
+		})
+	}
+}
+
+func TestGetMapValue_NilMap(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		data map[string]any
+		key  string
+		want string
+	}{
+		{name: "nil map returns empty string", data: nil, key: "any", want: ""},
 	}
 
-	// invalid -> original string
-	v3 := ParseTimestamp("not-a-timestamp")
-	assert.IsType(t, "", v3)
-	assert.Equal(t, "not-a-timestamp", v3)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := GetMapValue(tt.data, tt.key)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestStringValue_PointerAndSliceBranches(t *testing.T) {
+	t.Parallel()
+
+	var nilInt32 *int32
+	var nilInt64 *int64
+	var nilFloat32 *float32
+	var nilFloat64 *float64
+	var nilBool *bool
+	var nilTime *time.Time
+
+	i32 := int32(8)
+	i64 := int64(9)
+	f32 := float32(1.25)
+	f64 := 3.5
+	b := true
+	now := time.Date(2021, 2, 3, 4, 5, 6, 0, time.UTC)
+	blank := ""
+
+	tests := []struct {
+		name  string
+		input any
+		want  string
+	}{
+		{name: "nil int32 pointer", input: nilInt32, want: "N/A"},
+		{name: "nil int64 pointer", input: nilInt64, want: "N/A"},
+		{name: "nil float32 pointer", input: nilFloat32, want: "N/A"},
+		{name: "nil float64 pointer", input: nilFloat64, want: "N/A"},
+		{name: "nil bool pointer", input: nilBool, want: "N/A"},
+		{name: "nil time pointer", input: nilTime, want: "N/A"},
+		{name: "int32 pointer", input: &i32, want: "8"},
+		{name: "int64 pointer", input: &i64, want: "9"},
+		{name: "float32 pointer", input: &f32, want: "1.25"},
+		{name: "float64 pointer", input: &f64, want: "3.5"},
+		{name: "bool pointer", input: &b, want: "true"},
+		{name: "time pointer", input: &now, want: "2021-02-03T04:05:06Z"},
+		{name: "empty string pointer slice", input: []*string{}, want: "N/A"},
+		{name: "string pointer slice with only empty values", input: []*string{nil, &blank}, want: "N/A"},
+		{name: "empty int slice", input: []int{}, want: "N/A"},
+		{name: "int slice is sorted", input: []int{3, 1, 2}, want: "1\n2\n3"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := StringValue(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestGetAllKMSKeys_Pagination(t *testing.T) {
@@ -679,7 +815,8 @@ func (m *MockKMSClientWithError) ListAliases(ctx context.Context, params *kms.Li
 }
 
 func TestStructToKeyValue(t *testing.T) {
-	// Test struct with various field types
+	t.Parallel()
+
 	type testStruct struct {
 		Name       string
 		Count      int
@@ -690,49 +827,48 @@ func TestStructToKeyValue(t *testing.T) {
 		unexported string // should be ignored
 	}
 
-	// Test with populated values
 	name := "test-name"
 	count := int32(42)
 	enabled := true
-	s := testStruct{
-		Name:       "test-name",
-		Count:      100,
-		Enabled:    true,
-		PtrStr:     &name,
-		PtrInt:     &count,
-		PtrBool:    &enabled,
-		unexported: "ignored",
-	}
-
-	result := StructToKeyValue(s)
-	expected := []string{"Name=test-name", "Count=100", "Enabled=true", "PtrStr=test-name", "PtrInt=42", "PtrBool=true"}
-	assert.Equal(t, expected, result)
-
-	// Test with nil pointers and empty values
-	var nilStr *string
-	var nilInt *int32
-	var nilBool *bool
-	s2 := testStruct{
-		Name:    "",    // empty string should be skipped
-		Count:   0,     // zero value should be included
-		Enabled: false, // false boolean should be skipped
-		PtrStr:  nilStr,
-		PtrInt:  nilInt,
-		PtrBool: nilBool,
-	}
-
-	result2 := StructToKeyValue(s2)
-	expected2 := []string{"Count=0"}
-	assert.Equal(t, expected2, result2)
-
-	// Test with nil struct
 	var nilStruct *testStruct
-	result3 := StructToKeyValue(nilStruct)
-	assert.Nil(t, result3)
 
-	// Test with non-struct
-	result4 := StructToKeyValue("not a struct")
-	assert.Nil(t, result4)
+	tests := []struct {
+		name string
+		in   any
+		want []string
+	}{
+		{
+			name: "populated values",
+			in: testStruct{
+				Name:       "test-name",
+				Count:      100,
+				Enabled:    true,
+				PtrStr:     &name,
+				PtrInt:     &count,
+				PtrBool:    &enabled,
+				unexported: "ignored",
+			},
+			want: []string{"Name=test-name", "Count=100", "Enabled=true", "PtrStr=test-name", "PtrInt=42", "PtrBool=true"},
+		},
+		{
+			name: "nil pointers and empty values",
+			in: testStruct{
+				Name:    "",
+				Count:   0,
+				Enabled: false,
+			},
+			want: []string{"Count=0"},
+		},
+		{name: "nil struct pointer", in: nilStruct, want: nil},
+		{name: "non-struct", in: "not a struct", want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, StructToKeyValue(tt.in))
+		})
+	}
 }
 
 func TestParseARN(t *testing.T) {
@@ -841,53 +977,31 @@ func TestGetResourceNameFromARN(t *testing.T) {
 }
 
 func TestGetTagValue(t *testing.T) {
+	t.Parallel()
+
 	tags := []ec2types.Tag{
 		{Key: aws.String("Name"), Value: aws.String("my-instance")},
 		{Key: aws.String("Environment"), Value: aws.String("prod")},
-		{Key: aws.String("name"), Value: aws.String("lowercase-name")}, // case insensitive
+		{Key: aws.String("name"), Value: aws.String("lowercase-name")},
 	}
 
 	tests := []struct {
-		name     string
-		key      string
-		expected string
+		name string
+		tags []ec2types.Tag
+		key  string
+		want string
 	}{
-		{
-			name:     "exact match",
-			key:      "Name",
-			expected: "my-instance",
-		},
-		{
-			name:     "case insensitive match",
-			key:      "NAME",
-			expected: "my-instance",
-		},
-		{
-			name:     "lowercase key",
-			key:      "name",
-			expected: "my-instance", // should match first occurrence
-		},
-		{
-			name:     "non-existent key",
-			key:      "Missing",
-			expected: "",
-		},
-		{
-			name:     "empty tags",
-			key:      "Name",
-			expected: "",
-		},
+		{name: "exact match", tags: tags, key: "Name", want: "my-instance"},
+		{name: "case insensitive match", tags: tags, key: "NAME", want: "my-instance"},
+		{name: "lowercase key matches first occurrence", tags: tags, key: "name", want: "my-instance"},
+		{name: "non-existent key", tags: tags, key: "Missing", want: ""},
+		{name: "empty tags", tags: []ec2types.Tag{}, key: "Name", want: ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "empty tags" {
-				result := GetTagValue([]ec2types.Tag{}, tt.key)
-				assert.Equal(t, tt.expected, result)
-			} else {
-				result := GetTagValue(tags, tt.key)
-				assert.Equal(t, tt.expected, result)
-			}
+			t.Parallel()
+			assert.Equal(t, tt.want, GetTagValue(tt.tags, tt.key))
 		})
 	}
 }
@@ -980,42 +1094,40 @@ func TestResolveNamesFromMap(t *testing.T) {
 }
 
 func TestNewNameResolver(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	resolver, err := NewNameResolver(cfg, regions)
-
-	require.NoError(t, err)
-	assert.NotNil(t, resolver)
-	assert.Len(t, resolver.ec2Clients, 2)
-	assert.Contains(t, resolver.ec2Clients, "us-east-1")
-	assert.Contains(t, resolver.ec2Clients, "eu-west-1")
-	assert.Len(t, resolver.kmsClients, 2)
-	assert.Contains(t, resolver.kmsClients, "us-east-1")
-	assert.Contains(t, resolver.kmsClients, "eu-west-1")
-	assert.Len(t, resolver.cloudfrontClients, 2)
-	assert.Contains(t, resolver.cloudfrontClients, "us-east-1")
-	assert.Contains(t, resolver.cloudfrontClients, "eu-west-1")
-	assert.NotNil(t, resolver.cache)
-	assert.NotNil(t, resolver.cloudfrontCache)
-}
-
-func TestNewNameResolver_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	resolver, err := NewNameResolver(cfg, []string{})
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	require.NoError(t, err)
-	assert.NotNil(t, resolver)
-	assert.Empty(t, resolver.ec2Clients)
-	assert.Empty(t, resolver.kmsClients)
-	assert.Empty(t, resolver.cloudfrontClients)
-	assert.NotNil(t, resolver.cache)
-	assert.NotNil(t, resolver.cloudfrontCache)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resolver, err := NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+			require.NotNil(t, resolver)
+			assert.Len(t, resolver.ec2Clients, tt.wantLen)
+			assert.Len(t, resolver.kmsClients, tt.wantLen)
+			assert.Len(t, resolver.cloudfrontClients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, resolver.ec2Clients, region)
+				assert.Contains(t, resolver.kmsClients, region)
+				assert.Contains(t, resolver.cloudfrontClients, region)
+			}
+			assert.NotNil(t, resolver.cache)
+			assert.NotNil(t, resolver.cloudfrontCache)
+		})
+	}
 }
 
 func TestGetAllKMSKeysWithClient(t *testing.T) {
@@ -1104,170 +1216,92 @@ func TestNameResolver_GetAllKMSKeys_GetAllKMSKeysWithClientError(t *testing.T) {
 	assert.ErrorContains(t, err, "getAllKMSKeysWithClient")
 }
 
-func TestNameResolver_GetAllImages(t *testing.T) {
+func TestNameResolver_GetAllEC2Resources_ClientError(t *testing.T) {
+	t.Parallel()
+
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
+	resolver, err := NewNameResolver(cfg, []string{"us-east-1"})
+	require.NoError(t, err)
 	ctx := context.Background()
 
-	// This will fail in test environment due to no AWS credentials, but we can test the error handling
-	_, err = resolver.GetAllImages(ctx, "us-east-1")
-	assert.Error(t, err) // Expected to fail without credentials
+	tests := []struct {
+		name string
+		call func(*NameResolver) error
+	}{
+		{name: "images", call: func(r *NameResolver) error {
+			_, err := r.GetAllImages(ctx, "us-east-1")
+			return err
+		}},
+		{name: "network interfaces", call: func(r *NameResolver) error {
+			_, err := r.GetAllNetworkInterfaces(ctx, "us-east-1")
+			return err
+		}},
+		{name: "security groups", call: func(r *NameResolver) error {
+			_, err := r.GetAllSecurityGroups(ctx, "us-east-1")
+			return err
+		}},
+		{name: "snapshots", call: func(r *NameResolver) error {
+			_, err := r.GetAllSnapshots(ctx, "us-east-1")
+			return err
+		}},
+		{name: "subnets", call: func(r *NameResolver) error {
+			_, err := r.GetAllSubnets(ctx, "us-east-1")
+			return err
+		}},
+		{name: "volumes", call: func(r *NameResolver) error {
+			_, err := r.GetAllVolumes(ctx, "us-east-1")
+			return err
+		}},
+		{name: "vpcs", call: func(r *NameResolver) error {
+			_, err := r.GetAllVPCs(ctx, "us-east-1")
+			return err
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Shared NameResolver cache; omit t.Parallel() (TBL-06).
+			assert.Error(t, tt.call(resolver))
+		})
+	}
 }
 
-func TestNameResolver_GetAllNetworkInterfaces(t *testing.T) {
+func TestNameResolver_GetCloudFrontPolicyNames_WithoutUsableClient(t *testing.T) {
+	t.Parallel()
+
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
+	resolver, err := NewNameResolver(cfg, []string{"us-east-1"})
+	require.NoError(t, err)
 	ctx := context.Background()
 
-	_, err = resolver.GetAllNetworkInterfaces(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetAllSecurityGroups(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
+	tests := []struct {
+		name string
+		call func(*NameResolver) string
+	}{
+		{name: "origin access control", call: func(r *NameResolver) string {
+			return r.GetOriginAccessControlName(ctx, "test-oac-id")
+		}},
+		{name: "cache policy", call: func(r *NameResolver) string {
+			return r.GetCachePolicyName(ctx, "test-policy-id")
+		}},
+		{name: "origin request policy", call: func(r *NameResolver) string {
+			return r.GetOriginRequestPolicyName(ctx, "test-policy-id")
+		}},
+		{name: "response headers policy", call: func(r *NameResolver) string {
+			return r.GetResponseHeadersPolicyName(ctx, "test-policy-id")
+		}},
 	}
-	regions := []string{"us-east-1"}
 
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	_, err = resolver.GetAllSecurityGroups(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetAllSnapshots(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Shared NameResolver cache; omit t.Parallel() (TBL-06).
+			assert.Empty(t, tt.call(resolver))
+		})
 	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	_, err = resolver.GetAllSnapshots(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetAllSubnets(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	_, err = resolver.GetAllSubnets(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetAllVolumes(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	_, err = resolver.GetAllVolumes(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetAllVPCs(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	_, err = resolver.GetAllVPCs(ctx, "us-east-1")
-	assert.Error(t, err)
-}
-
-func TestNameResolver_GetOriginAccessControlName(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	name := resolver.GetOriginAccessControlName(ctx, "test-oac-id")
-	assert.Empty(t, name) // Should return empty string without CloudFront client
-}
-
-func TestNameResolver_GetCachePolicyName(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	name := resolver.GetCachePolicyName(ctx, "test-policy-id")
-	assert.Empty(t, name) // Should return empty string without CloudFront client
-}
-
-func TestNameResolver_GetOriginRequestPolicyName(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	name := resolver.GetOriginRequestPolicyName(ctx, "test-policy-id")
-	assert.Empty(t, name) // Should return empty string without CloudFront client
-}
-
-func TestNameResolver_GetResponseHeadersPolicyName(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1"}
-
-	resolver, err := NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
-
-	ctx := context.Background()
-
-	name := resolver.GetResponseHeadersPolicyName(ctx, "test-policy-id")
-	assert.Empty(t, name) // Should return empty string without CloudFront client
 }
 
 func TestNameResolver_GetAllEC2Resources_CacheHit(t *testing.T) {

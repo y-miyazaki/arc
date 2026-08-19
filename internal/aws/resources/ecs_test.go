@@ -18,99 +18,122 @@ import (
 )
 
 func TestNewECSCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewECSCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, len(regions))
-	assert.NotNil(t, collector.ebClients)
-	assert.Len(t, collector.ebClients, len(regions))
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewECSCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewECSCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, 0)
-	assert.NotNil(t, collector.ebClients)
-	assert.Len(t, collector.ebClients, 0)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewECSCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.Len(t, collector.ebClients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.ebClients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestECSCollector_Basic(t *testing.T) {
-	collector := &ECSCollector{
-		clients:   map[string]*ecs.Client{},
-		ebClients: map[string]*eventbridge.Client{},
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "ecs", wantSort: false},
 	}
-	assert.Equal(t, "ecs", collector.Name())
-	assert.False(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &ECSCollector{
+				clients:   map[string]*ecs.Client{},
+				ebClients: map[string]*eventbridge.Client{},
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestECSCollector_GetColumns(t *testing.T) {
-	collector := &ECSCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
-		"RoleARN", "TaskDefinition", "LaunchType", "Status", "CronSchedule",
-		"Spec", "RuntimePlatform", "PortMappings", "Environment",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "ECS",
-		SubCategory1: "Service",
-		SubCategory2: "",
-		Name:         "test-service",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
-		RawData: map[string]any{
-			"RoleARN":         "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
-			"TaskDefinition":  "test-task-definition:1",
-			"LaunchType":      "FARGATE",
-			"Status":          "ACTIVE",
-			"CronSchedule":    "cron(0 12 * * ? *)",
-			"Spec":            "CPU: 256, Memory: 512",
-			"RuntimePlatform": "LINUX/X86_64",
-			"PortMappings":    "80/tcp",
-			"Environment":     "KEY1=value1\nKEY2=value2",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "ECS",
+				SubCategory1: "Service",
+				SubCategory2: "",
+				Name:         "test-service",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
+				RawData: map[string]any{
+					"RoleARN":         "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
+					"TaskDefinition":  "test-task-definition:1",
+					"LaunchType":      "FARGATE",
+					"Status":          "ACTIVE",
+					"CronSchedule":    "cron(0 12 * * ? *)",
+					"Spec":            "CPU: 256, Memory: 512",
+					"RuntimePlatform": "LINUX/X86_64",
+					"PortMappings":    "80/tcp",
+					"Environment":     "KEY1=value1\nKEY2=value2",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ARN",
+				"RoleARN", "TaskDefinition", "LaunchType", "Status", "CronSchedule",
+				"Spec", "RuntimePlatform", "PortMappings", "Environment",
+			},
+			wantValues: []string{
+				"ECS", "Service", "", "test-service", "us-east-1", "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
+				"arn:aws:iam::123456789012:role/ecsTaskExecutionRole", "test-task-definition:1", "FARGATE", "ACTIVE", "cron(0 12 * * ? *)",
+				"CPU: 256, Memory: 512", "LINUX/X86_64", "80/tcp", "KEY1=value1\nKEY2=value2",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"ECS", "Service", "", "test-service", "us-east-1", "arn:aws:ecs:us-east-1:123456789012:service/test-cluster/test-service",
-		"arn:aws:iam::123456789012:role/ecsTaskExecutionRole", "test-task-definition:1", "FARGATE", "ACTIVE", "cron(0 12 * * ? *)",
-		"CPU: 256, Memory: 512", "LINUX/X86_64", "80/tcp", "KEY1=value1\nKEY2=value2",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &ECSCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }
 

@@ -13,88 +13,109 @@ import (
 )
 
 func TestNewQuickSightCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewQuickSightCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, len(regions))
-	assert.NotNil(t, collector.stsClient)
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewQuickSightCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewQuickSightCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.clients)
-	assert.Len(t, collector.clients, 0)
-	assert.NotNil(t, collector.stsClient)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewQuickSightCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestQuickSightCollector_Basic(t *testing.T) {
-	collector := &QuickSightCollector{
-		clients:   map[string]*quicksight.Client{},
-		stsClient: &sts.Client{},
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "quicksight", wantSort: true},
 	}
-	assert.Equal(t, "quicksight", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &QuickSightCollector{
+				clients:   map[string]*quicksight.Client{},
+				stsClient: &sts.Client{},
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestQuickSightCollector_GetColumns(t *testing.T) {
-	collector := &QuickSightCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
-		"ID", "Type", "Status", "CreatedDate",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "Analytics",
-		SubCategory1: "QuickSight",
-		SubCategory2: "DataSource",
-		Name:         "test-datasource",
-		Region:       "us-east-1",
-		ARN:          "test-datasource-id",
-		RawData: map[string]any{
-			"Type":        "REDSHIFT",
-			"Status":      "CREATION_SUCCESSFUL",
-			"CreatedDate": "2023-09-25T01:07:55Z",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "Analytics",
+				SubCategory1: "QuickSight",
+				SubCategory2: "DataSource",
+				Name:         "test-datasource",
+				Region:       "us-east-1",
+				ARN:          "test-datasource-id",
+				RawData: map[string]any{
+					"Type":        "REDSHIFT",
+					"Status":      "CREATION_SUCCESSFUL",
+					"CreatedDate": "2023-09-25T01:07:55Z",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "SubCategory2", "Name", "Region",
+				"ID", "Type", "Status", "CreatedDate",
+			},
+			wantValues: []string{
+				"Analytics", "QuickSight", "DataSource", "test-datasource", "us-east-1",
+				"test-datasource-id", "REDSHIFT", "CREATION_SUCCESSFUL", "2023-09-25T01:07:55Z",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"Analytics", "QuickSight", "DataSource", "test-datasource", "us-east-1",
-		"test-datasource-id", "REDSHIFT", "CREATION_SUCCESSFUL", "2023-09-25T01:07:55Z",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &QuickSightCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

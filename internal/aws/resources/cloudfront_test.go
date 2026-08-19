@@ -13,267 +13,264 @@ import (
 )
 
 func TestNewCloudFrontCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewCloudFrontCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, 2)
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewCloudFrontCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name                 string
+		regions              []string
+		wantLen              int
+		wantCloudFrontRegion bool
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions still has global client", regions: []string{}, wantLen: 0, wantCloudFrontRegion: true},
+	}
 
-	collector, err := NewCloudFrontCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	// CloudFront is a global service; the collector ensures a client for
-	// the control-plane region (`helpers.CloudFrontRegion`) is present even
-	// when the caller passes an empty regions slice.
-	assert.NotEmpty(t, collector.clients)
-	assert.Contains(t, collector.clients, helpers.CloudFrontRegion)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewCloudFrontCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			if tt.wantCloudFrontRegion {
+				assert.NotEmpty(t, collector.clients)
+				assert.Contains(t, collector.clients, helpers.CloudFrontRegion)
+			} else {
+				assert.Len(t, collector.clients, tt.wantLen)
+				for _, region := range tt.regions {
+					assert.Contains(t, collector.clients, region)
+				}
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestCloudFrontCollector_Basic(t *testing.T) {
-	collector := &CloudFrontCollector{
-		clients: make(map[string]*cloudfront.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "cloudfront", wantSort: false},
 	}
-	assert.Equal(t, "cloudfront", collector.Name())
-	assert.False(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &CloudFrontCollector{
+				clients: make(map[string]*cloudfront.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestCloudFrontCollector_Collect_NoClient(t *testing.T) {
-	collector := &CloudFrontCollector{
-		clients: make(map[string]*cloudfront.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-east-1", wantContains: "no client found for region"},
 	}
 
-	ctx := context.Background()
-	_, err := collector.Collect(ctx, "us-east-1")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &CloudFrontCollector{
+				clients: make(map[string]*cloudfront.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestCloudFrontCollector_GetColumns(t *testing.T) {
-	collector := &CloudFrontCollector{}
-	columns := collector.GetColumns()
-
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ID", "Description",
-		"AlternateDomain", "Origin",
-		"SSLCertificate", "SecurityPolicy", "SupportedHTTPVersions", "DefaultRootObject",
-		"PriceClass", "WAF", "AccessLogDestinations",
-		"OriginId", "DomainName", "OriginPath", "OriginType",
-		"OriginAccessControlId", "OriginShield", "ConnectionTimeout", "ResponseTimeout",
-		"Config",
-		"PathPattern", "TargetOriginId", "ViewerProtocolPolicy",
-		"CacheConfiguration",
-		"SmoothStreaming", "RealtimeLogConfig", "FunctionAssociations",
-		"Compress", "HTTPErrorCode", "ErrorCachingMinTTL", "CustomizeErrorResponse", "Status",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample Distribution resource
-	sampleDistribution := Resource{
-		Category:     "CloudFront",
-		SubCategory1: "Distribution",
-		SubCategory2: "",
-		Name:         "test-distribution.cloudfront.net",
-		Region:       "Global",
-		ARN:          "",
-		RawData: map[string]any{
-			"ID":                    "E1A2B3C4D5F6G",
-			"Description":           "Test Distribution",
-			"AlternateDomain":       "cdn.example.com",
-			"Origin":                "example.s3.amazonaws.com",
-			"SSLCertificate":        "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
-			"SecurityPolicy":        "TLSv1.2_2021",
-			"SupportedHTTPVersions": "http2and3",
-			"DefaultRootObject":     "index.html",
-			"PriceClass":            "PriceClass_100",
-			"WAF":                   "test-waf",
-			"AccessLogDestinations": "my-logs-bucket.s3.amazonaws.com/cloudfront",
-			"Status":                "Deployed",
-		},
-	}
-
-	expectedDistributionValues := []string{
-		"CloudFront", "Distribution", "", "test-distribution.cloudfront.net", "Global", "E1A2B3C4D5F6G", "Test Distribution",
-		"cdn.example.com", "example.s3.amazonaws.com",
-		"arn:aws:acm:us-east-1:123456789012:certificate/test-cert", "TLSv1.2_2021",
-		"http2and3", "index.html",
-		"PriceClass_100", "test-waf",
-		"my-logs-bucket.s3.amazonaws.com/cloudfront",
-		"", "", "", "",
-		"", "", "", "",
-		"",
-		"", "", "",
-		"",
-		"", "", "",
-		"", "", "", "", "Deployed",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedDistributionValues[i], column.Value(sampleDistribution), "Column %d (%s) value mismatch", i, column.Header)
-	}
-}
-
-func TestCloudFrontCollector_ErrorPageColumns(t *testing.T) {
-	collector := &CloudFrontCollector{}
-	columns := collector.GetColumns()
-
-	// Build a map of header -> index for easy lookup
-	idx := make(map[string]int)
-	for i, c := range columns {
-		idx[c.Header] = i
-	}
-
-	require.Contains(t, idx, "HTTPErrorCode")
-	require.Contains(t, idx, "ErrorCachingMinTTL")
-	require.Contains(t, idx, "CustomizeErrorResponse")
-
-	sampleErrorPage := Resource{
-		Category:     "CloudFront",
-		SubCategory1: "Distribution",
-		SubCategory2: "ErrorPage",
-		Name:         "test-distribution.cloudfront.net",
-		Region:       "Global",
-		RawData: map[string]any{
-			"ID":                     "E1A2B3C4D5F6G",
-			"HTTPErrorCode":          int32(404),
-			"ErrorCachingMinTTL":     int64(60),
-			"CustomizeErrorResponse": "ResponseCode=200 ResponsePagePath=/error.html",
-			"Status":                 "Deployed",
-		},
-	}
-
-	// Verify each ErrorPage-specific column returns the expected string
-	assert.Equal(t, "404", columns[idx["HTTPErrorCode"]].Value(sampleErrorPage))
-	assert.Equal(t, "60", columns[idx["ErrorCachingMinTTL"]].Value(sampleErrorPage))
-	assert.Equal(t, "ResponseCode=200 ResponsePagePath=/error.html", columns[idx["CustomizeErrorResponse"]].Value(sampleErrorPage))
-}
-
-func TestCloudFrontCollector_OriginColumns(t *testing.T) {
-	collector := &CloudFrontCollector{}
-	columns := collector.GetColumns()
-
-	// Build a map of header -> index for easy lookup
-	idx := make(map[string]int)
-	for i, c := range columns {
-		idx[c.Header] = i
-	}
-
-	require.Contains(t, idx, "OriginId")
-	require.Contains(t, idx, "DomainName")
-	require.Contains(t, idx, "OriginPath")
-	require.Contains(t, idx, "OriginType")
-	require.Contains(t, idx, "OriginAccessControlId")
-	require.Contains(t, idx, "ConnectionTimeout")
-	require.Contains(t, idx, "ResponseTimeout")
-	require.Contains(t, idx, "Config")
+	t.Parallel()
 
 	originType := "s3"
 	originConfig := "OAC=oac-123(oac-name) ConnectionTimeout=10s ResponseTimeout=20s"
-
-	sampleOrigin := Resource{
-		Category:     "CloudFront",
-		SubCategory1: "Distribution",
-		SubCategory2: "Origin",
-		Name:         "test-distribution.cloudfront.net",
-		Region:       "Global",
-		RawData: map[string]any{
-			"ID":                    "E1A2B3C4D5F6G",
-			"OriginId":              "origin-1",
-			"DomainName":            "example.s3.amazonaws.com",
-			"OriginPath":            "/images",
-			"OriginType":            &originType,
-			"OriginAccessControlId": "oac-123 (oac-name)",
-			"ConnectionTimeout":     int32(10),
-			"ResponseTimeout":       int32(20),
-			"Config":                &originConfig,
-		},
-	}
-
-	assert.Equal(t, "origin-1", columns[idx["OriginId"]].Value(sampleOrigin))
-	assert.Equal(t, "example.s3.amazonaws.com", columns[idx["DomainName"]].Value(sampleOrigin))
-	assert.Equal(t, "/images", columns[idx["OriginPath"]].Value(sampleOrigin))
-	assert.Equal(t, "s3", columns[idx["OriginType"]].Value(sampleOrigin))
-	assert.Equal(t, "oac-123 (oac-name)", columns[idx["OriginAccessControlId"]].Value(sampleOrigin))
-	assert.Equal(t, "10", columns[idx["ConnectionTimeout"]].Value(sampleOrigin))
-	assert.Equal(t, "20", columns[idx["ResponseTimeout"]].Value(sampleOrigin))
-	assert.Equal(t, originConfig, columns[idx["Config"]].Value(sampleOrigin))
-}
-
-func TestCloudFrontCollector_BehaviorColumns(t *testing.T) {
-	collector := &CloudFrontCollector{}
-	columns := collector.GetColumns()
-
-	// Build a map of header -> index for easy lookup
-	idx := make(map[string]int)
-	for i, c := range columns {
-		idx[c.Header] = i
-	}
-
-	require.Contains(t, idx, "PathPattern")
-	require.Contains(t, idx, "TargetOriginId")
-	require.Contains(t, idx, "ViewerProtocolPolicy")
-	require.Contains(t, idx, "CacheConfiguration")
-	require.Contains(t, idx, "SmoothStreaming")
-	require.Contains(t, idx, "RealtimeLogConfig")
-	require.Contains(t, idx, "FunctionAssociations")
-	require.Contains(t, idx, "Compress")
-
 	realtimeArn := "arn:aws:logs:us-east-1:1234:realtime/log-config"
 
-	sampleBehavior := Resource{
-		Category:     "CloudFront",
-		SubCategory1: "Distribution",
-		SubCategory2: "Behavior",
-		Name:         "test-distribution.cloudfront.net",
-		Region:       "Global",
-		RawData: map[string]any{
-			"ID":                   "E1A2B3C4D5F6G",
-			"PathPattern":          "/img/*",
-			"TargetOriginId":       "origin-1",
-			"ViewerProtocolPolicy": "redirect-to-https",
-			"CacheConfiguration":   []string{"CachePolicy=cp-1(cp-name)"},
-			"SmoothStreaming":      true,
-			"RealtimeLogConfig":    realtimeArn,
-			"FunctionAssociations": []string{"FuncA=arn:aws:lambda:us-east-1:123:function:fnA"},
-			"Compress":             true,
+	tests := []struct {
+		name         string
+		resource     Resource
+		wantHeaders  []string
+		wantValues   []string
+		wantByHeader map[string]string
+	}{
+		{
+			name: "distribution headers and sample values",
+			resource: Resource{
+				Category:     "CloudFront",
+				SubCategory1: "Distribution",
+				Name:         "test-distribution.cloudfront.net",
+				Region:       "Global",
+				RawData: map[string]any{
+					"ID":                    "E1A2B3C4D5F6G",
+					"Description":           "Test Distribution",
+					"AlternateDomain":       "cdn.example.com",
+					"Origin":                "example.s3.amazonaws.com",
+					"SSLCertificate":        "arn:aws:acm:us-east-1:123456789012:certificate/test-cert",
+					"SecurityPolicy":        "TLSv1.2_2021",
+					"SupportedHTTPVersions": "http2and3",
+					"DefaultRootObject":     "index.html",
+					"PriceClass":            "PriceClass_100",
+					"WAF":                   "test-waf",
+					"AccessLogDestinations": "my-logs-bucket.s3.amazonaws.com/cloudfront",
+					"Status":                "Deployed",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "SubCategory2", "Name", "Region", "ID", "Description",
+				"AlternateDomain", "Origin",
+				"SSLCertificate", "SecurityPolicy", "SupportedHTTPVersions", "DefaultRootObject",
+				"PriceClass", "WAF", "AccessLogDestinations",
+				"OriginId", "DomainName", "OriginPath", "OriginType",
+				"OriginAccessControlId", "OriginShield", "ConnectionTimeout", "ResponseTimeout",
+				"Config",
+				"PathPattern", "TargetOriginId", "ViewerProtocolPolicy",
+				"CacheConfiguration",
+				"SmoothStreaming", "RealtimeLogConfig", "FunctionAssociations",
+				"Compress", "HTTPErrorCode", "ErrorCachingMinTTL", "CustomizeErrorResponse", "Status",
+			},
+			wantValues: []string{
+				"CloudFront", "Distribution", "", "test-distribution.cloudfront.net", "Global", "E1A2B3C4D5F6G", "Test Distribution",
+				"cdn.example.com", "example.s3.amazonaws.com",
+				"arn:aws:acm:us-east-1:123456789012:certificate/test-cert", "TLSv1.2_2021",
+				"http2and3", "index.html",
+				"PriceClass_100", "test-waf",
+				"my-logs-bucket.s3.amazonaws.com/cloudfront",
+				"", "", "", "",
+				"", "", "", "",
+				"",
+				"", "", "",
+				"",
+				"", "", "",
+				"", "", "", "", "Deployed",
+			},
+		},
+		{
+			name: "error page columns",
+			resource: Resource{
+				Category:     "CloudFront",
+				SubCategory1: "Distribution",
+				SubCategory2: "ErrorPage",
+				Name:         "test-distribution.cloudfront.net",
+				Region:       "Global",
+				RawData: map[string]any{
+					"ID":                     "E1A2B3C4D5F6G",
+					"HTTPErrorCode":          int32(404),
+					"ErrorCachingMinTTL":     int64(60),
+					"CustomizeErrorResponse": "ResponseCode=200 ResponsePagePath=/error.html",
+					"Status":                 "Deployed",
+				},
+			},
+			wantByHeader: map[string]string{
+				"HTTPErrorCode":          "404",
+				"ErrorCachingMinTTL":     "60",
+				"CustomizeErrorResponse": "ResponseCode=200 ResponsePagePath=/error.html",
+			},
+		},
+		{
+			name: "origin columns",
+			resource: Resource{
+				Category:     "CloudFront",
+				SubCategory1: "Distribution",
+				SubCategory2: "Origin",
+				Name:         "test-distribution.cloudfront.net",
+				Region:       "Global",
+				RawData: map[string]any{
+					"ID":                    "E1A2B3C4D5F6G",
+					"OriginId":              "origin-1",
+					"DomainName":            "example.s3.amazonaws.com",
+					"OriginPath":            "/images",
+					"OriginType":            &originType,
+					"OriginAccessControlId": "oac-123 (oac-name)",
+					"ConnectionTimeout":     int32(10),
+					"ResponseTimeout":       int32(20),
+					"Config":                &originConfig,
+				},
+			},
+			wantByHeader: map[string]string{
+				"OriginId":              "origin-1",
+				"DomainName":            "example.s3.amazonaws.com",
+				"OriginPath":            "/images",
+				"OriginType":            "s3",
+				"OriginAccessControlId": "oac-123 (oac-name)",
+				"ConnectionTimeout":     "10",
+				"ResponseTimeout":       "20",
+				"Config":                originConfig,
+			},
+		},
+		{
+			name: "behavior columns",
+			resource: Resource{
+				Category:     "CloudFront",
+				SubCategory1: "Distribution",
+				SubCategory2: "Behavior",
+				Name:         "test-distribution.cloudfront.net",
+				Region:       "Global",
+				RawData: map[string]any{
+					"ID":                   "E1A2B3C4D5F6G",
+					"PathPattern":          "/img/*",
+					"TargetOriginId":       "origin-1",
+					"ViewerProtocolPolicy": "redirect-to-https",
+					"CacheConfiguration":   []string{"CachePolicy=cp-1(cp-name)"},
+					"SmoothStreaming":      true,
+					"RealtimeLogConfig":    realtimeArn,
+					"FunctionAssociations": []string{"FuncA=arn:aws:lambda:us-east-1:123:function:fnA"},
+					"Compress":             true,
+				},
+			},
+			wantByHeader: map[string]string{
+				"PathPattern":          "/img/*",
+				"TargetOriginId":       "origin-1",
+				"ViewerProtocolPolicy": "redirect-to-https",
+				"CacheConfiguration":   "CachePolicy=cp-1(cp-name)",
+				"SmoothStreaming":      "true",
+				"RealtimeLogConfig":    realtimeArn,
+				"FunctionAssociations": "FuncA=arn:aws:lambda:us-east-1:123:function:fnA",
+				"Compress":             "true",
+			},
 		},
 	}
 
-	assert.Equal(t, "/img/*", columns[idx["PathPattern"]].Value(sampleBehavior))
-	assert.Equal(t, "origin-1", columns[idx["TargetOriginId"]].Value(sampleBehavior))
-	assert.Equal(t, "redirect-to-https", columns[idx["ViewerProtocolPolicy"]].Value(sampleBehavior))
-	// CacheConfiguration is a []string; Value will join it with newlines when converted
-	assert.Equal(t, "CachePolicy=cp-1(cp-name)", columns[idx["CacheConfiguration"]].Value(sampleBehavior))
-	assert.Equal(t, "true", columns[idx["SmoothStreaming"]].Value(sampleBehavior))
-	assert.Equal(t, realtimeArn, columns[idx["RealtimeLogConfig"]].Value(sampleBehavior))
-	assert.Equal(t, "FuncA=arn:aws:lambda:us-east-1:123:function:fnA", columns[idx["FunctionAssociations"]].Value(sampleBehavior))
-	assert.Equal(t, "true", columns[idx["Compress"]].Value(sampleBehavior))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			columns := (&CloudFrontCollector{}).GetColumns()
+			idx := make(map[string]int, len(columns))
+			for i, column := range columns {
+				idx[column.Header] = i
+			}
+			if tt.wantHeaders != nil {
+				require.Len(t, columns, len(tt.wantHeaders))
+				for i, column := range columns {
+					assert.Equal(t, tt.wantHeaders[i], column.Header)
+					assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+				}
+				return
+			}
+			for header, want := range tt.wantByHeader {
+				require.Contains(t, idx, header)
+				assert.Equal(t, want, columns[idx[header]].Value(tt.resource))
+			}
+		})
+	}
 }

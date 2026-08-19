@@ -2,11 +2,13 @@ package resources
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
@@ -59,54 +61,92 @@ func (m *MockCollector) Collect(ctx context.Context, region string) ([]Resource,
 }
 
 func TestNewResource(t *testing.T) {
-	input := &ResourceInput{
-		Category:     "test-category",
-		SubCategory1: "test-subcategory",
-		Name:         "test-name",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:test:us-east-1:123456789012:test/test-name",
-		RawData: map[string]any{
-			"Status":      "active",
-			"CreatedDate": "2023-01-01T00:00:00Z",
-			"Count":       42,
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   *ResourceInput
+		want Resource
+	}{
+		{
+			name: "copies fields and normalizes raw data",
+			in: &ResourceInput{
+				Category:     "test-category",
+				SubCategory1: "test-subcategory",
+				Name:         "test-name",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:test:us-east-1:123456789012:test/test-name",
+				RawData: map[string]any{
+					"Status":      "active",
+					"CreatedDate": "2023-01-01T00:00:00Z",
+					"Count":       42,
+				},
+			},
+			want: Resource{
+				Category:     "test-category",
+				SubCategory1: "test-subcategory",
+				Name:         "test-name",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:test:us-east-1:123456789012:test/test-name",
+				RawData: map[string]any{
+					"Status":      "active",
+					"CreatedDate": "2023-01-01T00:00:00Z",
+					"Count":       "42",
+				},
+			},
+		},
+		{
+			name: "nil optional fields become empty strings",
+			in: &ResourceInput{
+				Category:     "test-category",
+				SubCategory1: nil,
+				SubCategory2: nil,
+				Name:         "test-name",
+				Region:       "us-east-1",
+				ARN:          nil,
+				RawData:      map[string]any{},
+			},
+			want: Resource{
+				Category: "test-category",
+				Name:     "test-name",
+				Region:   "us-east-1",
+				ARN:      "",
+				RawData:  map[string]any{},
+			},
+		},
+		{
+			name: "subcategory3 is copied",
+			in: &ResourceInput{
+				Category:     "test-category",
+				SubCategory3: "leaf",
+				Name:         "test-name",
+				Region:       "us-east-1",
+				RawData:      map[string]any{},
+			},
+			want: Resource{
+				Category:     "test-category",
+				SubCategory3: "leaf",
+				Name:         "test-name",
+				Region:       "us-east-1",
+				RawData:      map[string]any{},
+			},
 		},
 	}
 
-	resource := NewResource(input)
-
-	assert.Equal(t, "test-category", resource.Category)
-	assert.Equal(t, "test-subcategory", resource.SubCategory1)
-	assert.Equal(t, "", resource.SubCategory2) // empty string for nil input
-	assert.Equal(t, "test-name", resource.Name)
-	assert.Equal(t, "us-east-1", resource.Region)
-	assert.Equal(t, "arn:aws:test:us-east-1:123456789012:test/test-name", resource.ARN)
-
-	// Check that RawData is normalized
-	assert.Equal(t, "active", resource.RawData["Status"])
-	assert.Equal(t, "2023-01-01T00:00:00Z", resource.RawData["CreatedDate"])
-	assert.Equal(t, "42", resource.RawData["Count"]) // should be string
-}
-
-func TestNewResource_WithNilValues(t *testing.T) {
-	input := &ResourceInput{
-		Category: "test-category",
-		Name:     "test-name",
-		Region:   "us-east-1",
-		RawData:  map[string]any{},
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := NewResource(tt.in)
+			assert.Equal(t, tt.want.Category, got.Category)
+			assert.Equal(t, tt.want.SubCategory1, got.SubCategory1)
+			assert.Equal(t, tt.want.SubCategory2, got.SubCategory2)
+			assert.Equal(t, tt.want.SubCategory3, got.SubCategory3)
+			assert.Equal(t, tt.want.Name, got.Name)
+			assert.Equal(t, tt.want.Region, got.Region)
+			assert.Equal(t, tt.want.ARN, got.ARN)
+			assert.Equal(t, tt.want.RawData, got.RawData)
+		})
 	}
-	// Explicitly set nil values
-	input.SubCategory1 = nil
-	input.SubCategory2 = nil
-	input.ARN = nil
-
-	resource := NewResource(input)
-
-	assert.Equal(t, "test-category", resource.Category)
-	assert.Equal(t, "", resource.SubCategory1) // empty string for nil with default ""
-	assert.Equal(t, "", resource.SubCategory2) // empty string for nil with default ""
-	assert.Equal(t, "test-name", resource.Name)
-	assert.Equal(t, "us-east-1", resource.Region)
-	assert.Equal(t, "", resource.ARN) // empty string for nil when default is empty
 }
 
 func TestRegister(t *testing.T) {
@@ -151,46 +191,56 @@ func TestGetCollectors(t *testing.T) {
 	assert.Equal(t, mockCollector2, result["test2"])
 }
 
-func TestMockCollector_Name(t *testing.T) {
-	collector := NewMockCollector("test-name", true)
-	assert.Equal(t, "test-name", collector.Name())
-}
+func TestMockCollector(t *testing.T) {
+	t.Parallel()
 
-func TestMockCollector_ShouldSort(t *testing.T) {
-	collector := NewMockCollector("test", true)
-	assert.True(t, collector.ShouldSort())
-
-	collector2 := NewMockCollector("test", false)
-	assert.False(t, collector2.ShouldSort())
-}
-
-func TestMockCollector_GetColumns(t *testing.T) {
-	collector := NewMockCollector("test", true)
-	columns := collector.GetColumns()
-
-	expectedHeaders := []string{"Category", "Name", "Region"}
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, header := range expectedHeaders {
-		assert.Equal(t, header, columns[i].Header)
+	tests := []struct {
+		name       string
+		collector  *MockCollector
+		wantName   string
+		wantSort   bool
+		wantCols   []string
+		wantRegion string
+	}{
+		{
+			name:       "name sort columns and collect",
+			collector:  NewMockCollector("test-name", true),
+			wantName:   "test-name",
+			wantSort:   true,
+			wantCols:   []string{"Category", "Name", "Region"},
+			wantRegion: "us-west-2",
+		},
+		{
+			name:      "should sort false",
+			collector: NewMockCollector("test", false),
+			wantName:  "test",
+			wantSort:  false,
+			wantCols:  []string{"Category", "Name", "Region"},
+		},
 	}
-}
 
-func TestMockCollector_Collect(t *testing.T) {
-	collector := NewMockCollector("test", true)
-
-	ctx := context.Background()
-	region := "us-west-2"
-
-	resources, err := collector.Collect(ctx, region)
-
-	assert.NoError(t, err)
-	assert.Len(t, resources, 1)
-
-	resource := resources[0]
-	assert.Equal(t, "test", resource.Category)
-	assert.Equal(t, "test-resource", resource.Name)
-	assert.Equal(t, region, resource.Region)
-	assert.Equal(t, "active", resource.RawData["Status"])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.wantName, tt.collector.Name())
+			assert.Equal(t, tt.wantSort, tt.collector.ShouldSort())
+			columns := tt.collector.GetColumns()
+			require.Len(t, columns, len(tt.wantCols))
+			for i, header := range tt.wantCols {
+				assert.Equal(t, header, columns[i].Header)
+			}
+			if tt.wantRegion == "" {
+				return
+			}
+			resources, err := tt.collector.Collect(context.Background(), tt.wantRegion)
+			require.NoError(t, err)
+			require.Len(t, resources, 1)
+			assert.Equal(t, "test", resources[0].Category)
+			assert.Equal(t, "test-resource", resources[0].Name)
+			assert.Equal(t, tt.wantRegion, resources[0].Region)
+			assert.Equal(t, "active", resources[0].RawData["Status"])
+		})
+	}
 }
 
 func TestInitializeCollectors(t *testing.T) {
@@ -252,7 +302,6 @@ func TestRegisterConstructor(t *testing.T) {
 }
 
 func TestCreateCollector(t *testing.T) {
-	// Clear the registry before test
 	originalConstructors := make(map[string]any)
 	maps.Copy(originalConstructors, collectorConstructors)
 	collectorConstructors = make(map[string]any)
@@ -260,32 +309,85 @@ func TestCreateCollector(t *testing.T) {
 		collectorConstructors = originalConstructors
 	}()
 
-	// Register a real constructor (we'll use ACM as it's a simple one)
 	RegisterConstructor("acm", NewACMCollector)
 
 	cfg := &aws.Config{Region: "us-east-1"}
 	regions := []string{"us-east-1"}
 	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	// Test creating a collector
-	collector, err := createCollector("acm", cfg, regions, nameResolver)
+	tests := []struct {
+		name      string
+		collector string
+		wantName  string
+		wantErr   error
+	}{
+		{name: "known constructor", collector: "acm", wantName: "acm"},
+		{name: "unknown collector", collector: "unknown", wantErr: ErrUnknownCollector},
+	}
 
-	assert.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Equal(t, "acm", collector.Name())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Mutates package constructor map; omit t.Parallel() (TBL-06).
+			got, createErr := createCollector(tt.collector, cfg, regions, nameResolver)
+			if tt.wantErr != nil {
+				require.Error(t, createErr)
+				assert.ErrorIs(t, createErr, tt.wantErr)
+				assert.Nil(t, got)
+				return
+			}
+			require.NoError(t, createErr)
+			require.NotNil(t, got)
+			assert.Equal(t, tt.wantName, got.Name())
+		})
+	}
 }
 
-func TestCreateCollector_UnknownCollector(t *testing.T) {
+func notCollectorConstructor(_ *aws.Config, _ []string, _ *helpers.NameResolver) (string, error) {
+	return "not-a-collector", nil
+}
+
+func invalidErrorTypeConstructor(_ *aws.Config, _ []string, _ *helpers.NameResolver) (*ACMCollector, any) {
+	return nil, "not-an-error"
+}
+
+var errTestConstructor = errors.New("constructor failed")
+
+func failingCollectorConstructor(_ *aws.Config, _ []string, _ *helpers.NameResolver) (*ACMCollector, error) {
+	return nil, errTestConstructor
+}
+
+func TestCreateCollector_InvalidReturnTypes(t *testing.T) {
+	originalConstructors := make(map[string]any)
+	maps.Copy(originalConstructors, collectorConstructors)
+	collectorConstructors = make(map[string]any)
+	defer func() {
+		collectorConstructors = originalConstructors
+	}()
+
 	cfg := &aws.Config{Region: "us-east-1"}
 	regions := []string{"us-east-1"}
 	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	// Test with unknown collector name
-	collector, err := createCollector("unknown", cfg, regions, nameResolver)
+	tests := []struct {
+		name        string
+		constructor any
+		wantErr     error
+	}{
+		{name: "invalid collector type", constructor: notCollectorConstructor, wantErr: ErrInvalidCollectorType},
+		{name: "invalid error type", constructor: invalidErrorTypeConstructor, wantErr: ErrInvalidErrorType},
+		{name: "constructor error", constructor: failingCollectorConstructor, wantErr: errTestConstructor},
+	}
 
-	assert.Error(t, err)
-	assert.Nil(t, collector)
-	assert.Contains(t, err.Error(), ErrUnknownCollector.Error())
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			RegisterConstructor("invalid", tt.constructor)
+			collector, createErr := createCollector("invalid", cfg, regions, nameResolver)
+			require.Error(t, createErr)
+			assert.ErrorIs(t, createErr, tt.wantErr)
+			assert.Nil(t, collector)
+		})
+	}
 }

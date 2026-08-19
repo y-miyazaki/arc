@@ -12,83 +12,106 @@ import (
 )
 
 func TestNewTransferFamilyCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewTransferFamilyCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, 2)
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewTransferFamilyCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewTransferFamilyCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewTransferFamilyCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestTransferFamilyCollector_Basic(t *testing.T) {
-	collector := &TransferFamilyCollector{
-		clients: make(map[string]*transfer.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "transferfamily", wantSort: true},
 	}
-	assert.Equal(t, "transferfamily", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &TransferFamilyCollector{
+				clients: make(map[string]*transfer.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestTransferFamilyCollector_GetColumns(t *testing.T) {
-	collector := &TransferFamilyCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ServerID",
-		"Protocol", "State",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "transferfamily",
-		SubCategory1: "Server",
-		Name:         "s-1234567890abcdef0",
-		Region:       "us-east-1",
-		ARN:          "s-1234567890abcdef0",
-		RawData: map[string]any{
-			"Protocol": "SFTP",
-			"State":    "ONLINE",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "transferfamily",
+				SubCategory1: "Server",
+				Name:         "s-1234567890abcdef0",
+				Region:       "us-east-1",
+				ARN:          "s-1234567890abcdef0",
+				RawData: map[string]any{
+					"Protocol": "SFTP",
+					"State":    "ONLINE",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ServerID",
+				"Protocol", "State",
+			},
+			wantValues: []string{
+				"transferfamily", "Server", "s-1234567890abcdef0", "us-east-1", "s-1234567890abcdef0",
+				"SFTP", "ONLINE",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"transferfamily", "Server", "s-1234567890abcdef0", "us-east-1", "s-1234567890abcdef0",
-		"SFTP", "ONLINE",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &TransferFamilyCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

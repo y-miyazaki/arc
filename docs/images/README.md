@@ -3,6 +3,7 @@
 ## html-viewer-overview.png
 
 Screenshot requirements:
+
 - Capture the HTML viewer with all panels **collapsed** (not expanded)
 - **Redact the AWS Account ID** from the page title (e.g., "AWS Resources (XXXXXXXXXXXX)")
 - Include the following visible elements:
@@ -16,11 +17,13 @@ Screenshot requirements:
 ### How to capture:
 
 1. Start the application and generate HTML output:
+
    ```bash
    go run cmd/arc/main.go --html
    ```
 
 2. Open the generated HTML in a browser:
+
    ```bash
    cd output/{account-id}/
    python3 -m http.server 8080

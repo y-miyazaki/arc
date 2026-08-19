@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // mockClient is a mock AWS client for testing.
@@ -13,36 +14,34 @@ type mockClient struct {
 }
 
 func TestCreateRegionalClients(t *testing.T) {
+	t.Parallel()
+
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
-
-	regions := []string{"us-east-1", "eu-west-1", "ap-northeast-1"}
-
-	factory := func(cfg *aws.Config, region string) *mockClient {
+	factory := func(_ *aws.Config, region string) *mockClient {
 		return &mockClient{region: region}
 	}
 
-	clients, err := CreateRegionalClients(cfg, regions, factory)
-
-	assert.NoError(t, err)
-	assert.Len(t, clients, 3)
-	assert.Equal(t, "us-east-1", clients["us-east-1"].region)
-	assert.Equal(t, "eu-west-1", clients["eu-west-1"].region)
-	assert.Equal(t, "ap-northeast-1", clients["ap-northeast-1"].region)
-}
-
-func TestCreateRegionalClients_EmptyRegions(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates a client for each region", regions: []string{"us-east-1", "eu-west-1", "ap-northeast-1"}, wantLen: 3},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
 	}
 
-	factory := func(cfg *aws.Config, region string) *mockClient {
-		return &mockClient{region: region}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			clients, err := CreateRegionalClients(cfg, tt.regions, factory)
+			require.NoError(t, err)
+			assert.Len(t, clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Equal(t, region, clients[region].region)
+			}
+		})
 	}
-
-	clients, err := CreateRegionalClients(cfg, []string{}, factory)
-
-	assert.NoError(t, err)
-	assert.Len(t, clients, 0)
 }

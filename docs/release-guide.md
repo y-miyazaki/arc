@@ -9,6 +9,7 @@ ARC uses [GoReleaser](https://goreleaser.com/) with GitHub Actions to automate t
 ## Supported Platforms
 
 Releases include binaries for:
+
 - **Linux**: amd64, arm64
 - **macOS**: amd64 (Intel), arm64 (Apple Silicon)
 - **Windows**: amd64
@@ -46,6 +47,7 @@ vMAJOR.MINOR.PATCH[-PRERELEASE]
 ```
 
 Examples:
+
 - `v1.0.0` - Stable release
 - `v1.1.0` - New features
 - `v1.0.1` - Bug fixes
@@ -95,6 +97,7 @@ The changelog is automatically generated from git commits:
 - **Performance**: Commits starting with `perf:`
 
 Excluded from changelog:
+
 - `docs:`, `test:`, `chore:`, `ci:`, `refactor:`, `style:`
 - Merge commits
 
@@ -120,12 +123,14 @@ goreleaser release --clean
 ### Tag Already Exists
 
 If the tag already exists:
+
 - Set `create_tag: false` in the workflow
 - Or delete the existing tag: `git tag -d v1.0.0 && git push origin :refs/tags/v1.0.0`
 
 ### Build Failures
 
 Common issues:
+
 - **Go version mismatch**: Check `go_version` input matches go.mod
 - **Dependency errors**: Ensure `go.sum` is up to date
 - **Test failures**: All tests must pass before release
@@ -133,6 +138,7 @@ Common issues:
 ### Release Not Published
 
 If using draft mode:
+
 - Draft releases are not visible to the public
 - Edit and publish the draft manually
 
@@ -141,6 +147,7 @@ If using draft mode:
 ### GitHub Token
 
 The workflow uses `secrets.GITHUB_TOKEN`:
+
 - Automatically provided by GitHub Actions
 - Has write access to create releases and tags
 - Scoped to the repository only

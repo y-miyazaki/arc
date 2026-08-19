@@ -13,33 +13,56 @@ import (
 )
 
 func TestCollectionOptions(t *testing.T) {
-	// Test that CollectionOptions struct can be created and fields accessed
-	opts := &CollectionOptions{
-		Region:     "us-east-1",
-		Profile:    "default",
-		OutputDir:  "/tmp/output",
-		Categories: "ec2,s3",
-		HTML:       true,
-		Timeout:    5 * time.Minute,
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		opts CollectionOptions
+		want CollectionOptions
+	}{
+		{
+			name: "fields round-trip",
+			opts: CollectionOptions{
+				Region:     "us-east-1",
+				Profile:    "default",
+				OutputDir:  "/tmp/output",
+				Categories: "ec2,s3",
+				HTML:       true,
+				Timeout:    5 * time.Minute,
+			},
+			want: CollectionOptions{
+				Region:     "us-east-1",
+				Profile:    "default",
+				OutputDir:  "/tmp/output",
+				Categories: "ec2,s3",
+				HTML:       true,
+				Timeout:    5 * time.Minute,
+			},
+		},
 	}
 
-	if opts.Region != "us-east-1" {
-		t.Errorf("Expected Region to be 'us-east-1', got %s", opts.Region)
-	}
-	if opts.Profile != "default" {
-		t.Errorf("Expected Profile to be 'default', got %s", opts.Profile)
-	}
-	if opts.OutputDir != "/tmp/output" {
-		t.Errorf("Expected OutputDir to be '/tmp/output', got %s", opts.OutputDir)
-	}
-	if opts.Categories != "ec2,s3" {
-		t.Errorf("Expected Categories to be 'ec2,s3', got %s", opts.Categories)
-	}
-	if opts.HTML != true {
-		t.Errorf("Expected HTML to be true, got %t", opts.HTML)
-	}
-	if opts.Timeout != 5*time.Minute {
-		t.Errorf("Expected Timeout to be 5m, got %s", opts.Timeout)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.opts.Region != tt.want.Region {
+				t.Fatalf("CollectionOptions.Region = %q, want %q", tt.opts.Region, tt.want.Region)
+			}
+			if tt.opts.Profile != tt.want.Profile {
+				t.Fatalf("CollectionOptions.Profile = %q, want %q", tt.opts.Profile, tt.want.Profile)
+			}
+			if tt.opts.OutputDir != tt.want.OutputDir {
+				t.Fatalf("CollectionOptions.OutputDir = %q, want %q", tt.opts.OutputDir, tt.want.OutputDir)
+			}
+			if tt.opts.Categories != tt.want.Categories {
+				t.Fatalf("CollectionOptions.Categories = %q, want %q", tt.opts.Categories, tt.want.Categories)
+			}
+			if tt.opts.HTML != tt.want.HTML {
+				t.Fatalf("CollectionOptions.HTML = %v, want %v", tt.opts.HTML, tt.want.HTML)
+			}
+			if tt.opts.Timeout != tt.want.Timeout {
+				t.Fatalf("CollectionOptions.Timeout = %v, want %v", tt.opts.Timeout, tt.want.Timeout)
+			}
+		})
 	}
 }
 
@@ -80,126 +103,128 @@ func (b *blockingCollector) Collect(ctx context.Context, region string) ([]resou
 	return []resources.Resource{{Category: b.name, Name: b.name + "-r", Region: region}}, nil
 }
 
-func TestCollectResources_AggregatesErrors(t *testing.T) {
-	// Create two collectors: one succeeds, one fails
-	collectors := map[string]resources.Collector{
-		"ok":  &fakeCollector{name: "ok", shouldError: false},
-		"bad": &fakeCollector{name: "bad", shouldError: true},
+func TestCollectResources(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		collectors      map[string]resources.Collector
+		regions         []string
+		maxConcurrency  int
+		wantResultKeys  []string
+		wantFailedKey   string
+		wantFailedCount int
+		wantResCount    int
+	}{
+		{
+			name: "aggregates collector errors",
+			collectors: map[string]resources.Collector{
+				"ok":  &fakeCollector{name: "ok"},
+				"bad": &fakeCollector{name: "bad", shouldError: true},
+			},
+			regions:         []string{"r1"},
+			maxConcurrency:  2,
+			wantResultKeys:  []string{"ok"},
+			wantFailedKey:   "bad",
+			wantFailedCount: 1,
+		},
+		{
+			name: "preserves failures per region",
+			collectors: map[string]resources.Collector{
+				"bad": &fakeCollector{name: "bad", shouldError: true},
+			},
+			regions:         []string{"r1", "r2"},
+			maxConcurrency:  2,
+			wantFailedKey:   "bad",
+			wantFailedCount: 2,
+		},
+		{
+			name: "merges resources from multiple regions",
+			collectors: map[string]resources.Collector{
+				"test": &fakeCollector{name: "test"},
+			},
+			regions:        []string{"r1", "r2"},
+			maxConcurrency: 2,
+			wantResultKeys: []string{"test"},
+			wantResCount:   2,
+		},
+		{
+			name: "respects concurrency limit",
+			collectors: map[string]resources.Collector{
+				"test1": &fakeCollector{name: "test1"},
+				"test2": &fakeCollector{name: "test2"},
+			},
+			regions:        []string{"r1", "r2"},
+			maxConcurrency: 1,
+			wantResultKeys: []string{"test1", "test2"},
+		},
+		{
+			name: "zero uses default concurrency",
+			collectors: map[string]resources.Collector{
+				"ok": &fakeCollector{name: "ok"},
+			},
+			regions:        []string{"r1"},
+			maxConcurrency: 0,
+			wantResultKeys: []string{"ok"},
+		},
+		{
+			name: "negative uses default concurrency",
+			collectors: map[string]resources.Collector{
+				"ok": &fakeCollector{name: "ok"},
+			},
+			regions:        []string{"r1"},
+			maxConcurrency: -1,
+			wantResultKeys: []string{"ok"},
+		},
 	}
 
-	// Logger with discarded output
-	l := logger.NewSlogLogger(&logger.SlogConfig{
-		Output: io.Discard,
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	ctx := context.Background()
-	results, failed := collectResources(ctx, l, collectors, []string{"r1"}, &CollectionOptions{MaxConcurrency: 2})
+			l := logger.NewSlogLogger(&logger.SlogConfig{
+				Output: io.Discard,
+			})
+			results, failed := collectResources(context.Background(), l, tt.collectors, tt.regions, &CollectionOptions{MaxConcurrency: tt.maxConcurrency})
 
-	if _, ok := results["ok"]; !ok {
-		t.Fatalf("expected ok results, got %v", results)
-	}
-	if _, ok := failed["bad"]; !ok {
-		t.Fatalf("expected bad in failed map, got %v", failed)
-	}
-	if len(failed["bad"]) != 1 {
-		t.Fatalf("expected one bad failure, got %v", failed["bad"])
-	}
-	if failed["bad"][0].Region != "r1" {
-		t.Fatalf("expected failure region r1, got %q", failed["bad"][0].Region)
-	}
-}
-
-func TestCollectResources_PreservesFailuresPerRegion(t *testing.T) {
-	collectors := map[string]resources.Collector{
-		"bad": &fakeCollector{name: "bad", shouldError: true},
-	}
-
-	l := logger.NewSlogLogger(&logger.SlogConfig{
-		Output: io.Discard,
-	})
-
-	ctx := context.Background()
-	_, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 2})
-
-	regionFailures, ok := failed["bad"]
-	if !ok {
-		t.Fatalf("expected bad in failed map, got %v", failed)
-	}
-	if len(regionFailures) != 2 {
-		t.Fatalf("expected two bad failures, got %v", regionFailures)
-	}
-
-	seen := make(map[string]bool, len(regionFailures))
-	for _, failure := range regionFailures {
-		seen[failure.Region] = true
-		if failure.Err == nil {
-			t.Fatal("expected region failure error to be set")
-		}
-	}
-
-	if !seen["r1"] || !seen["r2"] {
-		t.Fatalf("expected failures from both regions, got %v", regionFailures)
-	}
-}
-
-func TestCollectResources_MultipleRegions(t *testing.T) {
-	// Test that resources from multiple regions are merged correctly
-	collectors := map[string]resources.Collector{
-		"test": &fakeCollector{name: "test", shouldError: false},
-	}
-
-	l := logger.NewSlogLogger(&logger.SlogConfig{
-		Output: io.Discard,
-	})
-
-	ctx := context.Background()
-	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 2})
-
-	if len(failed) != 0 {
-		t.Fatalf("expected no failures, got %v", failed)
-	}
-
-	result, ok := results["test"]
-	if !ok {
-		t.Fatalf("expected test results, got %v", results)
-	}
-
-	// Should have resources from both regions
-	if len(result.resources) != 2 {
-		t.Fatalf("expected 2 resources (one per region), got %d", len(result.resources))
-	}
-
-	// Check that both regions are represented
-	regions := make(map[string]bool)
-	for _, res := range result.resources {
-		regions[res.Region] = true
-	}
-
-	if !regions["r1"] || !regions["r2"] {
-		t.Errorf("expected resources from both r1 and r2, got regions %v", regions)
-	}
-}
-
-func TestCollectResources_ConcurrencyLimit(t *testing.T) {
-	// Test that concurrency limit is respected (hard to test directly, but we can verify it doesn't panic)
-	collectors := map[string]resources.Collector{
-		"test1": &fakeCollector{name: "test1", shouldError: false},
-		"test2": &fakeCollector{name: "test2", shouldError: false},
-	}
-
-	l := logger.NewSlogLogger(&logger.SlogConfig{
-		Output: io.Discard,
-	})
-
-	ctx := context.Background()
-	results, failed := collectResources(ctx, l, collectors, []string{"r1", "r2"}, &CollectionOptions{MaxConcurrency: 1})
-
-	if len(failed) != 0 {
-		t.Fatalf("expected no failures, got %v", failed)
-	}
-
-	if len(results) != 2 {
-		t.Fatalf("expected 2 successful results, got %d", len(results))
+			if len(tt.wantResultKeys) != len(results) && tt.wantFailedKey == "" {
+				t.Fatalf("collectResources(...) results = %v, want keys %v", results, tt.wantResultKeys)
+			}
+			for _, key := range tt.wantResultKeys {
+				if _, ok := results[key]; !ok {
+					t.Fatalf("collectResources(...) results = %v, want key %q", results, key)
+				}
+			}
+			if tt.wantFailedKey != "" {
+				regionFailures, ok := failed[tt.wantFailedKey]
+				if !ok {
+					t.Fatalf("collectResources(...) failed = %v, want key %q", failed, tt.wantFailedKey)
+				}
+				if len(regionFailures) != tt.wantFailedCount {
+					t.Fatalf("collectResources(...) failed[%q] = %v, want count %d", tt.wantFailedKey, regionFailures, tt.wantFailedCount)
+				}
+				seen := make(map[string]bool, len(regionFailures))
+				for _, failure := range regionFailures {
+					seen[failure.Region] = true
+					if failure.Err == nil {
+						t.Fatalf("collectResources(...) failure.Err = nil, want error")
+					}
+				}
+				for _, region := range tt.regions {
+					if !seen[region] {
+						t.Fatalf("collectResources(...) failed regions = %v, want %q", regionFailures, region)
+					}
+				}
+			} else if len(failed) != 0 {
+				t.Fatalf("collectResources(...) failed = %v, want empty", failed)
+			}
+			if tt.wantResCount > 0 {
+				got := results[tt.wantResultKeys[0]]
+				if len(got.resources) != tt.wantResCount {
+					t.Fatalf("collectResources(...) resource count = %d, want %d", len(got.resources), tt.wantResCount)
+				}
+			}
+		})
 	}
 }
 
@@ -241,48 +266,106 @@ func TestCollectResources_RespectsContextCancelWhileWaitingForSemaphore(t *testi
 	}
 }
 
-func TestCreateRunContext_Timeout(t *testing.T) {
-	ctx, cancel := createRunContext(context.Background(), 20*time.Millisecond)
-	defer cancel()
+func TestCreateRunContext(t *testing.T) {
+	t.Parallel()
 
-	select {
-	case <-ctx.Done():
-	case <-time.After(1 * time.Second):
-		t.Fatal("context did not time out")
+	tests := []struct {
+		name      string
+		timeout   time.Duration
+		wantDone  bool
+		wantErr   error
+		waitAfter time.Duration
+	}{
+		{
+			name:      "positive timeout cancels with deadline exceeded",
+			timeout:   20 * time.Millisecond,
+			wantDone:  true,
+			wantErr:   context.DeadlineExceeded,
+			waitAfter: time.Second,
+		},
+		{
+			name:      "zero timeout does not expire",
+			timeout:   0,
+			wantDone:  false,
+			waitAfter: 20 * time.Millisecond,
+		},
 	}
 
-	if ctx.Err() != context.DeadlineExceeded {
-		t.Fatalf("expected DeadlineExceeded, got %v", ctx.Err())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := createRunContext(context.Background(), tt.timeout)
+			defer cancel()
+
+			select {
+			case <-ctx.Done():
+				if !tt.wantDone {
+					t.Fatalf("createRunContext(%v) context done unexpectedly: %v", tt.timeout, ctx.Err())
+				}
+			case <-time.After(tt.waitAfter):
+				if tt.wantDone {
+					t.Fatal("context did not time out")
+				}
+			}
+
+			if tt.wantErr != nil && ctx.Err() != tt.wantErr {
+				t.Fatalf("createRunContext(%v) error = %v, want %v", tt.timeout, ctx.Err(), tt.wantErr)
+			}
+		})
 	}
 }
 
 func TestConstants(t *testing.T) {
-	// Test that constants are defined and have expected values
-	if LogKeyCategory != "category" {
-		t.Errorf("Expected LogKeyCategory to be 'category', got %s", LogKeyCategory)
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{name: "log key category", got: LogKeyCategory, want: "category"},
+		{name: "log key error", got: LogKeyError, want: "error"},
+		{name: "log key file", got: LogKeyFile, want: "file"},
+		{name: "default dir perm", got: DefaultDirPerm, want: 0o750},
 	}
-	if LogKeyError != "error" {
-		t.Errorf("Expected LogKeyError to be 'error', got %s", LogKeyError)
-	}
-	if LogKeyFile != "file" {
-		t.Errorf("Expected LogKeyFile to be 'file', got %s", LogKeyFile)
-	}
-	if DefaultDirPerm != 0o750 {
-		t.Errorf("Expected DefaultDirPerm to be 0750, got %d", DefaultDirPerm)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.got != tt.want {
+				t.Fatalf("%s = %v, want %v", tt.name, tt.got, tt.want)
+			}
+		})
 	}
 }
 
 func TestCollectionError_Error(t *testing.T) {
-	ce := CollectionError{
-		Details: map[string][]CollectionFailure{
-			"category1": {{Err: fmt.Errorf("error1"), Region: "r1"}},
-			"category2": {{Err: fmt.Errorf("error2"), Region: "r2"}},
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  CollectionError
+		want string
+	}{
+		{
+			name: "reports generic collection failure",
+			err: CollectionError{
+				Details: map[string][]CollectionFailure{
+					"category1": {{Err: fmt.Errorf("error1"), Region: "r1"}},
+					"category2": {{Err: fmt.Errorf("error2"), Region: "r2"}},
+				},
+			},
+			want: "failed to collect one or more categories",
 		},
 	}
 
-	expected := "failed to collect one or more categories"
-	if ce.Error() != expected {
-		t.Errorf("CollectionError.Error() = %v, want %v", ce.Error(), expected)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tt.err.Error(); got != tt.want {
+				t.Fatalf("CollectionError.Error() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

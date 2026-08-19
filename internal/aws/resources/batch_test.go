@@ -13,107 +13,142 @@ import (
 )
 
 func TestNewBatchCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewBatchCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, 2)
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewBatchCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewBatchCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewBatchCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestBatchCollector_Basic(t *testing.T) {
-	collector := &BatchCollector{
-		clients: make(map[string]*batch.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "batch", wantSort: true},
 	}
-	assert.Equal(t, "batch", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &BatchCollector{
+				clients: make(map[string]*batch.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestBatchCollector_Collect_NoClient(t *testing.T) {
-	collector := &BatchCollector{
-		clients: make(map[string]*batch.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-west-2", wantContains: "no Batch client found for region"},
 	}
 
-	ctx := context.Background()
-	_, err := collector.Collect(ctx, "us-west-2")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no Batch client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &BatchCollector{
+				clients: make(map[string]*batch.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestBatchCollector_GetColumns(t *testing.T) {
-	collector := &BatchCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ARN",
-		"Priority", "Type", "JobRoleArn", "ExecutionRoleArn", "Image",
-		"vCPU", "Memory", "CpuArchitecture", "OperatingSystemFamily", "Timeout", "JSON", "Status",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "Batch",
-		SubCategory1: "Job Queue",
-		Name:         "test-queue",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
-		RawData: map[string]any{
-			"Priority":              "1",
-			"Type":                  "EC2",
-			"JobRoleArn":            "arn:aws:iam::123456789012:role/BatchJobRole",
-			"ExecutionRoleArn":      "arn:aws:iam::123456789012:role/BatchExecutionRole",
-			"Image":                 "busybox",
-			"vCPU":                  "1",
-			"Memory":                "512",
-			"CpuArchitecture":       "X86_64",
-			"OperatingSystemFamily": "LINUX",
-			"Timeout":               "3600",
-			"JSON":                  "{}",
-			"Status":                "ACTIVE",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "Batch",
+				SubCategory1: "Job Queue",
+				Name:         "test-queue",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
+				RawData: map[string]any{
+					"Priority":              "1",
+					"Type":                  "EC2",
+					"JobRoleArn":            "arn:aws:iam::123456789012:role/BatchJobRole",
+					"ExecutionRoleArn":      "arn:aws:iam::123456789012:role/BatchExecutionRole",
+					"Image":                 "busybox",
+					"vCPU":                  "1",
+					"Memory":                "512",
+					"CpuArchitecture":       "X86_64",
+					"OperatingSystemFamily": "LINUX",
+					"Timeout":               "3600",
+					"JSON":                  "{}",
+					"Status":                "ACTIVE",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ARN",
+				"Priority", "Type", "JobRoleArn", "ExecutionRoleArn", "Image",
+				"vCPU", "Memory", "CpuArchitecture", "OperatingSystemFamily", "Timeout", "JSON", "Status",
+			},
+			wantValues: []string{
+				"Batch", "Job Queue", "test-queue", "us-east-1", "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
+				"1", "EC2", "arn:aws:iam::123456789012:role/BatchJobRole", "arn:aws:iam::123456789012:role/BatchExecutionRole", "busybox",
+				"1", "512", "X86_64", "LINUX", "3600", "{}", "ACTIVE",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"Batch", "Job Queue", "test-queue", "us-east-1", "arn:aws:batch:us-east-1:123456789012:job-queue/test-queue",
-		"1", "EC2", "arn:aws:iam::123456789012:role/BatchJobRole", "arn:aws:iam::123456789012:role/BatchExecutionRole", "busybox",
-		"1", "512", "X86_64", "LINUX", "3600", "{}", "ACTIVE",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &BatchCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

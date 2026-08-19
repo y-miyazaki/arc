@@ -14,110 +14,149 @@ import (
 )
 
 func TestNewStepFunctionsCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewStepFunctionsCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clients, len(regions))
-	assert.Contains(t, collector.clients, "us-east-1")
-	assert.Contains(t, collector.clients, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewStepFunctionsCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewStepFunctionsCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clients)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewStepFunctionsCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestStepFunctionsCollector_Basic(t *testing.T) {
-	collector := &StepFunctionsCollector{
-		clients: make(map[string]*sfn.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "stepfunctions", wantSort: true},
 	}
-	assert.Equal(t, "stepfunctions", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &StepFunctionsCollector{
+				clients: make(map[string]*sfn.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestStepFunctionsCollector_Collect_NoClient(t *testing.T) {
-	collector := &StepFunctionsCollector{
-		clients: make(map[string]*sfn.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-west-2", wantContains: "no client found for region"},
 	}
 
-	_, err := collector.Collect(context.Background(), "us-west-2")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &StepFunctionsCollector{
+				clients: make(map[string]*sfn.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestStepFunctionsCollector_GetColumns(t *testing.T) {
-	collector := &StepFunctionsCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ARN", "Comment", "Type", "RoleARN",
-		"LoggingLevel", "LoggingIncludeExecutionData", "LogDestination", "TracingEnabled",
-		"EncryptionType", "KMSKeyID", "KMSDataKeyReusePeriodSeconds", "Definition",
-		"RevisionID", "Status", "CreatedDate",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	sampleResource := Resource{
-		Category:     "stepfunctions",
-		SubCategory1: "StateMachine",
-		Name:         "order-workflow",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:states:us-east-1:123456789012:stateMachine:order-workflow",
-		RawData: map[string]any{
-			"Type":                         "STANDARD",
-			"Status":                       "ACTIVE",
-			"RoleARN":                      "arn:aws:iam::123456789012:role/step-functions-role",
-			"LoggingLevel":                 "ALL",
-			"LoggingIncludeExecutionData":  "true",
-			"LogDestination":               "arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/order:*",
-			"TracingEnabled":               "true",
-			"EncryptionType":               "CUSTOMER_MANAGED_KMS_KEY",
-			"KMSKeyID":                     "arn:aws:kms:us-east-1:123456789012:key/test",
-			"KMSDataKeyReusePeriodSeconds": "300",
-			"Definition":                   `{"Comment":"Order processing workflow"}`,
-			"RevisionID":                   "revision-1",
-			"CreatedDate":                  "2026-03-17T00:00:00Z",
-			"Comment":                      "Order processing workflow",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "stepfunctions",
+				SubCategory1: "StateMachine",
+				Name:         "order-workflow",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:states:us-east-1:123456789012:stateMachine:order-workflow",
+				RawData: map[string]any{
+					"Type":                         "STANDARD",
+					"Status":                       "ACTIVE",
+					"RoleARN":                      "arn:aws:iam::123456789012:role/step-functions-role",
+					"LoggingLevel":                 "ALL",
+					"LoggingIncludeExecutionData":  "true",
+					"LogDestination":               "arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/order:*",
+					"TracingEnabled":               "true",
+					"EncryptionType":               "CUSTOMER_MANAGED_KMS_KEY",
+					"KMSKeyID":                     "arn:aws:kms:us-east-1:123456789012:key/test",
+					"KMSDataKeyReusePeriodSeconds": "300",
+					"Definition":                   `{"Comment":"Order processing workflow"}`,
+					"RevisionID":                   "revision-1",
+					"CreatedDate":                  "2026-03-17T00:00:00Z",
+					"Comment":                      "Order processing workflow",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ARN", "Comment", "Type", "RoleARN",
+				"LoggingLevel", "LoggingIncludeExecutionData", "LogDestination", "TracingEnabled",
+				"EncryptionType", "KMSKeyID", "KMSDataKeyReusePeriodSeconds", "Definition",
+				"RevisionID", "Status", "CreatedDate",
+			},
+			wantValues: []string{
+				"stepfunctions", "StateMachine", "order-workflow", "us-east-1",
+				"arn:aws:states:us-east-1:123456789012:stateMachine:order-workflow", "Order processing workflow", "STANDARD",
+				"arn:aws:iam::123456789012:role/step-functions-role", "ALL", "true",
+				"arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/order:*", "true",
+				"CUSTOMER_MANAGED_KMS_KEY", "arn:aws:kms:us-east-1:123456789012:key/test", "300",
+				`{"Comment":"Order processing workflow"}`, "revision-1", "ACTIVE", "2026-03-17T00:00:00Z",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"stepfunctions", "StateMachine", "order-workflow", "us-east-1",
-		"arn:aws:states:us-east-1:123456789012:stateMachine:order-workflow", "Order processing workflow", "STANDARD",
-		"arn:aws:iam::123456789012:role/step-functions-role", "ALL", "true",
-		"arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/order:*", "true",
-		"CUSTOMER_MANAGED_KMS_KEY", "arn:aws:kms:us-east-1:123456789012:key/test", "300",
-		`{"Comment":"Order processing workflow"}`, "revision-1", "ACTIVE", "2026-03-17T00:00:00Z",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &StepFunctionsCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }
 
@@ -165,13 +204,14 @@ func TestGetDefinitionComment(t *testing.T) {
 }
 
 func TestStepFunctionsConfigHelpers(t *testing.T) {
+	t.Parallel()
+
 	period := int32(300)
 	encryption := &sfntypes.EncryptionConfiguration{
 		KmsKeyId:                     aws.String("key-arn"),
 		KmsDataKeyReusePeriodSeconds: &period,
 		Type:                         sfntypes.EncryptionTypeCustomerManagedKmsKey,
 	}
-
 	logConfig := &sfntypes.LoggingConfiguration{
 		Destinations: []sfntypes.LogDestination{{
 			CloudWatchLogsLogGroup: &sfntypes.CloudWatchLogsLogGroup{LogGroupArn: aws.String("log-arn")},
@@ -179,30 +219,36 @@ func TestStepFunctionsConfigHelpers(t *testing.T) {
 		IncludeExecutionData: true,
 		Level:                sfntypes.LogLevelAll,
 	}
-
 	tracing := &sfntypes.TracingConfiguration{Enabled: true}
 
-	assert.Equal(t, "", getEncryptionKeyID(nil))
-	assert.Equal(t, "key-arn", getEncryptionKeyID(encryption))
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{name: "encryption key id nil", got: getEncryptionKeyID(nil), want: ""},
+		{name: "encryption key id set", got: getEncryptionKeyID(encryption), want: "key-arn"},
+		{name: "encryption reuse period nil", got: getEncryptionKeyReusePeriod(nil), want: ""},
+		{name: "encryption reuse period empty", got: getEncryptionKeyReusePeriod(&sfntypes.EncryptionConfiguration{}), want: ""},
+		{name: "encryption reuse period set", got: getEncryptionKeyReusePeriod(encryption), want: int32(300)},
+		{name: "encryption type nil", got: getEncryptionType(nil), want: ""},
+		{name: "encryption type set", got: getEncryptionType(encryption), want: string(sfntypes.EncryptionTypeCustomerManagedKmsKey)},
+		{name: "log destination nil", got: getLogDestination(nil), want: ""},
+		{name: "log destination empty", got: getLogDestination(&sfntypes.LoggingConfiguration{}), want: ""},
+		{name: "log destination missing group", got: getLogDestination(&sfntypes.LoggingConfiguration{Destinations: []sfntypes.LogDestination{{}}}), want: ""},
+		{name: "log destination set", got: getLogDestination(logConfig), want: "log-arn"},
+		{name: "logging include execution data nil", got: getLoggingIncludeExecutionData(nil), want: ""},
+		{name: "logging include execution data set", got: getLoggingIncludeExecutionData(logConfig), want: true},
+		{name: "logging level nil", got: getLoggingLevel(nil), want: ""},
+		{name: "logging level set", got: getLoggingLevel(logConfig), want: string(sfntypes.LogLevelAll)},
+		{name: "tracing enabled nil", got: getTracingEnabled(nil), want: ""},
+		{name: "tracing enabled set", got: getTracingEnabled(tracing), want: true},
+	}
 
-	assert.Equal(t, "", getEncryptionKeyReusePeriod(nil))
-	assert.Equal(t, "", getEncryptionKeyReusePeriod(&sfntypes.EncryptionConfiguration{}))
-	assert.Equal(t, int32(300), getEncryptionKeyReusePeriod(encryption))
-
-	assert.Equal(t, "", getEncryptionType(nil))
-	assert.Equal(t, string(sfntypes.EncryptionTypeCustomerManagedKmsKey), getEncryptionType(encryption))
-
-	assert.Equal(t, "", getLogDestination(nil))
-	assert.Equal(t, "", getLogDestination(&sfntypes.LoggingConfiguration{}))
-	assert.Equal(t, "", getLogDestination(&sfntypes.LoggingConfiguration{Destinations: []sfntypes.LogDestination{{}}}))
-	assert.Equal(t, "log-arn", getLogDestination(logConfig))
-
-	assert.Equal(t, "", getLoggingIncludeExecutionData(nil))
-	assert.Equal(t, true, getLoggingIncludeExecutionData(logConfig))
-
-	assert.Equal(t, "", getLoggingLevel(nil))
-	assert.Equal(t, string(sfntypes.LogLevelAll), getLoggingLevel(logConfig))
-
-	assert.Equal(t, "", getTracingEnabled(nil))
-	assert.Equal(t, true, getTracingEnabled(tracing))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, tt.got)
+		})
+	}
 }

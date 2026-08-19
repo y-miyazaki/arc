@@ -14,108 +14,143 @@ import (
 )
 
 func TestNewAPIGatewayCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewAPIGatewayCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Len(t, collector.clientsV1, 2)
-	assert.Len(t, collector.clientsV2, 2)
-	assert.Contains(t, collector.clientsV1, "us-east-1")
-	assert.Contains(t, collector.clientsV1, "eu-west-1")
-	assert.Contains(t, collector.clientsV2, "us-east-1")
-	assert.Contains(t, collector.clientsV2, "eu-west-1")
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewAPIGatewayCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewAPIGatewayCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.Empty(t, collector.clientsV1)
-	assert.Empty(t, collector.clientsV2)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewAPIGatewayCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.clientsV1, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clientsV1, region)
+			}
+			assert.Len(t, collector.clientsV2, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.clientsV2, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestAPIGatewayCollector_Basic(t *testing.T) {
-	collector := &APIGatewayCollector{
-		clientsV1: make(map[string]*apigateway.Client),
-		clientsV2: make(map[string]*apigatewayv2.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "apigateway", wantSort: false},
 	}
-	assert.Equal(t, "apigateway", collector.Name())
-	assert.False(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &APIGatewayCollector{
+				clientsV1: make(map[string]*apigateway.Client),
+				clientsV2: make(map[string]*apigatewayv2.Client),
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestAPIGatewayCollector_Collect_NoClient(t *testing.T) {
-	collector := &APIGatewayCollector{
-		clientsV1: make(map[string]*apigateway.Client),
-		clientsV2: make(map[string]*apigatewayv2.Client),
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		region       string
+		wantContains string
+	}{
+		{name: "missing client returns error", region: "us-west-2", wantContains: "no API Gateway v1 client found for region"},
 	}
 
-	ctx := context.Background()
-	_, err := collector.Collect(ctx, "us-west-2")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no API Gateway v1 client found for region")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &APIGatewayCollector{
+				clientsV1: make(map[string]*apigateway.Client),
+				clientsV2: make(map[string]*apigatewayv2.Client),
+			}
+			_, err := collector.Collect(context.Background(), tt.region)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, tt.wantContains)
+		})
+	}
 }
 
 func TestAPIGatewayCollector_GetColumns(t *testing.T) {
-	collector := &APIGatewayCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "SubCategory2", "Name", "Region",
-		"Description", "ID", "ProtocolType", "WAF", "AuthorizerType",
-		"AuthorizerProviderARN", "CreatedDate",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "API Gateway",
-		SubCategory1: "REST API",
-		SubCategory2: "",
-		Name:         "test-api",
-		Region:       "us-east-1",
-		RawData: map[string]any{
-			"Description":           "Test API",
-			"ID":                    "test-api-id",
-			"ProtocolType":          "REST",
-			"WAF":                   "test-waf",
-			"AuthorizerType":        "JWT",
-			"AuthorizerProviderARN": "arn:aws:cognito:us-east-1:123456789012:userpool/us-east-1_abc123",
-			"CreatedDate":           "2023-09-25T01:07:55Z",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "API Gateway",
+				SubCategory1: "REST API",
+				SubCategory2: "",
+				Name:         "test-api",
+				Region:       "us-east-1",
+				RawData: map[string]any{
+					"Description":           "Test API",
+					"ID":                    "test-api-id",
+					"ProtocolType":          "REST",
+					"WAF":                   "test-waf",
+					"AuthorizerType":        "JWT",
+					"AuthorizerProviderARN": "arn:aws:cognito:us-east-1:123456789012:userpool/us-east-1_abc123",
+					"CreatedDate":           "2023-09-25T01:07:55Z",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "SubCategory2", "Name", "Region",
+				"Description", "ID", "ProtocolType", "WAF", "AuthorizerType",
+				"AuthorizerProviderARN", "CreatedDate",
+			},
+			wantValues: []string{
+				"API Gateway", "REST API", "", "test-api", "us-east-1",
+				"Test API", "test-api-id", "REST", "test-waf", "JWT",
+				"arn:aws:cognito:us-east-1:123456789012:userpool/us-east-1_abc123", "2023-09-25T01:07:55Z",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"API Gateway", "REST API", "", "test-api", "us-east-1",
-		"Test API", "test-api-id", "REST", "test-waf", "JWT",
-		"arn:aws:cognito:us-east-1:123456789012:userpool/us-east-1_abc123", "2023-09-25T01:07:55Z",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &APIGatewayCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }

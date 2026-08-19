@@ -23,9 +23,10 @@ ARC is a command-line tool for collecting AWS resource information across multip
 ARC generates an interactive HTML viewer that allows you to browse collected resources with ease:
 
 ![HTML Viewer Overview](docs/images/html-viewer-overview.png)
-*Interactive HTML viewer showing AWS resources organized by service category*
+_Interactive HTML viewer showing AWS resources organized by service category_
 
 The HTML viewer features:
+
 - 📋 **Category Panels** - Collapsible panels for each AWS service
 - 🔍 **Search & Filter** - Filter categories by name
 - 📊 **DataTables Integration** - Sort, search, and paginate within each table
@@ -59,6 +60,7 @@ go install github.com/y-miyazaki/arc/cmd/arc@latest
 You can download a prebuilt release tarball from the project's Releases page and install it quickly. The examples below use the v1.0.12 release; replace `v1.0.12` with the version you need.
 
 Available platforms:
+
 - Linux (amd64, arm64)
 - macOS (amd64, arm64)
 - Windows (amd64)
@@ -76,6 +78,7 @@ VERSION=v1.0.12 && curl -L https://github.com/y-miyazaki/arc/releases/download/$
 ```
 
 Notes:
+
 - The release typically ships a `arc-${VERSION}-checksums.txt` file; prefer verifying the checksum before installing.
 - For Windows, download the `.zip` asset from the Releases page and extract the `arc.exe` binary.
 - We recommend using the release tarballs for production/distribution. `go install` is convenient for development but will produce a full-featured build from source.
@@ -248,6 +251,7 @@ output/
 ### CSV Format
 
 Each CSV file contains:
+
 - **Category** - Service category (e.g., ec2, s3_bucket)
 - **SubCategory** - Resource type (e.g., Instance, Bucket)
 - **SubSubCategory** - Additional classification
@@ -258,6 +262,7 @@ Each CSV file contains:
 ### HTML Viewer
 
 The interactive HTML viewer provides:
+
 - 📋 Search and filter across all resources
 - 🔄 Sort by any column
 - 📊 Per-category collapsible panels
@@ -289,72 +294,7 @@ Example IAM policy:
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "acm:List*",
-        "acm:Describe*",
-        "account:GetAccountInformation",
-        "apigateway:GET",
-        "apigatewayv2:Get*",
-        "cloudformation:List*",
-        "cloudformation:Describe*",
-        "cloudfront:List*",
-        "cloudfront:Get*",
-        "cloudwatch:Describe*",
-        "logs:Describe*",
-        "logs:List*",
-        "cognito-identity:List*",
-        "cognito-identity:Describe*",
-        "cognito-idp:List*",
-        "cognito-idp:Describe*",
-        "dynamodb:List*",
-        "dynamodb:Describe*",
-        "ec2:Describe*",
-        "ecr:Describe*",
-        "ecs:List*",
-        "ecs:Describe*",
-        "efs:Describe*",
-        "elasticache:Describe*",
-        "elasticloadbalancing:Describe*",
-        "events:List*",
-        "events:Describe*",
-        "glue:Get*",
-        "glue:List*",
-        "iam:List*",
-        "iam:Get*",
-        "kinesis:Describe*",
-        "kinesis:List*",
-        "kms:List*",
-        "kms:Describe*",
-        "lambda:List*",
-        "lambda:Get*",
-        "quicksight:Describe*",
-        "quicksight:List*",
-        "quicksight:Search*",
-        "rds:Describe*",
-        "redshift:Describe*",
-        "route53:Get*",
-        "route53:List*",
-        "s3:List*",
-        "s3:Get*",
-        "secretsmanager:List*",
-        "secretsmanager:Describe*",
-        "ses:List*",
-        "ses:Get*",
-        "ses:Describe*",
-        "sesv2:List*",
-        "sesv2:Get*",
-        "sns:List*",
-        "sns:Get*",
-        "sqs:List*",
-        "sqs:Get*",
-        "states:List*",
-        "states:Describe*",
-        "sts:GetCallerIdentity",
-        "transfer:Describe*",
-        "transfer:List*",
-        "wafv2:List*",
-        "wafv2:Get*"
-      ],
+      "Action": ["acm:List*", "acm:Describe*", "account:GetAccountInformation", "apigateway:GET", "apigatewayv2:Get*", "cloudformation:List*", "cloudformation:Describe*", "cloudfront:List*", "cloudfront:Get*", "cloudwatch:Describe*", "logs:Describe*", "logs:List*", "cognito-identity:List*", "cognito-identity:Describe*", "cognito-idp:List*", "cognito-idp:Describe*", "dynamodb:List*", "dynamodb:Describe*", "ec2:Describe*", "ecr:Describe*", "ecs:List*", "ecs:Describe*", "efs:Describe*", "elasticache:Describe*", "elasticloadbalancing:Describe*", "events:List*", "events:Describe*", "glue:Get*", "glue:List*", "iam:List*", "iam:Get*", "kinesis:Describe*", "kinesis:List*", "kms:List*", "kms:Describe*", "lambda:List*", "lambda:Get*", "quicksight:Describe*", "quicksight:List*", "quicksight:Search*", "rds:Describe*", "redshift:Describe*", "route53:Get*", "route53:List*", "s3:List*", "s3:Get*", "secretsmanager:List*", "secretsmanager:Describe*", "ses:List*", "ses:Get*", "ses:Describe*", "sesv2:List*", "sesv2:Get*", "sns:List*", "sns:Get*", "sqs:List*", "sqs:Get*", "states:List*", "states:Describe*", "sts:GetCallerIdentity", "transfer:Describe*", "transfer:List*", "wafv2:List*", "wafv2:Get*"],
       "Resource": "*"
     }
   ]
@@ -401,7 +341,7 @@ arc --profile development -D ./output/development
 name: AWS Resource Inventory
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday
+    - cron: "0 0 * * 0" # Weekly on Sunday
 
 jobs:
   collect:

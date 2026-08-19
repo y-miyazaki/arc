@@ -13,95 +13,118 @@ import (
 )
 
 func TestNewEventBridgeCollector(t *testing.T) {
-	cfg := &aws.Config{
-		Region: "us-east-1",
-	}
-	regions := []string{"us-east-1", "eu-west-1"}
+	t.Parallel()
 
-	// Create a NameResolver for testing
-	nameResolver, err := helpers.NewNameResolver(cfg, regions)
-	require.NoError(t, err)
-
-	collector, err := NewEventBridgeCollector(cfg, regions, nameResolver)
-
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.ebClients)
-	assert.Len(t, collector.ebClients, len(regions))
-	assert.NotNil(t, collector.schClients)
-	assert.Len(t, collector.schClients, len(regions))
-	assert.NotNil(t, collector.nameResolver)
-}
-
-func TestNewEventBridgeCollector_EmptyRegions(t *testing.T) {
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
 
-	// Create a NameResolver even with empty regions
-	nameResolver, err := helpers.NewNameResolver(cfg, []string{})
-	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		regions []string
+		wantLen int
+	}{
+		{name: "creates clients for each region", regions: []string{"us-east-1", "eu-west-1"}, wantLen: 2},
+		{name: "empty regions", regions: []string{}, wantLen: 0},
+	}
 
-	collector, err := NewEventBridgeCollector(cfg, []string{}, nameResolver)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.NotNil(t, collector)
-	assert.NotNil(t, collector.ebClients)
-	assert.Len(t, collector.ebClients, 0)
-	assert.NotNil(t, collector.schClients)
-	assert.Len(t, collector.schClients, 0)
-	assert.NotNil(t, collector.nameResolver)
+			nameResolver, err := helpers.NewNameResolver(cfg, tt.regions)
+			require.NoError(t, err)
+
+			collector, err := NewEventBridgeCollector(cfg, tt.regions, nameResolver)
+			require.NoError(t, err)
+			require.NotNil(t, collector)
+			assert.Len(t, collector.ebClients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.ebClients, region)
+			}
+			assert.Len(t, collector.schClients, tt.wantLen)
+			for _, region := range tt.regions {
+				assert.Contains(t, collector.schClients, region)
+			}
+			assert.NotNil(t, collector.nameResolver)
+		})
+	}
 }
 
 func TestEventBridgeCollector_Basic(t *testing.T) {
-	collector := &EventBridgeCollector{
-		ebClients:  map[string]*eventbridge.Client{},
-		schClients: map[string]*scheduler.Client{},
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		wantName string
+		wantSort bool
+	}{
+		{name: "reports name and sort", wantName: "eventbridge", wantSort: true},
 	}
-	assert.Equal(t, "eventbridge", collector.Name())
-	assert.True(t, collector.ShouldSort())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &EventBridgeCollector{
+				ebClients:  map[string]*eventbridge.Client{},
+				schClients: map[string]*scheduler.Client{},
+			}
+			assert.Equal(t, tt.wantName, collector.Name())
+			assert.Equal(t, tt.wantSort, collector.ShouldSort())
+		})
+	}
 }
 
 func TestEventBridgeCollector_GetColumns(t *testing.T) {
-	collector := &EventBridgeCollector{}
-	columns := collector.GetColumns()
+	t.Parallel()
 
-	expectedHeaders := []string{
-		"Category", "SubCategory1", "Name", "Region", "ARN",
-		"Description", "RoleARN", "ScheduleExpression", "Target", "RetryMaxAttempts",
-		"RetryMaxEventAgeSeconds", "State",
-	}
-
-	assert.Len(t, columns, len(expectedHeaders))
-	for i, column := range columns {
-		assert.Equal(t, expectedHeaders[i], column.Header)
-	}
-
-	// Test Value functions with sample resource
-	sampleResource := Resource{
-		Category:     "EventBridge",
-		SubCategory1: "Rule",
-		Name:         "test-rule",
-		Region:       "us-east-1",
-		ARN:          "arn:aws:events:us-east-1:123456789012:rule/test-rule",
-		RawData: map[string]any{
-			"Description":             "Test EventBridge rule",
-			"RoleARN":                 "arn:aws:iam::123456789012:role/EventBridgeRole",
-			"ScheduleExpression":      "rate(1 hour)",
-			"Target":                  "arn:aws:lambda:us-east-1:123456789012:function:MyFunction",
-			"RetryMaxAttempts":        "3",
-			"RetryMaxEventAgeSeconds": "3600",
-			"State":                   "ENABLED",
+	tests := []struct {
+		name        string
+		resource    Resource
+		wantHeaders []string
+		wantValues  []string
+	}{
+		{
+			name: "headers and sample values",
+			resource: Resource{
+				Category:     "EventBridge",
+				SubCategory1: "Rule",
+				Name:         "test-rule",
+				Region:       "us-east-1",
+				ARN:          "arn:aws:events:us-east-1:123456789012:rule/test-rule",
+				RawData: map[string]any{
+					"Description":             "Test EventBridge rule",
+					"RoleARN":                 "arn:aws:iam::123456789012:role/EventBridgeRole",
+					"ScheduleExpression":      "rate(1 hour)",
+					"Target":                  "arn:aws:lambda:us-east-1:123456789012:function:MyFunction",
+					"RetryMaxAttempts":        "3",
+					"RetryMaxEventAgeSeconds": "3600",
+					"State":                   "ENABLED",
+				},
+			},
+			wantHeaders: []string{
+				"Category", "SubCategory1", "Name", "Region", "ARN",
+				"Description", "RoleARN", "ScheduleExpression", "Target", "RetryMaxAttempts",
+				"RetryMaxEventAgeSeconds", "State",
+			},
+			wantValues: []string{
+				"EventBridge", "Rule", "test-rule", "us-east-1", "arn:aws:events:us-east-1:123456789012:rule/test-rule",
+				"Test EventBridge rule", "arn:aws:iam::123456789012:role/EventBridgeRole", "rate(1 hour)", "arn:aws:lambda:us-east-1:123456789012:function:MyFunction", "3",
+				"3600", "ENABLED",
+			},
 		},
 	}
 
-	expectedValues := []string{
-		"EventBridge", "Rule", "test-rule", "us-east-1", "arn:aws:events:us-east-1:123456789012:rule/test-rule",
-		"Test EventBridge rule", "arn:aws:iam::123456789012:role/EventBridgeRole", "rate(1 hour)", "arn:aws:lambda:us-east-1:123456789012:function:MyFunction", "3",
-		"3600", "ENABLED",
-	}
-
-	for i, column := range columns {
-		assert.Equal(t, expectedValues[i], column.Value(sampleResource), "Column %d (%s) value mismatch", i, column.Header)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			collector := &EventBridgeCollector{}
+			columns := collector.GetColumns()
+			require.Len(t, columns, len(tt.wantHeaders))
+			for i, column := range columns {
+				assert.Equal(t, tt.wantHeaders[i], column.Header)
+				assert.Equal(t, tt.wantValues[i], column.Value(tt.resource), "Column %d (%s) value mismatch", i, column.Header)
+			}
+		})
 	}
 }
