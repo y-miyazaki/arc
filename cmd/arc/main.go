@@ -49,7 +49,7 @@ const (
 var (
 	ErrInvalidOutputPath = errors.New("invalid output file path")
 
-	version = "v1.0.12"
+	version = "v1.0.13"
 )
 
 // CollectionError wraps per-category errors so callers can inspect details while
@@ -187,8 +187,15 @@ func main() {
 }
 
 func (ce CollectionError) Error() string {
-	_ = len(ce.Details)
-	return "failed to collect one or more categories"
+	if len(ce.Details) == 0 {
+		return "failed to collect one or more categories"
+	}
+	keys := make([]string, 0, len(ce.Details))
+	for k := range ce.Details {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return "failed to collect one or more categories: " + strings.Join(keys, ", ")
 }
 
 // collectResources runs collectors across regions and returns a map of successful
@@ -332,6 +339,48 @@ func parseCommaList(s string) []string {
 	return out
 }
 
+func selectCollectors(all map[string]resources.Collector, categoryStr string) (map[string]resources.Collector, []string) {
+	if categoryStr == "" {
+		return all, nil
+	}
+	selected := make(map[string]resources.Collector)
+	var unknown []string
+	for _, cat := range parseCommaList(categoryStr) {
+		if collector, exists := all[cat]; exists {
+			selected[cat] = collector
+			continue
+		}
+		unknown = append(unknown, cat)
+	}
+	return selected, unknown
+}
+
+func resolveResourcesDir(outputDir, accountID string) (string, error) {
+	if strings.TrimSpace(outputDir) == "" || strings.ContainsRune(outputDir, 0) {
+		return "", fmt.Errorf("%w: output directory", ErrInvalidOutputPath)
+	}
+	if accountID == "" || strings.ContainsRune(accountID, 0) || strings.Contains(accountID, "..") || strings.ContainsAny(accountID, `/\`) {
+		return "", fmt.Errorf("%w: account id", ErrInvalidOutputPath)
+	}
+	return filepath.Join(filepath.Clean(outputDir), accountID, "resources"), nil
+}
+
+func writeCategoryCSVFile(path string, list []resources.Resource, cols []resources.Column) error {
+	catFile, err := os.Create(path) //nolint:gosec // G304 - path is controlled and sanitized
+	if err != nil {
+		return fmt.Errorf("failed to create category csv: %w", err)
+	}
+	writeErr := exporter.WriteCSV(catFile, list, cols)
+	closeErr := catFile.Close()
+	if writeErr != nil {
+		return fmt.Errorf("failed to write category csv: %w", writeErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("failed to close category csv: %w", closeErr)
+	}
+	return nil
+}
+
 // runCollection executes the main resource collection logic
 func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOptions) error {
 	region := opts.Region
@@ -371,7 +420,10 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 	l.Info("Account ID", "accountID", accountID)
 
 	// Create output directory structure: {outputDir}/{accountID}/resources
-	resourcesDir := filepath.Join(outputDir, accountID, "resources")
+	resourcesDir, pathErr := resolveResourcesDir(outputDir, accountID)
+	if pathErr != nil {
+		return fmt.Errorf("invalid output path: %w", pathErr)
+	}
 	if mkdirErr := os.MkdirAll(resourcesDir, DefaultDirPerm); mkdirErr != nil {
 		return fmt.Errorf("failed to create output directory: %w", mkdirErr)
 	}
@@ -387,19 +439,9 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 
 	// Iterate over registered collectors
 	// Filter by categories if specified
-	collectors := resources.GetCollectors()
-	if categoryStr != "" {
-		categoryList := strings.Split(categoryStr, ",")
-		filteredCollectors := make(map[string]resources.Collector)
-		for _, cat := range categoryList {
-			cat = strings.TrimSpace(cat)
-			if collector, exists := collectors[cat]; exists {
-				filteredCollectors[cat] = collector
-			} else {
-				l.Warn("Unknown category specified", "category", cat)
-			}
-		}
-		collectors = filteredCollectors
+	collectors, unknownCategories := selectCollectors(resources.GetCollectors(), categoryStr)
+	for _, cat := range unknownCategories {
+		l.Warn("Unknown category specified", "category", cat)
 	}
 
 	// Collect resources from all collectors and regions
@@ -459,16 +501,12 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 		}
 		cols := collectors[category].GetColumns()
 		categoryPath := filepath.Join(resourcesDir, category+".csv")
-		catFile, createCatErr := os.Create(categoryPath) // nolint:gosec // G304 - path is controlled and sanitized
-		if createCatErr != nil {
-			l.Error("Failed to create category csv", LogKeyError, createCatErr, LogKeyCategory, category)
-			continue
-		}
-		if werr := exporter.WriteCSV(catFile, result.resources, cols); werr != nil {
+		if werr := writeCategoryCSVFile(categoryPath, result.resources, cols); werr != nil {
 			l.Error("Failed to write category csv", LogKeyError, werr, LogKeyCategory, category, LogKeyFile, categoryPath)
-		}
-		if cerr := catFile.Close(); cerr != nil {
-			l.Error("Failed to close category csv", LogKeyError, cerr, LogKeyCategory, category, LogKeyFile, categoryPath)
+			failedCategories[category] = append(failedCategories[category], CollectionFailure{
+				Err:    werr,
+				Region: "output",
+			})
 		}
 	}
 
@@ -515,7 +553,11 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 		return fmt.Errorf("failed to flush all.csv: %w", flushErr)
 	}
 
-	l.Info("Collection completed successfully", "outputDir", resourcesDir)
+	if len(failedCategories) == 0 {
+		l.Info("Collection completed successfully", "outputDir", resourcesDir)
+	} else {
+		l.Warn("Collection completed with category failures", "outputDir", resourcesDir, "failedCategories", len(failedCategories))
+	}
 	if html {
 		accountDisplay := accountID
 		accountClient := account.NewFromConfig(cfg)
@@ -530,7 +572,7 @@ func runCollection(ctx context.Context, l *logger.SlogLogger, opts *CollectionOp
 		}
 
 		l.Info("Generating HTML index...")
-		if htmlErr := exporter.GenerateHTML(outputDir, accountID, accountDisplay, "all.csv", categories); htmlErr != nil {
+		if htmlErr := exporter.GenerateHTML(ctx, outputDir, accountID, accountDisplay, "all.csv", categories); htmlErr != nil {
 			return fmt.Errorf("failed to generate HTML: %w", htmlErr)
 		}
 		l.Info("HTML index generated successfully", "indexPath", filepath.Join(outputDir, accountID, "index.html"))

@@ -3,9 +3,12 @@ package exporter
 
 import (
 	"archive/zip"
+	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"html"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,8 +31,21 @@ type FileManifestEntry struct {
 	DisplayName string `json:"display_name"` //nolint:tagliatelle // matches JavaScript naming convention
 }
 
+func closeAndJoin(err error, c io.Closer, msg string) error {
+	if c == nil {
+		return err
+	}
+	if cerr := c.Close(); cerr != nil {
+		return errors.Join(err, fmt.Errorf("%s: %w", msg, cerr))
+	}
+	return err
+}
+
 // GenerateHTML generates HTML index and manifest files for CSV outputs.
-func GenerateHTML(outputDir, accountID, accountDisplay, outputFile string, categories []string) error {
+func GenerateHTML(ctx context.Context, outputDir, accountID, accountDisplay, outputFile string, categories []string) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("context canceled: %w", err)
+	}
 	// Generate files.json manifest
 	manifestPath := filepath.Join(outputDir, accountID, "files.json")
 	if err := generateManifest(manifestPath, outputDir, accountID, categories); err != nil {
@@ -39,13 +55,13 @@ func GenerateHTML(outputDir, accountID, accountDisplay, outputFile string, categ
 	// Create ZIP file containing all CSV resources
 	resourcesDir := filepath.Join(outputDir, accountID, "resources")
 	zipPath := filepath.Join(outputDir, accountID, "resources.zip")
-	if err := createResourcesZip(zipPath, resourcesDir); err != nil {
+	if err := createResourcesZip(ctx, zipPath, resourcesDir); err != nil {
 		return fmt.Errorf("failed to create resources.zip: %w", err)
 	}
 
 	// Generate index.html
 	indexPath := filepath.Join(outputDir, accountID, "index.html")
-	if err := generateIndexHTML(indexPath, accountID, accountDisplay, outputFile); err != nil {
+	if err := generateIndexHTML(ctx, indexPath, accountID, accountDisplay, outputFile); err != nil {
 		return fmt.Errorf("failed to generate index.html: %w", err)
 	}
 
@@ -53,7 +69,7 @@ func GenerateHTML(outputDir, accountID, accountDisplay, outputFile string, categ
 }
 
 // generateManifest creates files.json with the list of CSV files
-func generateManifest(manifestPath, outputDir, accountID string, categories []string) error {
+func generateManifest(manifestPath, outputDir, accountID string, categories []string) (err error) {
 	var entries []FileManifestEntry
 
 	resourcesDir := filepath.Join(outputDir, accountID, "resources")
@@ -71,15 +87,13 @@ func generateManifest(manifestPath, outputDir, accountID string, categories []st
 	}
 
 	// Write manifest file
-	f, err := os.Create(manifestPath) //nolint:gosec // G304: Path is controlled and sanitized
+	var f *os.File
+	f, err = os.Create(manifestPath) //nolint:gosec // G304: Path is controlled and sanitized
 	if err != nil {
 		return fmt.Errorf("failed to create manifest file: %w", err)
 	}
 	defer func() {
-		if cerr := f.Close(); cerr != nil {
-			// Log error but don't override return error
-			_, _ = fmt.Fprintf(os.Stderr, "failed to close manifest file: %v\n", cerr)
-		}
+		err = closeAndJoin(err, f, "failed to close manifest file")
 	}()
 
 	encoder := json.NewEncoder(f)
@@ -92,50 +106,50 @@ func generateManifest(manifestPath, outputDir, accountID string, categories []st
 }
 
 // createResourcesZip creates a ZIP archive of all CSV files in the resources directory
-func createResourcesZip(zipPath, resourcesDir string) error {
+func createResourcesZip(ctx context.Context, zipPath, resourcesDir string) (err error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return fmt.Errorf("context canceled: %w", ctxErr)
+	}
 	// Check if resources directory exists
 	if _, statErr := os.Stat(resourcesDir); os.IsNotExist(statErr) {
 		// If resources directory doesn't exist, create an empty ZIP
-		zipFile, err := os.Create(zipPath) //nolint:gosec // G304: Path is controlled and sanitized
+		var zipFile *os.File
+		zipFile, err = os.Create(zipPath) //nolint:gosec // G304: Path is controlled and sanitized
 		if err != nil {
 			return fmt.Errorf("failed to create ZIP file: %w", err)
 		}
 		defer func() {
-			if cerr := zipFile.Close(); cerr != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "failed to close ZIP file: %v\n", cerr)
-			}
+			err = closeAndJoin(err, zipFile, "failed to close ZIP file")
 		}()
 		zipWriter := zip.NewWriter(zipFile)
 		defer func() {
-			if cerr := zipWriter.Close(); cerr != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "failed to close ZIP writer: %v\n", cerr)
-			}
+			err = closeAndJoin(err, zipWriter, "failed to close ZIP writer")
 		}()
 		return nil
 	}
 
 	// Create ZIP file
-	zipFile, err := os.Create(zipPath) //nolint:gosec // G304: Path is controlled and sanitized
+	var zipFile *os.File
+	zipFile, err = os.Create(zipPath) //nolint:gosec // G304: Path is controlled and sanitized
 	if err != nil {
 		return fmt.Errorf("failed to create ZIP file: %w", err)
 	}
 	defer func() {
-		if cerr := zipFile.Close(); cerr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed to close ZIP file: %v\n", cerr)
-		}
+		err = closeAndJoin(err, zipFile, "failed to close ZIP file")
 	}()
 
 	zipWriter := zip.NewWriter(zipFile)
 	defer func() {
-		if cerr := zipWriter.Close(); cerr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed to close ZIP writer: %v\n", cerr)
-		}
+		err = closeAndJoin(err, zipWriter, "failed to close ZIP writer")
 	}()
 
 	// Walk through resources directory and add CSV files to ZIP
-	if walkErr := filepath.Walk(resourcesDir, func(path string, info os.FileInfo, walkErr error) error {
+	if walkErr := filepath.Walk(resourcesDir, func(path string, info os.FileInfo, walkErr error) (walkRet error) {
 		if walkErr != nil {
 			return walkErr
+		}
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return fmt.Errorf("context canceled: %w", ctxErr)
 		}
 
 		// Skip directories
@@ -154,9 +168,7 @@ func createResourcesZip(zipPath, resourcesDir string) error {
 			return fmt.Errorf("failed to open source file %s: %w", path, openErr)
 		}
 		defer func() {
-			if cerr := srcFile.Close(); cerr != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "failed to close source file: %v\n", cerr)
-			}
+			walkRet = closeAndJoin(walkRet, srcFile, "failed to close source file")
 		}()
 
 		// Get relative path for ZIP entry
@@ -185,34 +197,38 @@ func createResourcesZip(zipPath, resourcesDir string) error {
 }
 
 // generateIndexHTML creates index.html with embedded template.
-func generateIndexHTML(indexPath, accountID, accountDisplay, outputFile string) error {
+func generateIndexHTML(ctx context.Context, indexPath, accountID, accountDisplay, outputFile string) (err error) {
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return fmt.Errorf("context canceled: %w", ctxErr)
+	}
 	displayAccount := accountID
 	if accountDisplay != "" {
 		displayAccount = accountDisplay
 	}
 
-	title := fmt.Sprintf("AWS Resources (%s)", displayAccount)
-	description := "AWS resource inventory collected by arc"
+	title := html.EscapeString(fmt.Sprintf("AWS Resources (%s)", displayAccount))
+	description := html.EscapeString("AWS resource inventory collected by arc")
+	safeOutputFile := html.EscapeString(outputFile)
+	safeAccount := html.EscapeString(displayAccount)
 
 	// Substitute placeholders in template
-	html := htmlTemplate
-	html = strings.ReplaceAll(html, "@@INDEX_TITLE@@", title)
-	html = strings.ReplaceAll(html, "@@INDEX_DESCRIPTION@@", description)
-	html = strings.ReplaceAll(html, "@@OUTPUT_FILE@@", outputFile)
-	html = strings.ReplaceAll(html, "@@ACCOUNT_ID@@", displayAccount)
+	page := htmlTemplate
+	page = strings.ReplaceAll(page, "@@INDEX_TITLE@@", title)
+	page = strings.ReplaceAll(page, "@@INDEX_DESCRIPTION@@", description)
+	page = strings.ReplaceAll(page, "@@OUTPUT_FILE@@", safeOutputFile)
+	page = strings.ReplaceAll(page, "@@ACCOUNT_ID@@", safeAccount)
 
 	// Write HTML file
-	f, err := os.Create(indexPath) //nolint:gosec // G304: Path is controlled and sanitized
+	var f *os.File
+	f, err = os.Create(indexPath) //nolint:gosec // G304: Path is controlled and sanitized
 	if err != nil {
 		return fmt.Errorf("failed to create index.html: %w", err)
 	}
 	defer func() {
-		if cerr := f.Close(); cerr != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed to close index.html: %v\n", cerr)
-		}
+		err = closeAndJoin(err, f, "failed to close index.html")
 	}()
 
-	if _, writeErr := f.WriteString(html); writeErr != nil {
+	if _, writeErr := f.WriteString(page); writeErr != nil {
 		return fmt.Errorf("failed to write index.html: %w", writeErr)
 	}
 

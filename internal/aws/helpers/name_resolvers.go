@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -71,6 +73,7 @@ type NameResolver struct {
 	cloudfrontClients map[string]*cloudfront.Client
 	cache             map[string]map[string]map[string]string // cache[region][resourceType] = map[id]name
 	cloudfrontCache   map[string]string                       // cloudfrontCache[resourceType:id] = name
+	mu                sync.RWMutex
 }
 
 // NewNameResolver creates a new NameResolver with pre-initialized clients for all regions.
@@ -127,8 +130,8 @@ func NewNameResolver(cfg *aws.Config, regions []string) (*NameResolver, error) {
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllImages(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["images"] != nil {
-		return nr.cache[region]["images"], nil
+	if cached, ok := nr.loadCached(region, "images"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -142,10 +145,7 @@ func (nr *NameResolver) GetAllImages(ctx context.Context, region string) (map[st
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["images"] = imageMap
+	nr.storeCached(region, "images", imageMap)
 
 	return imageMap, nil
 }
@@ -157,8 +157,8 @@ func (nr *NameResolver) GetAllImages(ctx context.Context, region string) (map[st
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllKMSKeys(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["kms"] != nil {
-		return nr.cache[region]["kms"], nil
+	if cached, ok := nr.loadCached(region, "kms"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.kmsClients[region]
@@ -172,10 +172,7 @@ func (nr *NameResolver) GetAllKMSKeys(ctx context.Context, region string) (map[s
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["kms"] = keyMap
+	nr.storeCached(region, "kms", keyMap)
 
 	return keyMap, nil
 }
@@ -185,8 +182,8 @@ func (nr *NameResolver) GetAllKMSKeys(ctx context.Context, region string) (map[s
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllNetworkInterfaces(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["enis"] != nil {
-		return nr.cache[region]["enis"], nil
+	if cached, ok := nr.loadCached(region, "enis"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -200,10 +197,7 @@ func (nr *NameResolver) GetAllNetworkInterfaces(ctx context.Context, region stri
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["enis"] = eniMap
+	nr.storeCached(region, "enis", eniMap)
 
 	return eniMap, nil
 }
@@ -213,8 +207,8 @@ func (nr *NameResolver) GetAllNetworkInterfaces(ctx context.Context, region stri
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllSecurityGroups(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["sgs"] != nil {
-		return nr.cache[region]["sgs"], nil
+	if cached, ok := nr.loadCached(region, "sgs"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -228,10 +222,7 @@ func (nr *NameResolver) GetAllSecurityGroups(ctx context.Context, region string)
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["sgs"] = sgMap
+	nr.storeCached(region, "sgs", sgMap)
 
 	return sgMap, nil
 }
@@ -241,8 +232,8 @@ func (nr *NameResolver) GetAllSecurityGroups(ctx context.Context, region string)
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllSnapshots(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["snapshots"] != nil {
-		return nr.cache[region]["snapshots"], nil
+	if cached, ok := nr.loadCached(region, "snapshots"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -256,10 +247,7 @@ func (nr *NameResolver) GetAllSnapshots(ctx context.Context, region string) (map
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["snapshots"] = snapshotMap
+	nr.storeCached(region, "snapshots", snapshotMap)
 
 	return snapshotMap, nil
 }
@@ -269,8 +257,8 @@ func (nr *NameResolver) GetAllSnapshots(ctx context.Context, region string) (map
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllSubnets(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["subnets"] != nil {
-		return nr.cache[region]["subnets"], nil
+	if cached, ok := nr.loadCached(region, "subnets"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -284,10 +272,7 @@ func (nr *NameResolver) GetAllSubnets(ctx context.Context, region string) (map[s
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["subnets"] = subnetMap
+	nr.storeCached(region, "subnets", subnetMap)
 
 	return subnetMap, nil
 }
@@ -297,8 +282,8 @@ func (nr *NameResolver) GetAllSubnets(ctx context.Context, region string) (map[s
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllVPCs(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["vpcs"] != nil {
-		return nr.cache[region]["vpcs"], nil
+	if cached, ok := nr.loadCached(region, "vpcs"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -312,10 +297,7 @@ func (nr *NameResolver) GetAllVPCs(ctx context.Context, region string) (map[stri
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["vpcs"] = vpcMap
+	nr.storeCached(region, "vpcs", vpcMap)
 
 	return vpcMap, nil
 }
@@ -325,8 +307,8 @@ func (nr *NameResolver) GetAllVPCs(ctx context.Context, region string) (map[stri
 // Results are cached per region to minimize API calls.
 func (nr *NameResolver) GetAllVolumes(ctx context.Context, region string) (map[string]string, error) {
 	// Check cache first
-	if nr.cache[region] != nil && nr.cache[region]["volumes"] != nil {
-		return nr.cache[region]["volumes"], nil
+	if cached, ok := nr.loadCached(region, "volumes"); ok {
+		return cached, nil
 	}
 
 	svc, ok := nr.ec2Clients[region]
@@ -340,10 +322,7 @@ func (nr *NameResolver) GetAllVolumes(ctx context.Context, region string) (map[s
 	}
 
 	// Cache the result
-	if nr.cache[region] == nil {
-		nr.cache[region] = make(map[string]map[string]string)
-	}
-	nr.cache[region]["volumes"] = volumeMap
+	nr.storeCached(region, "volumes", volumeMap)
 
 	return volumeMap, nil
 }
@@ -705,7 +684,7 @@ func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, e
 // Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
 func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "cachepolicy:" + policyID
-	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
+	if name, ok := nr.loadCloudFrontCached(cacheKey); ok {
 		return name
 	}
 
@@ -727,7 +706,7 @@ func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string)
 		name = aws.ToString(output.CachePolicy.CachePolicyConfig.Name)
 	}
 
-	nr.cloudfrontCache[cacheKey] = name
+	nr.storeCloudFrontCached(cacheKey, name)
 	return name
 }
 
@@ -735,7 +714,7 @@ func (nr *NameResolver) GetCachePolicyName(ctx context.Context, policyID string)
 // Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
 func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID string) string {
 	cacheKey := "oac:" + oacID
-	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
+	if name, ok := nr.loadCloudFrontCached(cacheKey); ok {
 		return name
 	}
 
@@ -757,7 +736,7 @@ func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID st
 		name = aws.ToString(output.OriginAccessControl.OriginAccessControlConfig.Name)
 	}
 
-	nr.cloudfrontCache[cacheKey] = name
+	nr.storeCloudFrontCached(cacheKey, name)
 	return name
 }
 
@@ -765,7 +744,7 @@ func (nr *NameResolver) GetOriginAccessControlName(ctx context.Context, oacID st
 // Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
 func (nr *NameResolver) GetOriginRequestPolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "originrequestpolicy:" + policyID
-	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
+	if name, ok := nr.loadCloudFrontCached(cacheKey); ok {
 		return name
 	}
 
@@ -787,7 +766,7 @@ func (nr *NameResolver) GetOriginRequestPolicyName(ctx context.Context, policyID
 		name = aws.ToString(output.OriginRequestPolicy.OriginRequestPolicyConfig.Name)
 	}
 
-	nr.cloudfrontCache[cacheKey] = name
+	nr.storeCloudFrontCached(cacheKey, name)
 	return name
 }
 
@@ -795,7 +774,7 @@ func (nr *NameResolver) GetOriginRequestPolicyName(ctx context.Context, policyID
 // Results are cached to minimize API calls. Caller must provide a context for cancellation/timeouts.
 func (nr *NameResolver) GetResponseHeadersPolicyName(ctx context.Context, policyID string) string {
 	cacheKey := "responseheaderspolicy:" + policyID
-	if name, ok := nr.cloudfrontCache[cacheKey]; ok {
+	if name, ok := nr.loadCloudFrontCached(cacheKey); ok {
 		return name
 	}
 
@@ -817,6 +796,43 @@ func (nr *NameResolver) GetResponseHeadersPolicyName(ctx context.Context, policy
 		name = aws.ToString(output.ResponseHeadersPolicy.ResponseHeadersPolicyConfig.Name)
 	}
 
-	nr.cloudfrontCache[cacheKey] = name
+	nr.storeCloudFrontCached(cacheKey, name)
 	return name
+}
+
+func (nr *NameResolver) loadCached(region, resourceType string) (map[string]string, bool) {
+	nr.mu.RLock()
+	defer nr.mu.RUnlock()
+	if nr.cache == nil || nr.cache[region] == nil || nr.cache[region][resourceType] == nil {
+		return nil, false
+	}
+	return maps.Clone(nr.cache[region][resourceType]), true
+}
+
+func (nr *NameResolver) loadCloudFrontCached(key string) (string, bool) {
+	nr.mu.RLock()
+	defer nr.mu.RUnlock()
+	name, ok := nr.cloudfrontCache[key]
+	return name, ok
+}
+
+func (nr *NameResolver) storeCached(region, resourceType string, names map[string]string) {
+	nr.mu.Lock()
+	defer nr.mu.Unlock()
+	if nr.cache == nil {
+		nr.cache = make(map[string]map[string]map[string]string)
+	}
+	if nr.cache[region] == nil {
+		nr.cache[region] = make(map[string]map[string]string)
+	}
+	nr.cache[region][resourceType] = maps.Clone(names)
+}
+
+func (nr *NameResolver) storeCloudFrontCached(key, name string) {
+	nr.mu.Lock()
+	defer nr.mu.Unlock()
+	if nr.cloudfrontCache == nil {
+		nr.cloudfrontCache = make(map[string]string)
+	}
+	nr.cloudfrontCache[key] = name
 }

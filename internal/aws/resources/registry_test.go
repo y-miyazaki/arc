@@ -189,6 +189,11 @@ func TestGetCollectors(t *testing.T) {
 	assert.Contains(t, result, "test2")
 	assert.Equal(t, mockCollector1, result["test1"])
 	assert.Equal(t, mockCollector2, result["test2"])
+
+	result["injected"] = NewMockCollector("injected", false)
+	again := GetCollectors()
+	assert.NotContains(t, again, "injected")
+	assert.Len(t, again, 2)
 }
 
 func TestMockCollector(t *testing.T) {
@@ -244,45 +249,32 @@ func TestMockCollector(t *testing.T) {
 }
 
 func TestInitializeCollectors(t *testing.T) {
-	// This test verifies that InitializeCollectors can be called without panicking
-	// and that it properly initializes collectors.
-	// We use a mock AWS config since we don't want to make real AWS calls in tests.
-
-	// Create a mock AWS config
 	cfg := &aws.Config{
 		Region: "us-east-1",
 	}
-
 	regions := []string{"us-east-1", "us-west-2"}
 
-	// Clear the registry before test
-	originalCollectors := make(map[string]Collector)
-	maps.Copy(originalCollectors, collectors)
+	originalCollectors := maps.Clone(collectors)
+	originalConstructors := maps.Clone(collectorConstructors)
 	collectors = make(map[string]Collector)
-	defer func() {
+	t.Cleanup(func() {
 		collectors = originalCollectors
-	}()
+		collectorConstructors = originalConstructors
+	})
 
-	// Initialize collectors
-	err := InitializeCollectors(cfg, regions)
+	require.NoError(t, InitializeCollectors(cfg, regions))
+	registeredCollectors := GetCollectors()
+	require.NotEmpty(t, registeredCollectors)
 
-	// We expect this to succeed in the test environment
-	// (though it may fail in CI if AWS credentials are not available)
-	if err != nil {
-		// If it fails due to AWS credentials, that's acceptable for this test
-		// We just want to ensure the function doesn't panic and basic initialization works
-		t.Logf("InitializeCollectors failed (expected in test environment): %v", err)
-	} else {
-		// If it succeeds, verify that collectors were registered
-		registeredCollectors := GetCollectors()
-		assert.NotEmpty(t, registeredCollectors, "Expected collectors to be registered")
-
-		// Verify that some expected collectors are present
-		expectedCollectors := []string{"acm", "ec2", "s3_bucket", "iam_role"}
-		for _, name := range expectedCollectors {
-			assert.Contains(t, registeredCollectors, name, "Expected collector %s to be registered", name)
-		}
+	expectedCollectors := []string{"acm", "ec2", "s3_bucket", "iam_role"}
+	for _, name := range expectedCollectors {
+		assert.Contains(t, registeredCollectors, name)
+		assert.NotNil(t, registeredCollectors[name])
 	}
+
+	registeredCollectors["injected"] = NewMockCollector("injected", false)
+	again := GetCollectors()
+	assert.NotContains(t, again, "injected")
 }
 
 func TestRegisterConstructor(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -84,11 +85,13 @@ func NewResource(input *ResourceInput) Resource {
 	}
 }
 
-// GetCollectors returns all registered collectors.
-// The returned map is safe for concurrent read access.
+// GetCollectors returns a copy of all registered collectors.
+// Mutating the returned map does not affect the global registry.
 // Collectors must be initialized via InitializeCollectors before use.
 func GetCollectors() map[string]Collector {
-	return collectors
+	out := make(map[string]Collector, len(collectors))
+	maps.Copy(out, collectors)
+	return out
 }
 
 // InitializeCollectors initializes all supported collectors with AWS clients for the specified regions.

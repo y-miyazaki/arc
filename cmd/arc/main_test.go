@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,55 +16,55 @@ import (
 	"github.com/y-miyazaki/go-common/pkg/logger"
 )
 
-func TestCollectionOptions(t *testing.T) {
+func TestSelectCollectors(t *testing.T) {
 	t.Parallel()
 
+	all := map[string]resources.Collector{
+		"ec2": &fakeCollector{name: "ec2"},
+		"s3":  &fakeCollector{name: "s3"},
+	}
+
 	tests := []struct {
-		name string
-		opts CollectionOptions
-		want CollectionOptions
+		name        string
+		categoryStr string
+		wantNames   []string
+		wantUnknown []string
+		wantAll     bool
 	}{
-		{
-			name: "fields round-trip",
-			opts: CollectionOptions{
-				Region:     "us-east-1",
-				Profile:    "default",
-				OutputDir:  "/tmp/output",
-				Categories: "ec2,s3",
-				HTML:       true,
-				Timeout:    5 * time.Minute,
-			},
-			want: CollectionOptions{
-				Region:     "us-east-1",
-				Profile:    "default",
-				OutputDir:  "/tmp/output",
-				Categories: "ec2,s3",
-				HTML:       true,
-				Timeout:    5 * time.Minute,
-			},
-		},
+		{name: "empty keeps all", categoryStr: "", wantAll: true},
+		{name: "filters known categories", categoryStr: "ec2", wantNames: []string{"ec2"}},
+		{name: "trims and skips unknown", categoryStr: " ec2 , missing , s3 ", wantNames: []string{"ec2", "s3"}, wantUnknown: []string{"missing"}},
+		{name: "all unknown yields empty", categoryStr: "nope", wantNames: nil, wantUnknown: []string{"nope"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.opts.Region != tt.want.Region {
-				t.Fatalf("CollectionOptions.Region = %q, want %q", tt.opts.Region, tt.want.Region)
+			got, unknown := selectCollectors(all, tt.categoryStr)
+			if tt.wantAll {
+				if len(got) != len(all) {
+					t.Fatalf("selectCollectors(...) len = %d, want %d", len(got), len(all))
+				}
+				if len(unknown) != 0 {
+					t.Fatalf("selectCollectors(...) unknown = %v, want empty", unknown)
+				}
+				return
 			}
-			if tt.opts.Profile != tt.want.Profile {
-				t.Fatalf("CollectionOptions.Profile = %q, want %q", tt.opts.Profile, tt.want.Profile)
+			if len(got) != len(tt.wantNames) {
+				t.Fatalf("selectCollectors(...) names = %v, want %v", got, tt.wantNames)
 			}
-			if tt.opts.OutputDir != tt.want.OutputDir {
-				t.Fatalf("CollectionOptions.OutputDir = %q, want %q", tt.opts.OutputDir, tt.want.OutputDir)
+			for _, name := range tt.wantNames {
+				if _, ok := got[name]; !ok {
+					t.Fatalf("selectCollectors(...) missing %q in %v", name, got)
+				}
 			}
-			if tt.opts.Categories != tt.want.Categories {
-				t.Fatalf("CollectionOptions.Categories = %q, want %q", tt.opts.Categories, tt.want.Categories)
+			if len(unknown) != len(tt.wantUnknown) {
+				t.Fatalf("selectCollectors(...) unknown = %v, want %v", unknown, tt.wantUnknown)
 			}
-			if tt.opts.HTML != tt.want.HTML {
-				t.Fatalf("CollectionOptions.HTML = %v, want %v", tt.opts.HTML, tt.want.HTML)
-			}
-			if tt.opts.Timeout != tt.want.Timeout {
-				t.Fatalf("CollectionOptions.Timeout = %v, want %v", tt.opts.Timeout, tt.want.Timeout)
+			for i, name := range tt.wantUnknown {
+				if unknown[i] != name {
+					t.Fatalf("selectCollectors(...) unknown[%d] = %q, want %q", i, unknown[i], name)
+				}
 			}
 		})
 	}
@@ -355,6 +359,11 @@ func TestCollectionError_Error(t *testing.T) {
 					"category2": {{Err: fmt.Errorf("error2"), Region: "r2"}},
 				},
 			},
+			want: "failed to collect one or more categories: category1, category2",
+		},
+		{
+			name: "empty details keeps generic message",
+			err:  CollectionError{},
 			want: "failed to collect one or more categories",
 		},
 	}
@@ -475,4 +484,103 @@ func TestParseCommaList(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResolveResourcesDir(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		outputDir string
+		accountID string
+		wantErr   error
+		wantJoin  bool
+	}{
+		{
+			name:      "joins cleaned output dir and account id",
+			outputDir: "./out",
+			accountID: "123456789012",
+			wantJoin:  true,
+		},
+		{
+			name:      "rejects empty output dir",
+			outputDir: "",
+			accountID: "123456789012",
+			wantErr:   ErrInvalidOutputPath,
+		},
+		{
+			name:      "rejects empty account id",
+			outputDir: "./out",
+			accountID: "",
+			wantErr:   ErrInvalidOutputPath,
+		},
+		{
+			name:      "rejects account id with separator",
+			outputDir: "./out",
+			accountID: "123/evil",
+			wantErr:   ErrInvalidOutputPath,
+		},
+		{
+			name:      "rejects account id with parent traversal",
+			outputDir: "./out",
+			accountID: "..",
+			wantErr:   ErrInvalidOutputPath,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := resolveResourcesDir(tt.outputDir, tt.accountID)
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Fatalf("resolveResourcesDir(...) error = %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolveResourcesDir(...) unexpected error = %v", err)
+			}
+			want := filepath.Join(filepath.Clean(tt.outputDir), tt.accountID, "resources")
+			if got != want {
+				t.Fatalf("resolveResourcesDir(...) = %q, want %q", got, want)
+			}
+			if tt.wantJoin && !strings.HasSuffix(got, filepath.Join(tt.accountID, "resources")) {
+				t.Fatalf("resolveResourcesDir(...) = %q, want account resources path", got)
+			}
+		})
+	}
+}
+
+func TestWriteCategoryCSVFile(t *testing.T) {
+	t.Parallel()
+
+	cols := []resources.Column{
+		{Header: "Name", Value: func(r resources.Resource) string { return r.Name }},
+	}
+	list := []resources.Resource{{Name: "n1"}}
+
+	t.Run("writes csv", func(t *testing.T) {
+		t.Parallel()
+		path := filepath.Join(t.TempDir(), "ec2.csv")
+		if err := writeCategoryCSVFile(path, list, cols); err != nil {
+			t.Fatalf("writeCategoryCSVFile(...) = %v", err)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile: %v", err)
+		}
+		if string(b) == "" {
+			t.Fatal("writeCategoryCSVFile produced empty file")
+		}
+	})
+
+	t.Run("returns error for directory path", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+		err := writeCategoryCSVFile(dir, list, cols)
+		if err == nil {
+			t.Fatal("writeCategoryCSVFile(...) = nil, want error")
+		}
+	})
 }

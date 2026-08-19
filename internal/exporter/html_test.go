@@ -2,7 +2,11 @@ package exporter
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
+	"errors"
+	"html"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,6 +86,21 @@ func TestGenerateHTML(t *testing.T) {
 			wantEntries: nil,
 			wantIndex:   []string{"AWS Resources (my-account(123456789012))"},
 		},
+		{
+			name:           "escapes html in account display",
+			accountID:      "123456789012",
+			accountDisplay: `<script>alert(1)</script>(123456789012)`,
+			outputFile:     "index.html",
+			categories:     []string{},
+			setup: func(t *testing.T, base, accountID string) {
+				t.Helper()
+				require.NoError(t, os.MkdirAll(filepath.Join(base, accountID), 0o755))
+			},
+			wantEntries: nil,
+			wantIndex: []string{
+				html.EscapeString(`<script>alert(1)</script>(123456789012)`),
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -90,7 +109,7 @@ func TestGenerateHTML(t *testing.T) {
 			base := t.TempDir()
 			tt.setup(t, base, tt.accountID)
 
-			err := GenerateHTML(base, tt.accountID, tt.accountDisplay, tt.outputFile, tt.categories)
+			err := GenerateHTML(context.Background(), base, tt.accountID, tt.accountDisplay, tt.outputFile, tt.categories)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -148,7 +167,7 @@ func TestCreateResourcesZip(t *testing.T) {
 			tt.setup(t, resourcesDir)
 
 			zipPath := filepath.Join(base, "resources.zip")
-			require.NoError(t, createResourcesZip(zipPath, resourcesDir))
+			require.NoError(t, createResourcesZip(context.Background(), zipPath, resourcesDir))
 
 			zr, err := zip.OpenReader(zipPath)
 			require.NoError(t, err)
@@ -181,7 +200,7 @@ func TestGenerateIndexHTML_FallbackToAccountIDWhenDisplayEmpty(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			indexPath := filepath.Join(t.TempDir(), "index.html")
-			require.NoError(t, generateIndexHTML(indexPath, tt.accountID, tt.accountDisplay, "all.csv"))
+			require.NoError(t, generateIndexHTML(context.Background(), indexPath, tt.accountID, tt.accountDisplay, "all.csv"))
 			b, err := os.ReadFile(indexPath)
 			require.NoError(t, err)
 			assert.Contains(t, string(b), tt.wantContains)
@@ -205,6 +224,81 @@ func TestCreateResourcesZip_ReturnsErrorWhenWalkFails(t *testing.T) {
 	}()
 
 	zipPath := filepath.Join(base, "resources.zip")
-	err := createResourcesZip(zipPath, resourcesDir)
+	err := createResourcesZip(context.Background(), zipPath, resourcesDir)
 	assert.Error(t, err)
+}
+
+func TestGenerateHTML_CanceledContext(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := GenerateHTML(ctx, t.TempDir(), "123456789012", "123456789012", "all.csv", nil)
+	assert.Error(t, err)
+}
+
+type stubCloser struct {
+	err error
+}
+
+func (s stubCloser) Close() error {
+	return s.err
+}
+
+func TestCloseAndJoin(t *testing.T) {
+	t.Parallel()
+
+	errPrimary := errors.New("primary")
+	errClose := errors.New("close failed")
+
+	tests := []struct {
+		name    string
+		err     error
+		closer  io.Closer
+		wantIs  []error
+		wantNil bool
+	}{
+		{
+			name:   "nil closer keeps original error",
+			err:    errPrimary,
+			closer: nil,
+			wantIs: []error{errPrimary},
+		},
+		{
+			name:   "successful close keeps original error",
+			err:    errPrimary,
+			closer: stubCloser{},
+			wantIs: []error{errPrimary},
+		},
+		{
+			name:    "successful close with nil original is nil",
+			closer:  stubCloser{},
+			wantNil: true,
+		},
+		{
+			name:   "close error joins original",
+			err:    errPrimary,
+			closer: stubCloser{err: errClose},
+			wantIs: []error{errPrimary, errClose},
+		},
+		{
+			name:   "close error with nil original",
+			closer: stubCloser{err: errClose},
+			wantIs: []error{errClose},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := closeAndJoin(tt.err, tt.closer, "failed to close x")
+			if tt.wantNil {
+				require.NoError(t, got)
+				return
+			}
+			require.Error(t, got)
+			for _, target := range tt.wantIs {
+				assert.ErrorIs(t, got, target)
+			}
+		})
+	}
 }
