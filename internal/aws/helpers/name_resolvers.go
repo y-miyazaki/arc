@@ -40,15 +40,15 @@ const (
 
 // Package-level errors for client-type mismatches in test helpers.
 var (
-	ErrClientNotDescribeImages            = errors.New("client does not implement DescribeImagesAPIClient")
-	ErrClientNotDescribeNetworkInterfaces = errors.New("client does not implement DescribeNetworkInterfacesAPIClient")
-	ErrClientNotDescribeSGs               = errors.New("client does not implement DescribeSecurityGroupsAPIClient")
-	ErrClientNotDescribeSnapshots         = errors.New("client does not implement DescribeSnapshotsAPIClient")
-	ErrClientNotDescribeSubnets           = errors.New("client does not implement DescribeSubnetsAPIClient")
-	ErrClientNotDescribeVolumes           = errors.New("client does not implement DescribeVolumesAPIClient")
-	ErrClientNotDescribeVPCs              = errors.New("client does not implement DescribeVpcsAPIClient")
-	ErrClientNotListAliases               = errors.New("client does not implement ListAliasesAPIClient")
-	ErrClientNotListKeys                  = errors.New("client does not implement ListKeysAPIClient")
+	ErrClientNotDescribeImages            = errors.New("client does not implement EC2DescribeImagesClientInterface")
+	ErrClientNotDescribeNetworkInterfaces = errors.New("client does not implement EC2DescribeNetworkInterfacesClientInterface")
+	ErrClientNotDescribeSGs               = errors.New("client does not implement EC2DescribeSecurityGroupsClientInterface")
+	ErrClientNotDescribeSnapshots         = errors.New("client does not implement EC2DescribeSnapshotsClientInterface")
+	ErrClientNotDescribeSubnets           = errors.New("client does not implement EC2DescribeSubnetsClientInterface")
+	ErrClientNotDescribeVolumes           = errors.New("client does not implement EC2DescribeVolumesClientInterface")
+	ErrClientNotDescribeVPCs              = errors.New("client does not implement EC2DescribeVpcsClientInterface")
+	ErrClientNotListAliases               = errors.New("client does not implement KMSListAliasesClientInterface")
+	ErrClientNotListKeys                  = errors.New("client does not implement KMSListKeysClientInterface")
 	ErrNoEC2ClientForRegion               = errors.New("no EC2 client found for region")
 	ErrNoKMSClientForRegion               = errors.New("no KMS client found for region")
 	ErrNoCloudFrontClient                 = errors.New("no CloudFront client found")
@@ -414,7 +414,7 @@ func ResolveNamesFromMap(ids []*string, nameMap map[string]string) []string {
 
 // getAllImagesWithClient collects images via a provided EC2 client (testable helper).
 func getAllImagesWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeImagesAPIClient)
+	cli, ok := client.(EC2DescribeImagesClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeImages
 	}
@@ -451,11 +451,11 @@ func getAllImagesWithClient(ctx context.Context, client any) (map[string]string,
 func getAllKMSKeysWithClient(ctx context.Context, client any) (map[string]string, error) {
 	// We expect the client to implement both ListKeys and ListAliases APIs.
 	// Use type assertion to pass the concrete client to the AWS paginator constructors.
-	keysClient, ok := client.(kms.ListKeysAPIClient)
+	keysClient, ok := client.(KMSListKeysClientInterface)
 	if !ok {
 		return nil, ErrClientNotListKeys
 	}
-	aliasesClient, ok := client.(kms.ListAliasesAPIClient)
+	aliasesClient, ok := client.(KMSListAliasesClientInterface)
 	if !ok {
 		return nil, ErrClientNotListAliases
 	}
@@ -514,7 +514,7 @@ func getAllKMSKeysWithClient(ctx context.Context, client any) (map[string]string
 
 // getAllNetworkInterfacesWithClient collects network interfaces via a provided EC2 client (testable helper).
 func getAllNetworkInterfacesWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeNetworkInterfacesAPIClient)
+	cli, ok := client.(EC2DescribeNetworkInterfacesClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeNetworkInterfaces
 	}
@@ -542,7 +542,7 @@ func getAllNetworkInterfacesWithClient(ctx context.Context, client any) (map[str
 
 // getAllSecurityGroupsWithClient collects security groups via a provided EC2 client (testable helper).
 func getAllSecurityGroupsWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeSecurityGroupsAPIClient)
+	cli, ok := client.(EC2DescribeSecurityGroupsClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeSGs
 	}
@@ -570,7 +570,7 @@ func getAllSecurityGroupsWithClient(ctx context.Context, client any) (map[string
 
 // getAllSnapshotsWithClient collects snapshots via a provided EC2 client (testable helper).
 func getAllSnapshotsWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeSnapshotsAPIClient)
+	cli, ok := client.(EC2DescribeSnapshotsClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeSnapshots
 	}
@@ -598,7 +598,7 @@ func getAllSnapshotsWithClient(ctx context.Context, client any) (map[string]stri
 
 // getAllSubnetsWithClient collects subnets via a provided EC2 client (testable helper).
 func getAllSubnetsWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeSubnetsAPIClient)
+	cli, ok := client.(EC2DescribeSubnetsClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeSubnets
 	}
@@ -626,7 +626,7 @@ func getAllSubnetsWithClient(ctx context.Context, client any) (map[string]string
 
 // getAllVolumesWithClient collects volumes via a provided EC2 client (testable helper).
 func getAllVolumesWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeVolumesAPIClient)
+	cli, ok := client.(EC2DescribeVolumesClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeVolumes
 	}
@@ -654,7 +654,7 @@ func getAllVolumesWithClient(ctx context.Context, client any) (map[string]string
 
 // getAllVPCsWithClient collects VPCs using a provided EC2 client (testable helper).
 func getAllVPCsWithClient(ctx context.Context, client any) (map[string]string, error) {
-	cli, ok := client.(ec2.DescribeVpcsAPIClient)
+	cli, ok := client.(EC2DescribeVpcsClientInterface)
 	if !ok {
 		return nil, ErrClientNotDescribeVPCs
 	}

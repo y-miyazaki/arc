@@ -1,14 +1,10 @@
 package helpers_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/stretchr/testify/mock"
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
@@ -324,29 +320,4 @@ func TestResolveNamesFromMap(t *testing.T) {
 			}
 		})
 	}
-}
-
-// MockKMSClient is a mock implementation of the KMS client
-type MockKMSClient struct {
-	mock.Mock
-}
-
-func (m *MockKMSClient) ListAliases(ctx context.Context, params *kms.ListAliasesInput, optFns ...func(*kms.Options)) (*kms.ListAliasesOutput, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).(*kms.ListAliasesOutput), args.Error(1)
-}
-
-// MockEC2Client is a mock implementation of the EC2 client
-type MockEC2Client struct {
-	mock.Mock
-}
-
-func (m *MockEC2Client) DescribeSecurityGroups(ctx context.Context, params *ec2.DescribeSecurityGroupsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).(*ec2.DescribeSecurityGroupsOutput), args.Error(1)
-}
-
-func (m *MockEC2Client) DescribeSubnets(ctx context.Context, params *ec2.DescribeSubnetsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).(*ec2.DescribeSubnetsOutput), args.Error(1)
 }

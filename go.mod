@@ -47,6 +47,7 @@ require (
 	github.com/stretchr/testify v1.12.0
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/y-miyazaki/go-common v0.11.1
+	go.uber.org/mock v0.6.0
 )
 
 require (
@@ -66,7 +67,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.5 // indirect
 	github.com/aws/smithy-go v1.27.7 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
-	github.com/stretchr/objx v0.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
