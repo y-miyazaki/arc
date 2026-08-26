@@ -44,7 +44,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.6
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.75.6
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.77.5
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/y-miyazaki/go-common v0.11.1
 	go.uber.org/mock v0.6.0
@@ -69,7 +69,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.31.2 // indirect
 )
