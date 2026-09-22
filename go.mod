@@ -45,7 +45,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.82.0
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.83.0
 	github.com/stretchr/testify v1.12.1
-	github.com/urfave/cli/v3 v3.11.0
+	github.com/urfave/cli/v3 v3.12.0
 	github.com/y-miyazaki/go-common v0.11.2
 	go.uber.org/mock v0.6.0
 )
