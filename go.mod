@@ -7,8 +7,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.33.5
 	github.com/aws/aws-sdk-go-v2/service/account v1.41.0
 	github.com/aws/aws-sdk-go-v2/service/acm v1.50.0
-	github.com/aws/aws-sdk-go-v2/service/apigateway v1.47.0
-	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.42.0
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.49.0
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/batch v1.77.0
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.81.0
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.73.0
@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.42.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.74.0
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.69.0
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.335.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.336.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.66.0
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.99.0
 	github.com/aws/aws-sdk-go-v2/service/efs v1.49.0
@@ -25,19 +25,19 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.63.0
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/firehose v1.52.0
-	github.com/aws/aws-sdk-go-v2/service/glue v1.160.0
+	github.com/aws/aws-sdk-go-v2/service/glue v1.162.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.64.0
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.55.0
 	github.com/aws/aws-sdk-go-v2/service/kms v1.61.0
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.108.0
-	github.com/aws/aws-sdk-go-v2/service/quicksight v1.130.0
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.109.0
+	github.com/aws/aws-sdk-go-v2/service/quicksight v1.132.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.129.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.71.0
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.70.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.2
 	github.com/aws/aws-sdk-go-v2/service/scheduler v1.25.0
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.50.0
-	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.74.0
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.75.0
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.51.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.47.1
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.0
