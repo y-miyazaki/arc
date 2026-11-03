@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+// errFmtContextCanceled is the error format for a canceled context.
+const errFmtContextCanceled = "context canceled: %w"
+
 //go:embed html_template.html
 var htmlTemplate string
 
@@ -31,20 +34,10 @@ type FileManifestEntry struct {
 	DisplayName string `json:"display_name"` //nolint:tagliatelle // matches JavaScript naming convention
 }
 
-func closeAndJoin(err error, c io.Closer, msg string) error {
-	if c == nil {
-		return err
-	}
-	if cerr := c.Close(); cerr != nil {
-		return errors.Join(err, fmt.Errorf("%s: %w", msg, cerr))
-	}
-	return err
-}
-
 // GenerateHTML generates HTML index and manifest files for CSV outputs.
 func GenerateHTML(ctx context.Context, outputDir, accountID, accountDisplay, outputFile string, categories []string) error {
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("context canceled: %w", err)
+		return fmt.Errorf(errFmtContextCanceled, err)
 	}
 	// Generate files.json manifest
 	manifestPath := filepath.Join(outputDir, accountID, "files.json")
@@ -66,6 +59,16 @@ func GenerateHTML(ctx context.Context, outputDir, accountID, accountDisplay, out
 	}
 
 	return nil
+}
+
+func closeAndJoin(err error, c io.Closer, msg string) error {
+	if c == nil {
+		return err
+	}
+	if cerr := c.Close(); cerr != nil {
+		return errors.Join(err, fmt.Errorf("%s: %w", msg, cerr))
+	}
+	return err
 }
 
 // generateManifest creates files.json with the list of CSV files
@@ -108,7 +111,7 @@ func generateManifest(manifestPath, outputDir, accountID string, categories []st
 // createResourcesZip creates a ZIP archive of all CSV files in the resources directory
 func createResourcesZip(ctx context.Context, zipPath, resourcesDir string) (err error) {
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return fmt.Errorf("context canceled: %w", ctxErr)
+		return fmt.Errorf(errFmtContextCanceled, ctxErr)
 	}
 	// Check if resources directory exists
 	if _, statErr := os.Stat(resourcesDir); os.IsNotExist(statErr) {
@@ -144,12 +147,12 @@ func createResourcesZip(ctx context.Context, zipPath, resourcesDir string) (err 
 	}()
 
 	// Walk through resources directory and add CSV files to ZIP
-	if walkErr := filepath.Walk(resourcesDir, func(path string, info os.FileInfo, walkErr error) (walkRet error) {
+	walkDirErr := filepath.Walk(resourcesDir, func(path string, info os.FileInfo, walkErr error) (walkRet error) {
 		if walkErr != nil {
 			return walkErr
 		}
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return fmt.Errorf("context canceled: %w", ctxErr)
+			return fmt.Errorf(errFmtContextCanceled, ctxErr)
 		}
 
 		// Skip directories
@@ -189,8 +192,9 @@ func createResourcesZip(ctx context.Context, zipPath, resourcesDir string) (err 
 		}
 
 		return nil
-	}); walkErr != nil {
-		return fmt.Errorf("failed to walk resources directory: %w", walkErr)
+	})
+	if walkDirErr != nil {
+		return fmt.Errorf("failed to walk resources directory: %w", walkDirErr)
 	}
 
 	return nil
@@ -199,7 +203,7 @@ func createResourcesZip(ctx context.Context, zipPath, resourcesDir string) (err 
 // generateIndexHTML creates index.html with embedded template.
 func generateIndexHTML(ctx context.Context, indexPath, accountID, accountDisplay, outputFile string) (err error) {
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return fmt.Errorf("context canceled: %w", ctxErr)
+		return fmt.Errorf(errFmtContextCanceled, ctxErr)
 	}
 	displayAccount := accountID
 	if accountDisplay != "" {

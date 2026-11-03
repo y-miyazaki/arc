@@ -72,7 +72,7 @@ func (c *CloudWatchLogsCollector) Collect(ctx context.Context, region string) ([
 			lg := &page.LogGroups[i]
 			var creationTime string
 			if lg.CreationTime != nil {
-				t := time.Unix(*lg.CreationTime/1000, 0).UTC() //nolint:mnd
+				t := time.UnixMilli(*lg.CreationTime).UTC()
 				creationTime = t.Format(time.RFC3339)
 			}
 
@@ -137,12 +137,12 @@ func (*CloudWatchLogsCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RetentionInDays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionInDays") }},
-		{Header: "StoredBytes", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StoredBytes") }},
-		{Header: "MetricFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricFilters") }},
-		{Header: "SubscriptionFilters", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SubscriptionFilters") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
+		rawDataColumn("RetentionInDays"),
+		rawDataColumn("StoredBytes"),
+		rawDataColumn("MetricFilters"),
+		rawDataColumn("SubscriptionFilters"),
+		rawDataColumn("KmsKey"),
+		rawDataColumn("CreationTime"),
 	}
 }
 

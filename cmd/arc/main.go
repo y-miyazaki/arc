@@ -44,6 +44,8 @@ const (
 	LogKeyError = "error"
 	// LogKeyFile is the log key for file
 	LogKeyFile = "file"
+	// LogKeyRegion is the log key for region
+	LogKeyRegion = "region"
 )
 
 var (
@@ -237,7 +239,7 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 					return
 				}
 
-				l.Info("Collecting resources", LogKeyCategory, name, "region", reg)
+				l.Info("Collecting resources", LogKeyCategory, name, LogKeyRegion, reg)
 				res, collectErr := collector.Collect(ctx, reg)
 				resultsChan <- collectionResult{
 					category:  name,
@@ -261,7 +263,7 @@ func collectResources(ctx context.Context, l *logger.SlogLogger, collectors map[
 	for result := range resultsChan {
 		if result.err != nil {
 			// track failures per category so caller can act on partial failures
-			l.Error("Error collecting resources", "category", result.category, "region", result.region, "error", result.err)
+			l.Error("Error collecting resources", LogKeyCategory, result.category, LogKeyRegion, result.region, LogKeyError, result.err)
 			failed[result.category] = append(failed[result.category], CollectionFailure{
 				Err:    result.err,
 				Region: result.region,

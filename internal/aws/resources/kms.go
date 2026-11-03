@@ -116,10 +116,10 @@ func (*KMSCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "KeyUsage", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyUsage") }},
-		{Header: "KeyManager", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyManager") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+		rawDataColumn("Description"),
+		rawDataColumn("KeyUsage"),
+		rawDataColumn("KeyManager"),
+		rawDataColumn("State"),
 	}
 }
 

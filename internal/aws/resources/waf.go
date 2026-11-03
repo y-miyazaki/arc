@@ -85,11 +85,11 @@ func (*WAFCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "Scope", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Scope") }},
-		{Header: "Rules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Rules") }},
-		{Header: "AssociatedResources", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AssociatedResources") }},
-		{Header: "Logging", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Logging") }},
+		rawDataColumn("Description"),
+		rawDataColumn("Scope"),
+		rawDataColumn("Rules"),
+		rawDataColumn("AssociatedResources"),
+		rawDataColumn("Logging"),
 	}
 }
 

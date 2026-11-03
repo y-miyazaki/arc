@@ -83,19 +83,19 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 		for i := range page.FileSystems {
 			fs := &page.FileSystems[i]
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:     "efs",
+				Category:     categoryEFS,
 				SubCategory1: "FileSystem",
 				Name:         fs.Name,
 				Region:       region,
 				ARN:          fs.FileSystemId,
 				RawData: map[string]any{
-					"Type":         "FileSystem",
+					keyType:        "FileSystem",
 					"Performance":  fs.PerformanceMode,
 					"Throughput":   fs.ThroughputMode,
 					"Encrypted":    fs.Encrypted,
 					"KmsKey":       helpers.ResolveNameFromMap(fs.KmsKeyId, kmsKeyMap),
 					"Size":         fs.SizeInBytes.Value,
-					"State":        fs.LifeCycleState,
+					keyState:       fs.LifeCycleState,
 					"CreationTime": fs.CreationTime,
 				},
 			}))
@@ -122,17 +122,17 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 						}
 					}
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:     "efs",
+						Category:     categoryEFS,
 						SubCategory1: "MountTarget",
 						Name:         mt.MountTargetId,
 						Region:       region,
 						ARN:          mt.MountTargetId,
 						RawData: map[string]any{
-							"Type":          "MountTarget",
+							keyType:         "MountTarget",
 							"Subnet":        helpers.ResolveNameFromMap(mt.SubnetId, subnetMap),
 							"IPAddress":     mt.IpAddress,
 							"SecurityGroup": helpers.ResolveNamesFromMap(sgIDs, sgMap),
-							"State":         mt.LifeCycleState,
+							keyState:        mt.LifeCycleState,
 						},
 					}))
 				}
@@ -160,17 +160,17 @@ func (c *EFSCollector) Collect(ctx context.Context, region string) ([]Resource, 
 					}
 
 					resources = append(resources, NewResource(&ResourceInput{
-						Category:     "efs",
+						Category:     categoryEFS,
 						SubCategory1: "AccessPoint",
 						Name:         ap.Name,
 						Region:       region,
 						ARN:          ap.AccessPointId,
 						RawData: map[string]any{
-							"Type":  "AccessPoint",
-							"Path":  path,
-							"UID":   uid,
-							"GID":   gid,
-							"State": ap.LifeCycleState,
+							keyType:  "AccessPoint",
+							"Path":   path,
+							"UID":    uid,
+							"GID":    gid,
+							keyState: ap.LifeCycleState,
 						},
 					}))
 				}
@@ -189,26 +189,26 @@ func (*EFSCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Performance", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Performance") }},
-		{Header: "Throughput", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Throughput") }},
-		{Header: "Encrypted", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encrypted") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "Size", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Size") }},
-		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
-		{Header: "IPAddress", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IPAddress") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "UID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "UID") }},
-		{Header: "GID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GID") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
-		{Header: "CreationTime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationTime") }},
+		rawDataColumn(keyType),
+		rawDataColumn("Performance"),
+		rawDataColumn("Throughput"),
+		rawDataColumn("Encrypted"),
+		rawDataColumn("KmsKey"),
+		rawDataColumn("Size"),
+		rawDataColumn("Subnet"),
+		rawDataColumn("IPAddress"),
+		rawDataColumn("SecurityGroup"),
+		rawDataColumn("Path"),
+		rawDataColumn("UID"),
+		rawDataColumn("GID"),
+		rawDataColumn(keyState),
+		rawDataColumn("CreationTime"),
 	}
 }
 
 // Name returns the collector name.
 func (*EFSCollector) Name() string {
-	return "efs"
+	return categoryEFS
 }
 
 // ShouldSort returns true.

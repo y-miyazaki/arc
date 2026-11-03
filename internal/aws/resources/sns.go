@@ -112,9 +112,9 @@ func (*SNSCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "DisplayName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DisplayName") }},
-		{Header: "Owner", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Owner") }},
-		{Header: "Policy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Policy") }},
+		rawDataColumn("DisplayName"),
+		rawDataColumn("Owner"),
+		rawDataColumn("Policy"),
 	}
 }
 

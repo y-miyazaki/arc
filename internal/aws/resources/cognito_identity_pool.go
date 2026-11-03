@@ -68,12 +68,12 @@ func (*CognitoIdentityPoolCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID
-		{Header: "AllowUnauthenticated", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AllowUnauthenticated") }},
-		{Header: "DeveloperProviderName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DeveloperProviderName") }},
-		{Header: "SupportedLoginProviders", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SupportedLoginProviders") }},
-		{Header: "CognitoIdentityProviders", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CognitoIdentityProviders") }},
-		{Header: "OpenIdConnectProviderARNs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OpenIdConnectProviderARNs") }},
-		{Header: "SamlProviderARNs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SamlProviderARNs") }},
+		rawDataColumn("AllowUnauthenticated"),
+		rawDataColumn("DeveloperProviderName"),
+		rawDataColumn("SupportedLoginProviders"),
+		rawDataColumn("CognitoIdentityProviders"),
+		rawDataColumn("OpenIdConnectProviderARNs"),
+		rawDataColumn("SamlProviderARNs"),
 	}
 }
 

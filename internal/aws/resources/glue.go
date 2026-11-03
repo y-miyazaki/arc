@@ -142,15 +142,15 @@ func (*GlueCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ID", Value: func(r Resource) string { return r.ARN }}, // Using ARN field for ID (Name in bash script)
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "WorkerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WorkerType") }},
-		{Header: "NumberOfWorkers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "NumberOfWorkers") }},
-		{Header: "MaxRetries", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaxRetries") }},
-		{Header: "GlueVersion", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "GlueVersion") }},
-		{Header: "Language", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Language") }},
-		{Header: "ScriptLocation", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScriptLocation") }},
+		rawDataColumn("Description"),
+		rawDataColumn("RoleARN"),
+		rawDataColumn("Timeout"),
+		rawDataColumn("WorkerType"),
+		rawDataColumn("NumberOfWorkers"),
+		rawDataColumn("MaxRetries"),
+		rawDataColumn("GlueVersion"),
+		rawDataColumn("Language"),
+		rawDataColumn("ScriptLocation"),
 	}
 }
 

@@ -144,13 +144,13 @@ func (*Route53Collector) GetColumns() []Column {
 		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Comment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Comment") }},
-		{Header: "TTL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TTL") }},
-		{Header: "RecordType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordType") }},
-		{Header: "Value", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Value") }},
-		{Header: "RecordCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RecordCount") }},
+		rawDataColumn("ID"),
+		rawDataColumn("Type"),
+		rawDataColumn("Comment"),
+		rawDataColumn("TTL"),
+		rawDataColumn("RecordType"),
+		rawDataColumn("Value"),
+		rawDataColumn("RecordCount"),
 	}
 }
 

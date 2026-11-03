@@ -383,3 +383,26 @@ func TestCreateCollector_InvalidReturnTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestRawDataColumn(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		key     string
+		rawData map[string]any
+		want    string
+	}{
+		{name: "existing key", key: keyStatus, rawData: map[string]any{keyStatus: "available"}, want: "available"},
+		{name: "missing key", key: keyEngine, rawData: map[string]any{keyStatus: "available"}, want: ""},
+		{name: "nil raw data", key: keyType, rawData: nil, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			col := rawDataColumn(tt.key)
+			assert.Equal(t, tt.key, col.Header)
+			assert.Equal(t, tt.want, col.Value(Resource{RawData: tt.rawData}))
+		})
+	}
+}

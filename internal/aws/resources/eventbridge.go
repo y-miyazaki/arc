@@ -116,13 +116,13 @@ func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Re
 				Region:       region,
 				ARN:          rule.Arn,
 				RawData: map[string]any{
-					"Description":             rule.Description,
-					"RoleARN":                 roleARN,
-					"ScheduleExpression":      rule.ScheduleExpression,
-					"Target":                  targetARN,
-					"RetryMaxAttempts":        maxAttempts,
-					"RetryMaxEventAgeSeconds": maxAge,
-					"State":                   rule.State,
+					"Description":              rule.Description,
+					"RoleARN":                  roleARN,
+					"ScheduleExpression":       rule.ScheduleExpression,
+					"Target":                   targetARN,
+					"RetryMaxAttempts":         maxAttempts,
+					keyRetryMaxEventAgeSeconds: maxAge,
+					"State":                    rule.State,
 				},
 			}))
 		}
@@ -173,13 +173,13 @@ func (c *EventBridgeCollector) Collect(ctx context.Context, region string) ([]Re
 				Region:       region,
 				ARN:          sch.Arn,
 				RawData: map[string]any{
-					"Description":             sch.Description,
-					"RoleARN":                 roleARN,
-					"ScheduleExpression":      sch.ScheduleExpression,
-					"Target":                  targetARN,
-					"RetryMaxAttempts":        maxAttempts,
-					"RetryMaxEventAgeSeconds": maxAge,
-					"State":                   sch.State,
+					"Description":              sch.Description,
+					"RoleARN":                  roleARN,
+					"ScheduleExpression":       sch.ScheduleExpression,
+					"Target":                   targetARN,
+					"RetryMaxAttempts":         maxAttempts,
+					keyRetryMaxEventAgeSeconds: maxAge,
+					"State":                    sch.State,
 				},
 			}))
 		}
@@ -196,15 +196,15 @@ func (*EventBridgeCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "ScheduleExpression", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScheduleExpression") }},
-		{Header: "Target", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Target") }},
-		{Header: "RetryMaxAttempts", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetryMaxAttempts") }},
-		{Header: "RetryMaxEventAgeSeconds", Value: func(r Resource) string {
-			return helpers.GetMapValue(r.RawData, "RetryMaxEventAgeSeconds")
+		rawDataColumn("Description"),
+		rawDataColumn("RoleARN"),
+		rawDataColumn("ScheduleExpression"),
+		rawDataColumn("Target"),
+		rawDataColumn("RetryMaxAttempts"),
+		{Header: keyRetryMaxEventAgeSeconds, Value: func(r Resource) string {
+			return helpers.GetMapValue(r.RawData, keyRetryMaxEventAgeSeconds)
 		}},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+		rawDataColumn("State"),
 	}
 }
 

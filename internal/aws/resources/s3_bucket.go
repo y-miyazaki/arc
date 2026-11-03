@@ -14,6 +14,8 @@ const (
 	statusDisabled = "Disabled"
 	// statusEnabled represents an enabled status for S3 features.
 	statusEnabled = "Enabled"
+	// s3GlobalRegion is the region used for the global S3 client and as the default bucket region.
+	s3GlobalRegion = "us-east-1"
 )
 
 // S3BucketCollector collects S3 buckets.
@@ -40,7 +42,7 @@ func NewS3BucketCollector(cfg *aws.Config, regions []string, nameResolver *helpe
 	// S3 is a global service, create a single client for us-east-1
 	_ = regions // unused parameter
 	client := s3.NewFromConfig(*cfg, func(o *s3.Options) {
-		o.Region = "us-east-1"
+		o.Region = s3GlobalRegion
 	})
 
 	return &S3BucketCollector{
@@ -53,7 +55,7 @@ func NewS3BucketCollector(cfg *aws.Config, regions []string, nameResolver *helpe
 // S3 is a global service - only processes from us-east-1 to avoid duplicates.
 func (c *S3BucketCollector) Collect(ctx context.Context, region string) ([]Resource, error) {
 	// S3 bucket listing only works from us-east-1 (global service).
-	if region != "us-east-1" {
+	if region != s3GlobalRegion {
 		return nil, nil
 	}
 
@@ -67,7 +69,7 @@ func (c *S3BucketCollector) Collect(ctx context.Context, region string) ([]Resou
 
 	// Cache for region-specific clients.
 	regionClients := make(map[string]*s3.Client)
-	regionClients["us-east-1"] = c.client
+	regionClients[s3GlobalRegion] = c.client
 
 	// Helper to get or create client for a region.
 	getClient := func(r string) *s3.Client {
@@ -86,7 +88,7 @@ func (c *S3BucketCollector) Collect(ctx context.Context, region string) ([]Resou
 		bucket := &listBucketsOut.Buckets[i]
 
 		// Get bucket location using global client.
-		bucketRegion := "us-east-1" // default
+		bucketRegion := s3GlobalRegion // default
 		locationOut, locErr := c.client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 			Bucket: bucket.Name,
 		})
@@ -280,22 +282,22 @@ func (*S3BucketCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Versioning", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Versioning") }},
-		{Header: "BucketABAC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "BucketABAC") }},
-		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
-		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
-		{Header: "AccessLogARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AccessLogARN") }},
-		{Header: "TransferAcceleration", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TransferAcceleration") }},
-		{Header: "ObjectLock", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ObjectLock") }},
-		{Header: "RequesterPays", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RequesterPays") }},
-		{Header: "StaticWebsiteHosting", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "StaticWebsiteHosting") }},
-		{Header: "PABBlockPublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicACLs") }},
-		{Header: "PABIgnorePublicACLs", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABIgnorePublicACLs") }},
-		{Header: "PABBlockPublicPolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABBlockPublicPolicy") }},
-		{Header: "PABRestrictPublicBuckets", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PABRestrictPublicBuckets") }},
-		{Header: "ACL", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ACL") }},
-		{Header: "LifecycleRules", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecycleRules") }},
-		{Header: "CreationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreationDate") }},
+		rawDataColumn("Versioning"),
+		rawDataColumn("BucketABAC"),
+		rawDataColumn("Encryption"),
+		rawDataColumn("KMSKey"),
+		rawDataColumn("AccessLogARN"),
+		rawDataColumn("TransferAcceleration"),
+		rawDataColumn("ObjectLock"),
+		rawDataColumn("RequesterPays"),
+		rawDataColumn("StaticWebsiteHosting"),
+		rawDataColumn("PABBlockPublicACLs"),
+		rawDataColumn("PABIgnorePublicACLs"),
+		rawDataColumn("PABBlockPublicPolicy"),
+		rawDataColumn("PABRestrictPublicBuckets"),
+		rawDataColumn("ACL"),
+		rawDataColumn("LifecycleRules"),
+		rawDataColumn("CreationDate"),
 	}
 }
 

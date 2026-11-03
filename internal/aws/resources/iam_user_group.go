@@ -140,11 +140,11 @@ func (*IAMUserGroupCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "PasswordLastUsed", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PasswordLastUsed") }},
-		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
-		{Header: "AttachedUsers", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedUsers") }},
-		{Header: "AttachedPolicies", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedPolicies") }},
+		rawDataColumn("Path"),
+		rawDataColumn("PasswordLastUsed"),
+		rawDataColumn("CreateDate"),
+		rawDataColumn("AttachedUsers"),
+		rawDataColumn("AttachedPolicies"),
 	}
 }
 

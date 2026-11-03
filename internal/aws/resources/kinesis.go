@@ -171,13 +171,13 @@ func (*KinesisCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Shards", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Shards") }},
-		{Header: "DestinationId", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DestinationId") }},
-		{Header: "RetentionPeriodHours", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RetentionPeriodHours") }},
-		{Header: "EncryptionType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EncryptionType") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-		{Header: "LastUpdatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastUpdatedDate") }},
+		rawDataColumn("Shards"),
+		rawDataColumn("DestinationId"),
+		rawDataColumn("RetentionPeriodHours"),
+		rawDataColumn("EncryptionType"),
+		rawDataColumn("Status"),
+		rawDataColumn("CreatedDate"),
+		rawDataColumn("LastUpdatedDate"),
 	}
 }
 

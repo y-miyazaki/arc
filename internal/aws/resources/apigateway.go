@@ -240,13 +240,13 @@ func (*APIGatewayCollector) GetColumns() []Column {
 		{Header: "SubCategory2", Value: func(r Resource) string { return r.SubCategory2 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "ID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ID") }},
-		{Header: "ProtocolType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ProtocolType") }},
-		{Header: "WAF", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "WAF") }},
-		{Header: "AuthorizerType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerType") }},
-		{Header: "AuthorizerProviderARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AuthorizerProviderARN") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
+		rawDataColumn("Description"),
+		rawDataColumn("ID"),
+		rawDataColumn("ProtocolType"),
+		rawDataColumn("WAF"),
+		rawDataColumn("AuthorizerType"),
+		rawDataColumn("AuthorizerProviderARN"),
+		rawDataColumn("CreatedDate"),
 	}
 }
 

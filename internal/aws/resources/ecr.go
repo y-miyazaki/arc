@@ -109,9 +109,10 @@ func (c *ECRCollector) Collect(ctx context.Context, region string) ([]Resource, 
 
 			// Get lifecycle policy
 			var lifecyclePolicy string
-			if lifecycleOut, lifecycleErr := svc.GetLifecyclePolicy(ctx, &ecr.GetLifecyclePolicyInput{
+			lifecycleOut, lifecycleErr := svc.GetLifecyclePolicy(ctx, &ecr.GetLifecyclePolicyInput{
 				RepositoryName: repo.RepositoryName,
-			}); lifecycleErr == nil {
+			})
+			if lifecycleErr == nil {
 				if lifecycleOut.LifecyclePolicyText != nil {
 					// Format as indented JSON if valid, otherwise return raw string
 					lifecyclePolicy = helpers.FormatJSONIndentOrRaw(*lifecycleOut.LifecyclePolicyText)
@@ -147,14 +148,14 @@ func (*ECRCollector) GetColumns() []Column {
 		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "URI", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "URI") }},
-		{Header: "Mutability", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Mutability") }},
-		{Header: "Encryption", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Encryption") }},
-		{Header: "KMSKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KMSKey") }},
-		{Header: "ScanOnPush", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ScanOnPush") }},
-		{Header: "LifecyclePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LifecyclePolicy") }},
-		{Header: "ImageCount", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageCount") }},
-		{Header: "CreatedAt", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedAt") }},
+		rawDataColumn("URI"),
+		rawDataColumn("Mutability"),
+		rawDataColumn("Encryption"),
+		rawDataColumn("KMSKey"),
+		rawDataColumn("ScanOnPush"),
+		rawDataColumn("LifecyclePolicy"),
+		rawDataColumn("ImageCount"),
+		rawDataColumn("CreatedAt"),
 	}
 }
 

@@ -13,6 +13,45 @@ import (
 	"github.com/y-miyazaki/arc/internal/aws/helpers"
 )
 
+// Category names and RawData keys shared by multiple collectors.
+const (
+	categoryBatch       = "batch"
+	categoryECS         = "ecs"
+	categoryEFS         = "efs"
+	categoryElastiCache = "elasticache"
+	categoryELB         = "elb"
+	categoryRDS         = "rds"
+
+	keyAuthTokenEnabled                 = "AuthTokenEnabled"
+	keyAutoMinorVersionUpgrade          = "AutoMinorVersionUpgrade"
+	keyAvailabilityZone                 = "AvailabilityZone"
+	keyBackupRetentionPeriod            = "BackupRetentionPeriod"
+	keyCreateTime                       = "CreateTime"
+	keyCreationDate                     = "CreationDate"
+	keyEncryptedAtRest                  = "EncryptedAtRest"
+	keyEncryptedTransit                 = "EncryptedTransit"
+	keyEngine                           = "Engine"
+	keyEngineLifecycleSupport           = "EngineLifecycleSupport"
+	keyIAMDatabaseAuthenticationEnabled = "IAMDatabaseAuthenticationEnabled"
+	keyID                               = "ID"
+	keyJSON                             = "JSON"
+	keyKerberosAuth                     = "KerberosAuth"
+	keyKmsKey                           = "KmsKey"
+	keyLastModifiedDate                 = "LastModifiedDate"
+	keyMultiAZ                          = "MultiAZ"
+	keyNodeType                         = "NodeType"
+	keyReplicationGroupID               = "ReplicationGroupID"
+	keyRetryMaxEventAgeSeconds          = "RetryMaxEventAgeSeconds"
+	keyRoleARN                          = "RoleARN"
+	keySnapshotRetentionLimit           = "SnapshotRetentionLimit"
+	keySnapshotWindow                   = "SnapshotWindow"
+	keyState                            = "State"
+	keyStatus                           = "Status"
+	keyTaskDefinition                   = "TaskDefinition"
+	keyType                             = "Type"
+	keyVersion                          = "Version"
+)
+
 // Sentinel errors for registry operations (alphabetical order).
 var (
 	collectors              = make(map[string]Collector)
@@ -212,7 +251,7 @@ func createCollector(name string, cfg *aws.Config, regions []string, nameResolve
 
 	// Check for errors (second return value)
 	if !result[1].IsNil() {
-		err, ok := result[1].Interface().(error)
+		err, ok := reflect.TypeAssert[error](result[1])
 		if !ok {
 			return nil, ErrInvalidErrorType
 		}
@@ -220,9 +259,14 @@ func createCollector(name string, cfg *aws.Config, regions []string, nameResolve
 	}
 
 	// Return the collector (first return value)
-	collector, ok := result[0].Interface().(Collector)
+	collector, ok := reflect.TypeAssert[Collector](result[0])
 	if !ok {
 		return nil, ErrInvalidCollectorType
 	}
 	return collector, nil
+}
+
+// rawDataColumn returns a Column whose header and RawData key share the same name.
+func rawDataColumn(key string) Column {
+	return Column{Header: key, Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, key) }}
 }

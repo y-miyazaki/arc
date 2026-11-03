@@ -63,15 +63,15 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 			jq := &page.JobQueues[i]
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:     "batch",
+				Category:     categoryBatch,
 				SubCategory1: "JobQueue",
 				Name:         jq.JobQueueName,
 				Region:       region,
 				ARN:          jq.JobQueueArn,
 				RawData: map[string]any{
 					"Priority": jq.Priority,
-					"Status":   jq.State,
-					"JSON":     helpers.FormatJSONIndentOrRaw(jq),
+					keyStatus:  jq.State,
+					keyJSON:    helpers.FormatJSONIndentOrRaw(jq),
 				},
 			}))
 		}
@@ -89,15 +89,15 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 			ce := &page.ComputeEnvironments[i]
 
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:     "batch",
+				Category:     categoryBatch,
 				SubCategory1: "ComputeEnvironment",
 				Name:         ce.ComputeEnvironmentName,
 				Region:       region,
 				ARN:          ce.ComputeEnvironmentArn,
 				RawData: map[string]any{
-					"Type":   ce.Type,
-					"Status": ce.State,
-					"JSON":   helpers.FormatJSONIndentOrRaw(ce),
+					"Type":    ce.Type,
+					keyStatus: ce.State,
+					keyJSON:   helpers.FormatJSONIndentOrRaw(ce),
 				},
 			}))
 		}
@@ -174,7 +174,7 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 
 		nameWithRev := fmt.Sprintf("%s:%d", aws.ToString(jd.JobDefinitionName), jd.Revision)
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:     "batch",
+			Category:     categoryBatch,
 			SubCategory1: "JobDefinition",
 			Name:         nameWithRev,
 			Region:       region,
@@ -189,8 +189,8 @@ func (c *BatchCollector) Collect(ctx context.Context, region string) ([]Resource
 				"CpuArchitecture":       cpuArch,
 				"OperatingSystemFamily": osFamily,
 				"Timeout":               timeout,
-				"JSON":                  helpers.FormatJSONIndentOrRaw(jd),
-				"Status":                jd.Status,
+				keyJSON:                 helpers.FormatJSONIndentOrRaw(jd),
+				keyStatus:               jd.Status,
 			},
 		}))
 	}
@@ -206,24 +206,24 @@ func (*BatchCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Priority", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Priority") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "JobRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JobRoleArn") }},
-		{Header: "ExecutionRoleArn", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExecutionRoleArn") }},
-		{Header: "Image", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Image") }},
-		{Header: "vCPU", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "vCPU") }},
-		{Header: "Memory", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Memory") }},
-		{Header: "CpuArchitecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CpuArchitecture") }},
-		{Header: "OperatingSystemFamily", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "OperatingSystemFamily") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "JSON", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "JSON") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
+		rawDataColumn("Priority"),
+		rawDataColumn("Type"),
+		rawDataColumn("JobRoleArn"),
+		rawDataColumn("ExecutionRoleArn"),
+		rawDataColumn("Image"),
+		rawDataColumn("vCPU"),
+		rawDataColumn("Memory"),
+		rawDataColumn("CpuArchitecture"),
+		rawDataColumn("OperatingSystemFamily"),
+		rawDataColumn("Timeout"),
+		rawDataColumn(keyJSON),
+		rawDataColumn(keyStatus),
 	}
 }
 
 // Name returns the collector name.
 func (*BatchCollector) Name() string {
-	return "batch"
+	return categoryBatch
 }
 
 // ShouldSort returns true.

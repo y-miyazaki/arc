@@ -111,14 +111,14 @@ func (*CloudWatchAlarmsCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "MetricName", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MetricName") }},
-		{Header: "Namespace", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Namespace") }},
-		{Header: "Statistic", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Statistic") }},
-		{Header: "Threshold", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Threshold") }},
-		{Header: "ComparisonOperator", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ComparisonOperator") }},
-		{Header: "EvaluationPeriods", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EvaluationPeriods") }},
-		{Header: "Period", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Period") }},
-		{Header: "TreatMissingData", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TreatMissingData") }},
+		rawDataColumn("MetricName"),
+		rawDataColumn("Namespace"),
+		rawDataColumn("Statistic"),
+		rawDataColumn("Threshold"),
+		rawDataColumn("ComparisonOperator"),
+		rawDataColumn("EvaluationPeriods"),
+		rawDataColumn("Period"),
+		rawDataColumn("TreatMissingData"),
 	}
 }
 

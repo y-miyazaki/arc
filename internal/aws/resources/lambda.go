@@ -115,14 +115,14 @@ func (*LambdaCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "Runtime", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Runtime") }},
-		{Header: "Architecture", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Architecture") }},
-		{Header: "MemorySize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MemorySize") }},
-		{Header: "Timeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Timeout") }},
-		{Header: "EnvVars", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "EnvVars") }},
-		{Header: "LastModified", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModified") }},
+		rawDataColumn("RoleARN"),
+		rawDataColumn("Type"),
+		rawDataColumn("Runtime"),
+		rawDataColumn("Architecture"),
+		rawDataColumn("MemorySize"),
+		rawDataColumn("Timeout"),
+		rawDataColumn("EnvVars"),
+		rawDataColumn("LastModified"),
 	}
 }
 

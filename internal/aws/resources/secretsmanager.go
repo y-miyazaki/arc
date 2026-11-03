@@ -114,14 +114,14 @@ func (*SecretsManagerCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Description", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Description") }},
-		{Header: "KmsKey", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KmsKey") }},
-		{Header: "RotationEnabled", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RotationEnabled") }},
-		{Header: "RotationLambdaARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RotationLambdaARN") }},
-		{Header: "SecretString", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecretString") }},
-		{Header: "LastAccessedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastAccessedDate") }},
-		{Header: "LastRotatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastRotatedDate") }},
-		{Header: "LastChangedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastChangedDate") }},
+		rawDataColumn("Description"),
+		rawDataColumn("KmsKey"),
+		rawDataColumn("RotationEnabled"),
+		rawDataColumn("RotationLambdaARN"),
+		rawDataColumn("SecretString"),
+		rawDataColumn("LastAccessedDate"),
+		rawDataColumn("LastRotatedDate"),
+		rawDataColumn("LastChangedDate"),
 	}
 }
 

@@ -134,21 +134,21 @@ func (*ECSCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "RoleARN", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RoleARN") }},
-		{Header: "TaskDefinition", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "TaskDefinition") }},
-		{Header: "LaunchType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LaunchType") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CronSchedule", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CronSchedule") }},
-		{Header: "Spec", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Spec") }},
-		{Header: "RuntimePlatform", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RuntimePlatform") }},
-		{Header: "PortMappings", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PortMappings") }},
-		{Header: "Environment", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Environment") }},
+		rawDataColumn(keyRoleARN),
+		rawDataColumn(keyTaskDefinition),
+		rawDataColumn("LaunchType"),
+		rawDataColumn(keyStatus),
+		rawDataColumn("CronSchedule"),
+		rawDataColumn("Spec"),
+		rawDataColumn("RuntimePlatform"),
+		rawDataColumn("PortMappings"),
+		rawDataColumn("Environment"),
 	}
 }
 
 // Name returns the resource name of the collector.
 func (*ECSCollector) Name() string {
-	return "ecs"
+	return categoryECS
 }
 
 // ShouldSort returns whether the collected resources should be sorted.
@@ -206,13 +206,13 @@ func (c *ECSCollector) collectClustersAndServices(ctx context.Context, ecsClient
 
 			// Add cluster
 			resources = append(resources, NewResource(&ResourceInput{
-				Category:     "ecs",
+				Category:     categoryECS,
 				SubCategory1: "Cluster",
 				Name:         cluster.ClusterName,
 				Region:       region,
 				ARN:          cluster.ClusterArn,
 				RawData: map[string]any{
-					"Status": cluster.Status,
+					keyStatus: cluster.Status,
 				},
 			}))
 
@@ -281,18 +281,18 @@ func (*ECSCollector) collectScheduledTasks(ctx context.Context, ecsClient *ecs.C
 				}
 
 				r := NewResource(&ResourceInput{
-					Category:     "ecs",
+					Category:     categoryECS,
 					SubCategory1: "",
 					SubCategory2: "ScheduledTask",
 					Name:         rule.Name,
 					Region:       region,
 					ARN:          rule.Arn,
 					RawData: map[string]any{
-						"RoleARN":        taskRoleArn,
-						"TaskDefinition": taskDefArn,
-						"LaunchType":     target.EcsParameters.LaunchType,
-						"Status":         rule.State,
-						"CronSchedule":   rule.ScheduleExpression,
+						keyRoleARN:        taskRoleArn,
+						keyTaskDefinition: taskDefArn,
+						"LaunchType":      target.EcsParameters.LaunchType,
+						keyStatus:         rule.State,
+						"CronSchedule":    rule.ScheduleExpression,
 					},
 				})
 
@@ -366,17 +366,17 @@ func (*ECSCollector) collectServices(ctx context.Context, ecsClient *ecs.Client,
 				}
 
 				resources = append(resources, NewResource(&ResourceInput{
-					Category:     "ecs",
+					Category:     categoryECS,
 					SubCategory1: "",
 					SubCategory2: "Service",
 					Name:         service.ServiceName,
 					Region:       region,
 					ARN:          service.ServiceArn,
 					RawData: map[string]any{
-						"RoleARN":        taskRoleArn,
-						"TaskDefinition": taskDefArn,
-						"LaunchType":     service.LaunchType,
-						"Status":         serviceStatus,
+						keyRoleARN:        taskRoleArn,
+						keyTaskDefinition: taskDefArn,
+						"LaunchType":      service.LaunchType,
+						keyStatus:         serviceStatus,
 					},
 				}))
 			}
@@ -493,15 +493,15 @@ func (*ECSCollector) collectTaskDefinitions(ctx context.Context, ecsClient *ecs.
 		name := fmt.Sprintf("%s:%d", helpers.StringValue(td.Family), td.Revision)
 
 		resources = append(resources, NewResource(&ResourceInput{
-			Category:     "ecs",
-			SubCategory1: "TaskDefinition",
+			Category:     categoryECS,
+			SubCategory1: keyTaskDefinition,
 			Name:         name,
 			Region:       region,
 			ARN:          td.TaskDefinitionArn,
 			RawData: map[string]any{
-				"RoleARN":         taskRoleArn,
-				"TaskDefinition":  td.TaskDefinitionArn,
-				"Status":          td.Status,
+				keyRoleARN:        taskRoleArn,
+				keyTaskDefinition: td.TaskDefinitionArn,
+				keyStatus:         td.Status,
 				"Spec":            spec,
 				"RuntimePlatform": runtimePlatform,
 				"PortMappings":    portMappings,

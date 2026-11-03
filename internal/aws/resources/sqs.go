@@ -112,14 +112,14 @@ func (*SQSCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "DelaySeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "DelaySeconds") }},
-		{Header: "MaximumMessageSize", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MaximumMessageSize") }},
-		{Header: "MessageRetentionPeriod", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "MessageRetentionPeriod") }},
-		{Header: "ReceiveMessageWaitTimeSeconds", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ReceiveMessageWaitTimeSeconds") }},
-		{Header: "VisibilityTimeout", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VisibilityTimeout") }},
-		{Header: "RedrivePolicy", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "RedrivePolicy") }},
-		{Header: "CreatedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedTimestamp") }},
-		{Header: "LastModifiedTimestamp", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastModifiedTimestamp") }},
+		rawDataColumn("DelaySeconds"),
+		rawDataColumn("MaximumMessageSize"),
+		rawDataColumn("MessageRetentionPeriod"),
+		rawDataColumn("ReceiveMessageWaitTimeSeconds"),
+		rawDataColumn("VisibilityTimeout"),
+		rawDataColumn("RedrivePolicy"),
+		rawDataColumn("CreatedTimestamp"),
+		rawDataColumn("LastModifiedTimestamp"),
 	}
 }
 

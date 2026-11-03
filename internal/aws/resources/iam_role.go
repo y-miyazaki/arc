@@ -111,11 +111,11 @@ func (*IAMRoleCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Path", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Path") }},
-		{Header: "AttachedPolicies", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "AttachedPolicies") }},
-		{Header: "PermissionsBoundary", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "PermissionsBoundary") }},
-		{Header: "CreateDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreateDate") }},
-		{Header: "LastUsedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "LastUsedDate") }},
+		rawDataColumn("Path"),
+		rawDataColumn("AttachedPolicies"),
+		rawDataColumn("PermissionsBoundary"),
+		rawDataColumn("CreateDate"),
+		rawDataColumn("LastUsedDate"),
 	}
 }
 

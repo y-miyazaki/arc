@@ -108,13 +108,13 @@ func (*ACMCollector) GetColumns() []Column {
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
 		{Header: "ARN", Value: func(r Resource) string { return r.ARN }},
-		{Header: "Type", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Type") }},
-		{Header: "KeyAlgorithm", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "KeyAlgorithm") }},
-		{Header: "InUse", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InUse") }},
-		{Header: "Status", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Status") }},
-		{Header: "CreatedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "CreatedDate") }},
-		{Header: "IssuedDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "IssuedDate") }},
-		{Header: "ExpirationDate", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ExpirationDate") }},
+		rawDataColumn("Type"),
+		rawDataColumn("KeyAlgorithm"),
+		rawDataColumn("InUse"),
+		rawDataColumn("Status"),
+		rawDataColumn("CreatedDate"),
+		rawDataColumn("IssuedDate"),
+		rawDataColumn("ExpirationDate"),
 	}
 }
 

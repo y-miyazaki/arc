@@ -170,13 +170,13 @@ func (*EC2Collector) GetColumns() []Column {
 		{Header: "SubCategory1", Value: func(r Resource) string { return r.SubCategory1 }},
 		{Header: "Name", Value: func(r Resource) string { return r.Name }},
 		{Header: "Region", Value: func(r Resource) string { return r.Region }},
-		{Header: "InstanceID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceID") }},
-		{Header: "InstanceType", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "InstanceType") }},
-		{Header: "ImageID", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "ImageID") }},
-		{Header: "VPC", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "VPC") }},
-		{Header: "Subnet", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "Subnet") }},
-		{Header: "SecurityGroup", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "SecurityGroup") }},
-		{Header: "State", Value: func(r Resource) string { return helpers.GetMapValue(r.RawData, "State") }},
+		rawDataColumn("InstanceID"),
+		rawDataColumn("InstanceType"),
+		rawDataColumn("ImageID"),
+		rawDataColumn("VPC"),
+		rawDataColumn("Subnet"),
+		rawDataColumn("SecurityGroup"),
+		rawDataColumn("State"),
 	}
 }
 
