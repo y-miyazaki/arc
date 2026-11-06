@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.5
 	github.com/aws/aws-sdk-go-v2/config v1.33.12
 	github.com/aws/aws-sdk-go-v2/service/account v1.42.6
-	github.com/aws/aws-sdk-go-v2/service/acm v1.50.7
+	github.com/aws/aws-sdk-go-v2/service/acm v1.51.0
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.52.4
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.46.4
 	github.com/aws/aws-sdk-go-v2/service/batch v1.78.6
@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.42.7
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.75.6
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.72.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.342.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.343.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.67.1
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.103.0
 	github.com/aws/aws-sdk-go-v2/service/efs v1.51.1
@@ -43,7 +43,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.7
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6
 	github.com/aws/aws-sdk-go-v2/service/transfer v1.86.3
-	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.83.7
+	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.84.0
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.14.0
 	github.com/y-miyazaki/go-common v0.11.2
