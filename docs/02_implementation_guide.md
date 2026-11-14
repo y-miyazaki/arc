@@ -35,7 +35,7 @@
 
 ## 前提条件
 
-- go 1.26.10以上
+- go 1.26.11以上
 - golangci-lint インストール済み
 - AWS SDK for Go v2の基本的な理解
 
