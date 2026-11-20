@@ -46,7 +46,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.85.0
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v3 v3.14.0
-	github.com/y-miyazaki/go-common v0.11.3
+	github.com/y-miyazaki/go-common v0.11.4
 	go.uber.org/mock v0.6.0
 )
 
@@ -70,6 +70,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	gorm.io/gorm v1.31.2 // indirect
 )
